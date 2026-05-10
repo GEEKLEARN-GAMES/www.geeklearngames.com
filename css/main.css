@@ -72,6 +72,8 @@ ul{list-style:none}
 /* Individual flag card */
 .gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease}
 .gate-lang.dimmed{opacity:.32;filter:grayscale(100%)}
+/* Mobile: tapped flag stays in full colour (no hover available on touch screens) */
+.gate-lang.selected{filter:grayscale(0%) !important}
 .gate-lang:hover{transform:scale(1.06);z-index:2;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 .gate-lang:active{transform:scale(.97)}
 /* Desaturation: default = all grey; hovered card recovers full colour */
@@ -654,6 +656,7 @@ ul{list-style:none}
 /* ─── CAROUSEL — smaller cards ──────────────────────── */
 .carousel-viewport{
   position:relative;overflow:hidden;padding:8px 0 20px;
+  touch-action: pan-y; /* allow vertical scroll while capturing horizontal swipes */
   /* Gradient fade edges — hides items as they enter/leave */
   mask-image:linear-gradient(to right,transparent 0%,#000 8%,#000 92%,transparent 100%);
   -webkit-mask-image:linear-gradient(to right,transparent 0%,#000 8%,#000 92%,transparent 100%);
@@ -739,6 +742,12 @@ ul{list-style:none}
 .detail-game-title{font-family:var(--f-disp);font-size:clamp(3.4rem,10vw,8.8rem);letter-spacing:.02em;text-transform:uppercase;line-height:.88;margin-bottom:16px}
 .detail-cat-label{font-family:var(--f-mono);font-size:.54rem;letter-spacing:.35em;color:var(--w30);text-transform:uppercase;margin-bottom:10px}
 .detail-tagline{font-family:var(--f-serif);font-style:italic;font-size:clamp(.9rem,1.55vw,1.12rem);color:var(--w50);max-width:500px;line-height:1.7;margin-bottom:28px;text-align:center}
+/* Genre tags — mobile only */
+.genre-tags{display:none}
+@media(max-width:640px){
+  .genre-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:-12px 0 20px}
+  .genre-tag{font-family:var(--f-mono);font-size:.42rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.16);padding:4px 10px;white-space:nowrap}
+}
 .detail-btns{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
 .detail-body{padding:clamp(44px,7vw,84px) clamp(16px,5vw,72px);max-width:1440px;margin:0 auto}
 .detail-grid{display:grid;grid-template-columns:1fr 310px;gap:60px}

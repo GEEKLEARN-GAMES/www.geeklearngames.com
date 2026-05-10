@@ -22,6 +22,30 @@ function getPrice(item) {
   return item.price;
 }
 
+/* ── Localised item content helper ── */
+// Returns translated field if available for current LANG, else English base
+function getItemField(item, field) {
+  if (LANG !== 'en' && item.i18n && item.i18n[LANG] && item.i18n[LANG][field] !== undefined) {
+    return item.i18n[LANG][field];
+  }
+  return item[field];
+}
+
+/* ── Localised status label ── */
+function getStatusLabel(item) {
+  if (item.status === 'coming-soon') return t('shopStatus') || 'Coming Soon';
+  if (item.status === 'available')   return t('available')  || 'Available';
+  return item.statusLabel;
+}
+
+/* ── Localised category label ── */
+const FILM_LABELS = { fr:'Film Interactif',es:'Film Interactivo',de:'Interaktiver Film',ar:'فيلم تفاعلي',zh:'互动电影',ja:'インタラクティブフィルム',ru:'Интерактивный фильм',pl:'Film Interaktywny',it:'Film Interattivo',en:'Interactive Film' };
+const GAME_LABELS = { fr:'Jeu Vidéo',es:'Videojuego',de:'Videospiel',ar:'لعبة فيديو',zh:'电子游戏',ja:'ビデオゲーム',ru:'Видеоигра',pl:'Gra Wideo',it:'Videogioco',en:'Video Game' };
+function getCatLabel(item) {
+  const map = item.type === 'film' ? FILM_LABELS : GAME_LABELS;
+  return map[LANG] || item.cat;
+}
+
 /* ── UTILS ── */
 const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -69,8 +93,10 @@ function selectLang(code) {
   document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
 
   // Visual feedback on clicked button — highlight selected, dim the rest
+  // .selected restores saturation on mobile (where :hover doesn't exist)
   document.querySelectorAll('.gate-lang').forEach(b => {
-    b.classList.toggle('dimmed', b.dataset.code !== code);
+    b.classList.toggle('dimmed',    b.dataset.code !== code);
+    b.classList.toggle('selected',  b.dataset.code === code);
   });
 
   const gate = $('lang-gate');
@@ -283,6 +309,7 @@ function initSite() {
   initReveal();
   initCounters();
   applyWorksPageLabels();
+  initCarouselTouch();
 }
 
 /* ══════════════════════════════════════════
@@ -404,7 +431,7 @@ function cardHTML(item, typeLabel) {
         <img src="${item.cover}" alt="${item.title}" loading="lazy"
              onerror="this.style.background='#111';this.style.display='block'">
       </div>
-      <span class="c-badge ${item.status}">${item.statusLabel}</span>
+      <span class="c-badge ${item.status}">${getStatusLabel(item)}</span>
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
@@ -547,6 +574,14 @@ function buildDetail(id) {
   // Screenshots dots
   const ssCount = item.screenshots.length;
 
+  const localTagline     = getItemField(item, 'tagline');
+  const localDescription = getItemField(item, 'description');
+  const localFeatures    = getItemField(item, 'features');
+  const localCat         = getCatLabel(item);
+  const localStatus      = getStatusLabel(item);
+  const localPrice       = getPrice(item);
+  const genres           = item.genres || [];
+
   container.innerHTML = `
     <!-- HERO -->
     <div class="detail-hero">
@@ -560,11 +595,12 @@ function buildDetail(id) {
           ? `<img class="detail-game-logo" src="${item.logo}" alt="${item.title}">`
           : `<h1 class="detail-game-title">${item.title}</h1>`
         }
-        <div class="detail-cat-label">${item.cat} · ${item.year}</div>
-        <p class="detail-tagline">${item.tagline}</p>
+        <div class="detail-cat-label">${localCat} · ${item.year}</div>
+        <p class="detail-tagline">${localTagline}</p>
+        ${genres.length ? `<div class="genre-tags">${genres.map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
         <div class="detail-btns">
           <button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">
-            ${t('buyNow')} — ${getPrice(item)}
+            ${t('buyNow')} — ${localPrice}
           </button>
           <button class="btn btn-outline btn-lg" onclick="openTrailerModal('${item.id}')">
             ${t('trailerBtn')}
@@ -580,13 +616,13 @@ function buildDetail(id) {
           <!-- About -->
           <div class="detail-sec-head">${t('aboutHead')}</div>
           <div class="detail-desc">
-            ${item.description.map(p => `<p>${p}</p>`).join('')}
+            ${localDescription.map(p => `<p>${p}</p>`).join('')}
           </div>
 
           <!-- Features -->
           <div class="detail-sec-head" style="margin-top:40px">${t('featuresHead')}</div>
           <ul style="list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:4px">
-            ${item.features.map(f => `
+            ${localFeatures.map(f => `
               <li style="display:flex;align-items:flex-start;gap:11px;font-size:.86rem;color:var(--greyt);line-height:1.5">
                 <span style="color:var(--grey);flex-shrink:0;font-family:var(--f-mono);font-size:.72rem;margin-top:2px">—</span>
                 ${f}
@@ -631,12 +667,12 @@ function buildDetail(id) {
           <div class="sbox">
             <div class="sbox-head">${t('infoHead')}</div>
             <div class="sbox-body">
-              <div class="irow"><span class="ik">${t('infoType')}</span><span class="iv">${item.cat}</span></div>
-              ${item.type === 'game' ? `<div class="irow"><span class="ik">${t('infoGenre')}</span><span class="iv">${item.cat}</span></div>` : ''}
+              <div class="irow"><span class="ik">${t('infoType')}</span><span class="iv">${localCat}</span></div>
+              ${item.type === 'game' ? `<div class="irow"><span class="ik">${t('infoGenre')}</span><span class="iv">${localCat}</span></div>` : ''}
               ${item.duration ? `<div class="irow"><span class="ik">${t('infoDuration')}</span><span class="iv">${item.duration}</span></div>` : ''}
               <div class="irow"><span class="ik">${t('infoYear')}</span><span class="iv">${item.year}</span></div>
               <div class="irow"><span class="ik">${t('infoStudio')}</span><span class="iv">GEEKLEARN GAMES</span></div>
-              <div class="irow"><span class="ik">${t('infoStatus')}</span><span class="iv">${item.statusLabel}</span></div>
+              <div class="irow"><span class="ik">${t('infoStatus')}</span><span class="iv">${localStatus}</span></div>
               <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv" style="font-size:1.05rem;font-weight:700">${getPrice(item)}</span></div>
             </div>
           </div>
@@ -694,7 +730,7 @@ function openBuyModal(id) {
   if (!item) return;
   setText('modal-eye', t('buyModal'));
   setText('modal-title', item.title);
-  setText('modal-sub', `${getPrice(item)} · ${item.statusLabel}`);
+  setText('modal-sub', `${getPrice(item)} · ${getStatusLabel(item)}`);
   setHTML('modal-plats', item.platforms.map(p => `
     <button class="plat-btn" onclick="void(0)">
       <div class="plat-ico-lg" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
@@ -1048,7 +1084,7 @@ function renderSearchResults(query) {
         </div>
         <div class="search-result-info">
           <div class="search-result-title">${hl}</div>
-          <div class="search-result-meta">${item.cat} · ${item.year} · ${displayPrice}</div>
+          <div class="search-result-meta">${getCatLabel(item)} · ${item.year} · ${displayPrice}</div>
         </div>
         <svg class="search-result-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -1065,6 +1101,90 @@ function escRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 }
 
+/* ══════════════════════════════════════════
+   CAROUSEL TOUCH — mobile swipe (≤ 640px)
+   Drag: finger takes direct control of the
+   track. Release: CSS animation resumes from
+   the exact frame where the drag ended —
+   no jump, no snap, perfectly seamless.
+══════════════════════════════════════════ */
+function initCarouselTouch() {
+  [
+    { selector: '.carousel-track.films-t', dir: 'left'  },
+    { selector: '.carousel-track.games-t', dir: 'right' }
+  ].forEach(({ selector, dir }) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+
+    let isDragging = false;
+    let startX     = 0;
+    let startPx    = 0;
+
+    /* Read the current CSS translateX in pixels from the live animation frame */
+    function getTranslatePx() {
+      const t = window.getComputedStyle(el).transform;
+      if (!t || t === 'none') return 0;
+      const vals = t.match(/matrix.*\((.+)\)/)?.[1].split(',');
+      return vals ? parseFloat(vals[4]) : 0;
+    }
+
+    el.addEventListener('touchstart', e => {
+      if (window.innerWidth > 640) return; // desktop: do nothing
+      startPx = getTranslatePx();           // capture live frame
+      startX  = e.touches[0].clientX;
+
+      /* Atomically detach animation and pin at captured position —
+         both happen in the same JS task, so no intermediate paint */
+      el.style.animation = 'none';
+      el.style.transform = `translateX(${startPx}px)`;
+      isDragging = true;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      const delta = e.touches[0].clientX - startX;
+      let   newPx = startPx + delta;
+
+      /* Wrap within the seamless loop range */
+      const halfW = el.scrollWidth / 2;
+      if (newPx > 0)      newPx -= halfW;
+      if (newPx < -halfW) newPx += halfW;
+
+      el.style.transform = `translateX(${newPx}px)`;
+    }, { passive: true });
+
+    el.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      /* Parse the final inline position */
+      const raw      = el.style.transform.match(/-?[\d.]+/);
+      const currentPx = raw ? parseFloat(raw[0]) : 0;
+      const halfW    = el.scrollWidth / 2;
+      const duration = 90; // must match CSS animation duration
+
+      /* Map pixel position → animation progress [0, 1) → negative delay */
+      let progress;
+      if (dir === 'left') {
+        // carouselLeft: 0 → -halfW  →  progress = |px| / halfW
+        progress = Math.abs(currentPx) / halfW;
+      } else {
+        // carouselRight: -halfW → 0  →  progress = (halfW + px) / halfW
+        progress = (halfW + currentPx) / halfW;
+      }
+      progress = ((progress % 1) + 1) % 1; // clamp to [0, 1) safely
+
+      const delay = -(progress * duration); // negative = already elapsed time
+
+      /* Re-enable CSS animation from the correct frame — clears the inline
+         animation:none, then overrides only the delay sub-property */
+      el.style.transform      = '';
+      el.style.animation      = '';
+      el.style.animationDelay = `${delay}s`;
+    }, { passive: true });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Lock body scroll while language gate is showing
   document.body.style.overflow = 'hidden';
@@ -1077,5 +1197,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sinp.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
   }
   $('trailer-modal')?.addEventListener('click', e => { if (e.target === $('trailer-modal')) closeTrailerModal(); });
+
+  // Prevent the page scrolling behind the language gate on mobile
+  const gate = $('lang-gate');
+  if (gate) {
+    gate.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+  }
+
   buildGate();
 });
