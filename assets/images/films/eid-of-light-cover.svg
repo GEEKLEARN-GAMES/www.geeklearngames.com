@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+<rect width="600" height="900" fill="#0d0d0d"/>
+<rect x="0.5" y="0.5" width="599" height="899" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<line x1="0" y1="0" x2="600" y2="900" stroke="#181818" stroke-width="1"/>
+<line x1="600" y1="0" x2="0" y2="900" stroke="#181818" stroke-width="1"/>
+<text x="300" y="440" font-family="Georgia,serif" font-size="12" fill="#2a2a2a" text-anchor="middle" letter-spacing="4">REPLACE WITH IMAGE</text>
+<text x="300" y="462" font-family="Georgia,serif" font-size="10" fill="#1e1e1e" text-anchor="middle">eid-of-light-cover — 600×900px</text>
+</svg>
