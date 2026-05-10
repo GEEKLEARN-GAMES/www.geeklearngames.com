@@ -58,7 +58,7 @@
   </div>
 
   <!-- Tagline -->
-  <p class="gate-tagline">"GAMES THAT TEACH, MOVE, HAUNT YOUR MIND"</p>
+  <p class="gate-tagline">Games that teach, move, haunt your mind.</p>
 
   <!-- Inline separator: ─── CHOOSE YOUR LANGUAGE ─── -->
   <div class="gate-separator">
@@ -74,7 +74,7 @@
   <div class="gate-bottom">
     <span class="gate-bottom-item">10 Languages</span>
     <span class="gate-bottom-dot" aria-hidden="true">·</span>
-    <span class="gate-bottom-item">Est. 2022</span>
+    <span class="gate-bottom-item">Est. 2026</span>
     <span class="gate-bottom-dot" aria-hidden="true">·</span>
     <span class="gate-bottom-item">France</span>
     <span class="gate-bottom-dot" aria-hidden="true">·</span>
@@ -94,16 +94,16 @@
 <!-- ══════════ SEARCH MODAL ══════════ -->
 <div id="search-modal" onclick="if(event.target===this) closeSearch()">
   <div class="search-modal-inner">
-    <div class="search-label" id="search-label">Search a game or film</div>
+    <div class="search-label" id="search-label-txt">Search a game or film</div>
     <div class="search-input-row">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
       <input id="search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type a title...">
-      <button class="search-close" onclick="closeSearch()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <button class="search-close" onclick="closeSearch()" aria-label="Close search">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="display:block">
+          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -159,7 +159,7 @@
     <div class="hero-content">
       <div class="hero-eyebrow">
         <span class="hero-eyebrow-dash"></span>
-        <span class="hero-eyebrow-text" id="hero-eye">Independent Studio · Est. 2022 · France</span>
+        <span class="hero-eyebrow-text" id="hero-eye">Independent Studio · Est. 2026 · France</span>
         <span class="hero-eyebrow-dash"></span>
       </div>
       <h1 class="hero-slogan">GAMES THAT <span class="hollow">TEACH, MOVE,</span> HAUNT YOUR MIND</h1>
@@ -194,6 +194,7 @@
       <div>
         <div class="showcase-eyebrow" id="showcase-eye">Our Universe</div>
         <h2 class="showcase-title" id="showcase-title">WHAT WE<br>CREATE</h2>
+
       </div>
       <button class="btn btn-ghost" onclick="showPage('works')" id="showcase-btn">Discover all works →</button>
     </div>
@@ -204,7 +205,7 @@
   <!-- GLG PATTERN BAND separator -->
   <div class="glg-band">
     <div class="glg-band-bg"></div>
-    <div class="glg-band-label">GEEKLEARN GAMES · Est. 2022 · France</div>
+    <div class="glg-band-label">GEEKLEARN GAMES · Est. 2026 · France</div>
   </div>
 
   <!-- STUDIO BLOCK -->
@@ -234,7 +235,7 @@
        style="text-align:center;padding:clamp(64px,8vw,112px) clamp(16px,5vw,72px);border-top:1px solid var(--border)">
     <div class="glg-pattern-bg glg-pat-subtle glg-pat-pulse"></div>
     <div style="max-width:540px;margin:0 auto">
-      <p class="section-eye reveal" style="justify-content:center">Publishers &amp; Partners</p>
+      <p class="section-eye reveal" style="justify-content:center" id="cta-eye">Publishers &amp; Partners</p>
       <h2 class="section-h reveal" style="margin:14px 0 18px" id="cta-title">LET'S BUILD<br>TOGETHER</h2>
       <p style="font-size:.88rem;color:var(--greyt);line-height:1.85;margin-bottom:36px" class="reveal" id="cta-desc">Publishers, distributors, collaborators — we are open to meaningful partnerships.</p>
       <div style="display:flex;justify-content:center;gap:11px;flex-wrap:wrap" class="reveal">
@@ -250,7 +251,7 @@
     <div class="footer-inner">
       <div>
         <div class="footer-logo"><img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GLG"></div>
-        <p class="footer-brand-desc" id="footer-desc">Independent game studio. Interactive experiences that teach, move, and haunt your mind. Est. 2022, France.</p>
+        <p class="footer-brand-desc" id="footer-desc">Independent game studio. Interactive experiences that teach, move, and haunt your mind. Est. 2026, France.</p>
       </div>
       <div>
         <div class="footer-col-title" id="footer-nav-title">Navigate</div>
@@ -293,7 +294,7 @@
 
   <div class="works-hero glg-pattern glg-line-after">
     <div class="glg-pattern-bg glg-pat-subtle"></div>
-    <p class="section-eye reveal">Complete Catalogue</p>
+    <p class="section-eye reveal" id="works-eye">Complete Catalogue</p>
     <h1 class="section-h reveal"
         style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
         id="works-title">OUR WORKS</h1>
@@ -363,16 +364,13 @@
 
       <div class="shop-wip-eyebrow">
         <span class="shop-wip-dash"></span>
-        <span id="shop-eye">Under Construction</span>
+        <span id="shop-eye" style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase">Under Construction</span>
         <span class="shop-wip-dash"></span>
       </div>
 
       <h1 class="shop-wip-title">OOPS<span class="shop-wip-period">.</span></h1>
 
-      <p class="shop-wip-sub" id="shop-sub">
-        Our shop is being assembled with the same care<br>
-        we put into every world we build.
-      </p>
+      <p class="shop-wip-sub" id="shop-sub">Our shop is being assembled with the same care<br>we put into every world we build.</p>
 
       <div class="shop-wip-items" aria-hidden="true">
         <span>Merch</span><span class="shop-wip-sep">·</span>
@@ -384,13 +382,13 @@
       <div class="shop-wip-divider"></div>
 
       <div class="shop-wip-btns">
-        <button class="btn btn-primary btn-lg" onclick="showPage('works')" id="shop-btn-works">Explore Our Works</button>
-        <button class="btn btn-ghost   btn-lg" onclick="showPage('home')"  id="shop-btn-home">Back to Home</button>
+        <button class="btn btn-primary btn-lg" onclick="showPage('works')" id="shop-btn-works"><span id="shop-btn-works-txt">Explore Our Works</span></button>
+        <button class="btn btn-ghost   btn-lg" onclick="showPage('home')"  id="shop-btn-home"><span id="shop-btn-home-txt">Back to Home</span></button>
       </div>
 
       <div class="shop-wip-status">
         <span class="shop-wip-pulse" aria-hidden="true"></span>
-        <span id="shop-status">Coming Soon</span>
+        <span id="shop-status"><span id="shop-status-txt">Coming Soon</span></span>
       </div>
 
     </div><!-- /.shop-wip-inner -->
@@ -414,20 +412,20 @@
   <!-- HERO -->
   <div class="about-hero glg-pattern glg-line-after">
     <div class="glg-pattern-bg glg-pat-subtle"></div>
-    <p class="section-eye reveal">The Studio</p>
+    <p class="section-eye reveal" id="about-eye">The Studio</p>
     <h1 class="section-h reveal"
         style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
         id="about-title">ABOUT<br>US</h1>
     <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
        class="reveal" id="about-desc">
-      Meet the people behind the worlds — the small team building experiences that teach, move, and haunt your mind.
+      Meet the people behind the worlds — building experiences that teach, move, and haunt your mind.
     </p>
   </div>
 
   <!-- ORG TREE — built by buildAboutPage() -->
   <div class="about-section about-team-section">
-    <div class="about-section-eye reveal">The Team</div>
-    <h2 class="about-section-title reveal">WHO WE<br>ARE</h2>
+    <div class="about-section-eye reveal" id="team-eye">The Team</div>
+    <h2 class="about-section-title reveal" id="team-title">WHO WE<br>ARE</h2>
     <div class="org-tree" id="org-tree"></div>
   </div>
 
@@ -435,20 +433,20 @@
   <div class="about-manifesto glg-pattern reveal">
     <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:50s;--glg-direction:reverse"></div>
     <div class="about-manifesto-inner">
-      <div class="about-manifesto-label">Studio Manifesto</div>
+      <div class="about-manifesto-label" id="manifesto-label">Studio Manifesto</div>
       <blockquote class="about-manifesto-quote" id="about-manifesto-quote">
         "We don't make games.<br>
         We build <em>worlds that leave marks</em> on the people who enter them —<br>
         experiences that teach, move, and haunt your mind long after the screen goes dark."
       </blockquote>
-      <div class="about-manifesto-sig">— GEEKLEARN GAMES, Est. 2022</div>
+      <div class="about-manifesto-sig">— GEEKLEARN GAMES, Est. 2026</div>
     </div>
   </div>
 
   <!-- AWARDS & DISTINCTIONS — built by buildAboutPage() -->
   <div class="about-section about-awards-section">
-    <div class="about-section-eye reveal">Awards &amp; Distinctions</div>
-    <h2 class="about-section-title reveal" id="about-awards-title">RECOGNISED<br>WORK</h2>
+    <div class="about-section-eye reveal" id="awards-eye">Awards &amp; Distinctions</div>
+    <h2 class="about-section-title reveal" id="awards-title">RECOGNISED<br>WORK</h2>
     <div class="awards-grid" id="awards-grid"></div>
   </div>
 
@@ -474,7 +472,7 @@
 <main class="page" id="page-contact">
   <div class="contact-hero glg-pattern glg-line-after">
     <div class="glg-pattern-bg glg-pat-subtle"></div>
-    <p class="section-eye reveal">Let's talk</p>
+    <p class="section-eye reveal" id="contact-eye">Let's talk</p>
     <h1 class="section-h reveal"
         style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
         id="contact-title-h">CONTACT</h1>
@@ -507,10 +505,10 @@
     </div>
     <div class="contact-info-col">
       <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:26px" id="contact-info-title">Direct contact</p>
-      <div class="c-info-block"><div class="c-info-lbl">General</div><div class="c-info-val">contact@geeklearngames.com</div><div class="c-info-sub">All inquiries</div></div>
-      <div class="c-info-block"><div class="c-info-lbl">Publishers &amp; Partners</div><div class="c-info-val">partners@geeklearngames.com</div><div class="c-info-sub">Collaborations, licensing, distribution</div></div>
-      <div class="c-info-block"><div class="c-info-lbl">Press &amp; Media</div><div class="c-info-val">press@geeklearngames.com</div><div class="c-info-sub">Press kit on request</div></div>
-      <div class="c-info-block"><div class="c-info-lbl">Response time</div><div class="c-info-val">24 — 48 hours</div><div class="c-info-sub">Mon–Fri · Paris time</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-gen">General</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-gen">All inquiries</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-press">Press kit on request</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div></div>
       <div class="socials-row">
         <button class="soc-btn" onclick="window.open('https://x.com/geeklearngames')">𝕏 Twitter</button>
         <button class="soc-btn" onclick="window.open('https://discord.gg/M7YJsC9BwH')">Discord</button>
@@ -523,7 +521,7 @@
   <footer>
     <div class="footer-bottom">
       <span class="footer-copy">© <span class="yr2"></span> GEEKLEARN GAMES</span>
-      <span class="footer-copy">contact@geeklearngames.com</span>
+      <span class="footer-copy">geeklearngames.studio@gmail.com</span>
     </div>
   </footer>
 </main>

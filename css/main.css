@@ -175,7 +175,7 @@ ul{list-style:none}
 .search-input-row svg{color:var(--w50);flex-shrink:0;margin-right:12px}
 #search-input{flex:1;background:transparent;border:none;outline:none;font-family:var(--f-disp);font-size:clamp(1.8rem,5vw,3.2rem);letter-spacing:.04em;color:var(--white);caret-color:var(--white)}
 #search-input::placeholder{color:rgba(255,255,255,.15)}
-.search-close{width:36px;height:36px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--w50);cursor:pointer;flex-shrink:0;transition:color .2s,border-color .2s;background:none}
+.search-close{width:36px;height:36px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;line-height:0;font-size:0;padding:0;color:var(--w50);cursor:pointer;flex-shrink:0;transition:color .2s,border-color .2s;background:none}
 .search-close:hover{color:var(--white);border-color:var(--bhi)}
 #search-results{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;scrollbar-width:none}
 #search-results::-webkit-scrollbar{display:none}
@@ -320,9 +320,9 @@ ul{list-style:none}
 .puz-strip-row:nth-child(odd) .puz-strip {
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 7vw));
 }
-/* Strip 2: diagonal falls from left — top-left cut down */
+/* Strip 2: horizontal mirror of strip 1 — bottom-right raised */
 .puz-strip-row:nth-child(even) .puz-strip {
-  clip-path: polygon(0 7vw, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7vw), 0 100%);
 }
 
 /* ── Image / placeholder fill ── */
@@ -385,6 +385,7 @@ ul{list-style:none}
   left: clamp(32px,6vw,88px);
 }
 .puz-strip-row:nth-child(even) .puz-quote {
+  /* Mirror of odd: quote stays on right so it stays in the taller (uncut) corner */
   left: auto;
   right: clamp(32px,6vw,88px);
   text-align: right;
@@ -470,7 +471,7 @@ ul{list-style:none}
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 24px))
   }
   .puz-strip-row:nth-child(even) .puz-strip {
-    clip-path: polygon(0 24px, 100% 0, 100% 100%, 0 100%)
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), 0 100%)
   }
   .puz-quote { max-width: 90vw }
   .puz-quote-text { font-size: clamp(.95rem,4.5vw,1.4rem) }

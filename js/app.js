@@ -12,6 +12,16 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 let LANG = 'en';
 const t = k => I18N[LANG]?.[k] ?? I18N.en[k] ?? k;
 
+/* ── Localised price helper ── */
+function getPrice(item) {
+  if (item.isFree) return t('free') || 'FREE';
+  if (item.prices) {
+    const cur = LANG_CURRENCY[LANG] || 'eur';
+    return item.prices[cur] || item.price;
+  }
+  return item.price;
+}
+
 /* ── UTILS ── */
 const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -207,6 +217,55 @@ function applyTranslations() {
   t('nav').forEach((label, i) => {
     setText('fnl-' + fNavKeys[i], label);
   });
+
+  // Showcase
+  const stEl = $('showcase-title');
+  if (stEl) { const v = t('showcaseTitle'); stEl.innerHTML = v ? v.replace('\n','<br>') : 'WHAT WE<br>CREATE'; }
+
+  // CTA eyebrow
+  setText('cta-eye', t('ctaEye') || 'Publishers & Partners');
+
+  // Works page
+  setText('works-eye', t('worksEye') || 'Complete Catalogue');
+
+  // About page
+  setText('about-eye', t('aboutEye') || 'The Studio');
+  const atEl = $('about-title');
+  if (atEl) { const v = t('aboutTitle'); atEl.innerHTML = v ? v.replace('\n','<br>') : 'ABOUT<br>US'; }
+  setText('about-desc', t('aboutDesc'));
+  setText('team-eye',  t('teamEye') || 'The Team');
+  const ttEl = $('team-title');
+  if (ttEl) { const v = t('teamTitle'); ttEl.innerHTML = v ? v.replace('\n','<br>') : 'WHO WE<br>ARE'; }
+  setText('manifesto-label', t('manifestoLabel') || 'Studio Manifesto');
+  setHTML('about-manifesto-quote', t('manifestoQuote') || '');
+  setText('awards-eye',   t('awardsEye') || 'Awards & Distinctions');
+  const awEl = $('awards-title');
+  if (awEl) { const v = t('awardsTitle'); awEl.innerHTML = v ? v.replace('\n','<br>') : 'RECOGNISED<br>WORK'; }
+
+  // Contact eyebrow
+  setText('contact-eye', t('contactEye') || "Let's talk");
+
+  // Contact info labels
+  setText('ci-lbl-gen',   t('ciLblGen')   || 'General');
+  setText('ci-sub-gen',   t('ciSubGen')   || 'All inquiries');
+  setText('ci-lbl-par',   t('ciLblPar')   || 'Publishers & Partners');
+  setText('ci-sub-par',   t('ciSubPar')   || 'Collaborations, licensing, distribution');
+  setText('ci-lbl-press', t('ciLblPress') || 'Press & Media');
+  setText('ci-sub-press', t('ciSubPress') || 'Press kit on request');
+  setText('ci-lbl-bug',   t('ciLblBug')   || 'Bug Report');
+  setText('ci-sub-bug',   t('ciSubBug')   || 'Players — report a recurring issue');
+
+  // Shop page
+  setText('shop-eye',          t('shopEye')      || 'Under Construction');
+  setHTML('shop-sub',          t('shopSub')       || 'Our shop is being assembled...');
+  setText('shop-btn-works-txt',t('shopBtnWorks')  || 'Explore Our Works');
+  setText('shop-btn-home-txt', t('shopBtnHome')   || 'Back to Home');
+  setText('shop-status-txt',   t('shopStatus')    || 'Coming Soon');
+
+  // Search UI
+  setText('search-label-txt', t('searchLabel') || 'Search a game or film');
+  const sinp = $('search-input');
+  if (sinp) sinp.placeholder = t('searchHint') || 'Type a title...';
 }
 
 /* ══════════════════════════════════════════
@@ -282,9 +341,17 @@ function showWorksTab() {
    MARQUEE
 ══════════════════════════════════════════ */
 function buildMarquee() {
-  const words = ['GeekLearn Games','Interactive Films','Video Games','Est. 2022','France','Games That Teach','Games That Move','Games That Haunt'];
+  const words = t('marqueeWords') || ['GeekLearn Games','Interactive Films','Video Games','Est. 2026','France','Games That Teach','Games That Move','Games That Haunt'];
+  // Perfect seamless loop: use an EVEN number of copies so that
+  // translateX(-50%) lands exactly at the visual start of the second half,
+  // which is identical to the first half — zero visible jump.
+  const approxItemW = 160; // px per word item (including padding + dot)
+  const vw = window.innerWidth || 1280;
+  let half = Math.max(1, Math.ceil(vw / (words.length * approxItemW)));
+  const copies = half * 2; // always even → -50% = perfect loop point
+
   let html = '';
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < copies; i++) {
     words.forEach(w => { html += `<span class="marquee-item"><span class="marquee-dot"></span>${w}</span>`; });
   }
   const track = $('marquee-track');
@@ -341,7 +408,7 @@ function cardHTML(item, typeLabel) {
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
-        <div class="c-card-yr">${item.year} · ${item.price}</div>
+        <div class="c-card-yr">${item.year} · ${getPrice(item)}</div>
       </div>
     </div>
   `;
@@ -429,7 +496,7 @@ function buildAwards() {
       <div class="award-card award-card--soon">
         <div class="award-soon-inner">
           <div class="award-soon-icon">★</div>
-          <div class="award-soon-label">À Venir<br>Coming Soon</div>
+          <div class="award-soon-label">${t('awardsSoon') || 'Coming Soon'}</div>
         </div>
       </div>
     `).join('');
@@ -497,7 +564,7 @@ function buildDetail(id) {
         <p class="detail-tagline">${item.tagline}</p>
         <div class="detail-btns">
           <button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">
-            ${t('buyNow')} — ${item.price}
+            ${t('buyNow')} — ${getPrice(item)}
           </button>
           <button class="btn btn-outline btn-lg" onclick="openTrailerModal('${item.id}')">
             ${t('trailerBtn')}
@@ -570,7 +637,7 @@ function buildDetail(id) {
               <div class="irow"><span class="ik">${t('infoYear')}</span><span class="iv">${item.year}</span></div>
               <div class="irow"><span class="ik">${t('infoStudio')}</span><span class="iv">GEEKLEARN GAMES</span></div>
               <div class="irow"><span class="ik">${t('infoStatus')}</span><span class="iv">${item.statusLabel}</span></div>
-              <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv" style="font-size:1.05rem;font-weight:700">${item.price}</span></div>
+              <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv" style="font-size:1.05rem;font-weight:700">${getPrice(item)}</span></div>
             </div>
           </div>
           <div class="sbox">
@@ -627,7 +694,7 @@ function openBuyModal(id) {
   if (!item) return;
   setText('modal-eye', t('buyModal'));
   setText('modal-title', item.title);
-  setText('modal-sub', `${item.price} · ${item.statusLabel}`);
+  setText('modal-sub', `${getPrice(item)} · ${item.statusLabel}`);
   setHTML('modal-plats', item.platforms.map(p => `
     <button class="plat-btn" onclick="void(0)">
       <div class="plat-ico-lg" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
@@ -708,7 +775,7 @@ function footerHTML() {
         <div class="footer-logo">
           <img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GLG" onerror="this.style.display='none'">
         </div>
-        <p class="footer-brand-desc" id="footer-desc-d">An independent game studio creating interactive experiences that teach, move, and haunt your mind. Est. 2022, France.</p>
+        <p class="footer-brand-desc" id="footer-desc-d">An independent game studio creating interactive experiences that teach, move, and haunt your mind. Est. 2026, France.</p>
       </div>
       <div>
         <div class="footer-col-title">Navigate</div>
@@ -875,7 +942,7 @@ function buildPuzzleStrips() {
     {
       img:   '', // e.g. 'assets/images/showcase/scene-01.jpg'
       quote: '"We don\u2019t make games. We build worlds that leave marks on the people who enter them."',
-      tag:   'GeekLearn Games — Est. 2022',
+      tag:   'GeekLearn Games — Est. 2026',
       num:   '01',
     },
     {
@@ -926,6 +993,8 @@ function applyWorksPageLabels() {
   // Showcase eyebrow
   const se = $('showcase-eye');
   if (se) se.textContent = t('showcaseEye') || 'Our Universe';
+  // Rebuild carousels so price currency reflects current language
+  buildCarousels();
 }
 
 
@@ -953,24 +1022,25 @@ function renderSearchResults(query) {
 
   const q = query.trim().toLowerCase();
   if (!q) {
-    container.innerHTML = '<div class="search-empty" id="search-hint">Start typing a game or film title...</div>';
+    container.innerHTML = `<div class="search-empty">${t('searchHint') || 'Start typing a game or film title...'}</div>`;
     return;
   }
 
-  // Only match title — must contain the exact typed sequence of characters
+  // Match against English title AND localised tagline/description keywords
   const matches = ALL_WORKS.filter(item =>
-    item.title.toLowerCase().includes(q)
+    item.title.toLowerCase().includes(q) ||
+    (item.tagline && item.tagline.toLowerCase().includes(q))
   );
 
   if (!matches.length) {
-    container.innerHTML = '<div class="search-empty">No results found for "' + escHtml(query) + '"</div>';
+    container.innerHTML = `<div class="search-empty">${t('searchNoResults') || 'No results for'} "${escHtml(query)}"</div>`;
     return;
   }
 
   container.innerHTML = matches.map(item => {
-    // Highlight matching text in title
     const hl = item.title.replace(new RegExp('(' + escRe(q) + ')', 'gi'),
       '<span class="match-hl">$1</span>');
+    const displayPrice = getPrice(item);
     return `
       <div class="search-result" onclick="closeSearch(); showPage('detail','${item.id}')">
         <div class="search-result-thumb">
@@ -978,7 +1048,7 @@ function renderSearchResults(query) {
         </div>
         <div class="search-result-info">
           <div class="search-result-title">${hl}</div>
-          <div class="search-result-meta">${item.cat} · ${item.year} · ${item.price}</div>
+          <div class="search-result-meta">${item.cat} · ${item.year} · ${displayPrice}</div>
         </div>
         <svg class="search-result-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
