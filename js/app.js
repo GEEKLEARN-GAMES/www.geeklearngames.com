@@ -274,6 +274,9 @@ function applyTranslations() {
   setText('footer-nav-title', t('footerNavTitle'));
   setText('footer-works-title', t('footerWorksTitle'));
   setText('footer-follow-title', t('footerFollowTitle'));
+  // Footer tagline (appears on works/about/contact/shop static footers)
+  const tagline = t('footerTagline') || 'Games that teach, move, haunt your mind.';
+  document.querySelectorAll('.footer-tagline').forEach(el => { el.textContent = tagline; });
 
   // Footer links nav labels — same order as navKeys
   const fNavKeys = ['home','works','shop','about','contact'];
@@ -879,7 +882,7 @@ function footerHTML() {
     </div>
     <div class="footer-bottom">
       <span class="footer-copy">© ${new Date().getFullYear()} GeekLearn Games — ${t('copyright')}</span>
-      <span class="footer-copy">Games that teach, move, haunt your mind.</span>
+      <span class="footer-copy footer-tagline">${t('footerTagline') || 'Games that teach, move, haunt your mind.'}</span>
     </div>
   </footer>`;
 }
@@ -1138,11 +1141,12 @@ function renderSearchResults(query) {
     return;
   }
 
-  // Match against English title AND localised tagline/description keywords
-  const matches = ALL_WORKS.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    (item.tagline && item.tagline.toLowerCase().includes(q))
-  );
+  // Match only against titles (English + localised if translated)
+  const matches = ALL_WORKS.filter(item => {
+    if (item.title.toLowerCase().includes(q)) return true;
+    const localTitle = (item.i18n?.[LANG]?.title || '').toLowerCase();
+    return localTitle && localTitle.includes(q);
+  });
 
   if (!matches.length) {
     container.innerHTML = `<div class="search-empty">${t('searchNoResults') || 'No results for'} "${escHtml(query)}"</div>`;
@@ -1150,7 +1154,9 @@ function renderSearchResults(query) {
   }
 
   container.innerHTML = matches.map(item => {
-    const hl = item.title.replace(new RegExp('(' + escRe(q) + ')', 'gi'),
+    // Show localised title if one exists, fall back to English
+    const displayTitle = item.i18n?.[LANG]?.title || item.title;
+    const hl = displayTitle.replace(new RegExp('(' + escRe(q) + ')', 'gi'),
       '<span class="match-hl">$1</span>');
     const displayPrice = getPrice(item);
     return `
@@ -1161,6 +1167,7 @@ function renderSearchResults(query) {
         <div class="search-result-info">
           <div class="search-result-title">${hl}</div>
           <div class="search-result-meta">${getCatLabel(item)} · ${item.year} · ${displayPrice}</div>
+
         </div>
         <svg class="search-result-arrow" width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
