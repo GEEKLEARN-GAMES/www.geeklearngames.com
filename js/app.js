@@ -225,6 +225,7 @@ function applyTranslations() {
   });
   // Hero
   setText('hero-eye',    t('heroEye'));
+  setHTML('hero-slogan', t('heroSlogan'));
   setText('hero-desc',   t('heroDesc'));
   setText('hero-btn1',   t('heroBtn1'));
   setText('hero-btn2',   t('heroBtn2'));
@@ -261,6 +262,10 @@ function applyTranslations() {
   setText('form-submit-txt', t('formSubmit'));
   setText('form-legal', t('formLegal'));
   setText('contact-info-title', t('contactInfoTitle'));
+  const cmpInp = $('inp-company');
+  if (cmpInp) cmpInp.placeholder = t('formOptional') || 'Optional';
+  const msgInp = $('inp-message');
+  if (msgInp) msgInp.placeholder = t('formMsgHint') || 'Tell us about your project...';
 
   // Contact subject options
   const sel = $('contact-subject');
