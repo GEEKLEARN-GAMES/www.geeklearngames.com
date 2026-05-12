@@ -37,8 +37,13 @@
 
 /* ─── RESET ────────────────────────────────────────── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{font-size:16px;overflow-x:hidden;scroll-behavior:smooth}
+html{font-size:16px;overflow-x:hidden;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--white);font-family:var(--f-body);font-weight:400;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* Dark minimal scrollbar — Chrome/Edge/Safari */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.22)}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 img{display:block;max-width:100%}
@@ -162,7 +167,13 @@ ul{list-style:none}
 #nav-lang-btn{display:flex;align-items:center;justify-content:center;width:28px;height:20px;margin-left:12px;padding:0;background:none;border:1px solid var(--border);cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color .2s,transform .25s var(--ease)}
 #nav-lang-btn:hover{border-color:var(--bhi);transform:scale(1.1)}
 #nav-lang-flag{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.nav-mobile-lang-btn{display:flex;align-items:center;margin-top:18px;padding:10px 0;background:none;border:none;border-top:1px solid var(--border);cursor:pointer;font-family:var(--f-mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--greyt);transition:color .2s}
+/* Search icon in top nav bar — mobile only (hidden on desktop) */
+.nav-search-topbar{display:none;align-items:center;justify-content:center;width:34px;height:34px;margin-left:8px;border:1px solid var(--border);color:var(--greyt);cursor:pointer;background:none;transition:color .2s,border-color .2s,background .2s;flex-shrink:0}
+.nav-search-topbar:hover{color:var(--white);border-color:var(--bmd);background:var(--w06)}
+/* Search row inside the mobile fullscreen menu */
+.nav-mobile-search-btn{display:flex;align-items:center;gap:12px;margin-top:18px;padding:10px 0;background:none;border:none;border-top:1px solid var(--border);cursor:pointer;font-family:var(--f-mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--greyt);transition:color .2s;width:100%;text-align:left}
+.nav-mobile-search-btn:hover{color:var(--white)}
+.nav-mobile-lang-btn{display:flex;align-items:center;margin-top:0;padding:10px 0;background:none;border:none;border-top:1px solid var(--border);cursor:pointer;font-family:var(--f-mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--greyt);transition:color .2s}
 .nav-mobile-lang-btn:hover{color:var(--white)}
 .nav-burger{display:none;flex-direction:column;gap:5px;padding:7px;margin-left:auto;background:none;border:1px solid var(--border)}
 .nav-burger span{display:block;width:19px;height:1px;background:var(--white);transition:all .3s var(--ease);transform-origin:center}
@@ -1313,7 +1324,8 @@ footer{
 @media(max-width:900px){
   :root{--nav-h:68px}
   .nav-links{display:none}.nav-burger{display:flex;margin-left:8px}
-  #nav-lang-btn{margin-left:auto} /* push flag + burger to the right on mobile */
+  .nav-search-topbar{display:flex;margin-left:auto} /* show + push the group right on mobile */
+  #nav-lang-btn{margin-left:8px} /* flag sits flush after burger */
   .studio-block{grid-template-columns:1fr}
   .studio-half:first-child{border-right:none;border-bottom:1px solid var(--border)}
   .detail-grid{grid-template-columns:1fr}
@@ -1324,6 +1336,7 @@ footer{
 }
 @media(max-width:640px){
   .detail-game-title{font-size:clamp(3rem,14vw,6rem)}
+  .detail-game-logo{max-width:min(340px,82vw);max-height:220px}
   .form-row2{grid-template-columns:1fr}
   .footer-inner{grid-template-columns:1fr}
   .footer-inner>div:first-child{grid-column:auto}

@@ -135,12 +135,19 @@
     <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
     <button class="nav-link nav-cta" data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
   </div>
-  <!-- Language flag: shows current lang, click to reopen the language gate -->
-  <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
-    <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
+  <!-- Search icon visible only on mobile (hidden on desktop via CSS) -->
+  <button class="nav-search-topbar" onclick="openSearch()" aria-label="Search">
+    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
   </button>
   <button class="nav-burger" id="nav-burger" aria-label="Menu">
     <span></span><span></span><span></span>
+  </button>
+  <!-- Language flag: shows current lang, click to reopen the language gate -->
+  <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
+    <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
   </button>
 </nav>
 <div class="nav-mobile" id="nav-mobile">
@@ -149,6 +156,14 @@
   <button class="nav-mobile-link" id="nml-shop"    onclick="showPage('shop')">Shop</button>
   <button class="nav-mobile-link" id="nml-about"   onclick="showPage('about')">About Us</button>
   <button class="nav-mobile-link" id="nml-contact" onclick="showPage('contact')">Contact</button>
+  <!-- Search option in mobile menu -->
+  <button class="nav-mobile-search-btn" onclick="openSearch()" aria-label="Search">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+      <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span id="nml-search-label">Search</span>
+  </button>
   <!-- Language change option in mobile menu -->
   <button class="nav-mobile-lang-btn" onclick="showPage('home'); reopenLangGate()" aria-label="Change language">
     <img id="nav-lang-flag-mobile" src="" alt="" style="width:22px;height:16px;object-fit:cover;display:inline-block;vertical-align:middle;margin-right:10px">

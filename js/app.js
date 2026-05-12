@@ -104,6 +104,7 @@ function selectLang(code) {
   const f1 = $('nav-lang-flag');        if (f1) { f1.src = flagSrc; f1.alt = code.toUpperCase(); }
   const f2 = $('nav-lang-flag-mobile'); if (f2) { f2.src = flagSrc; f2.alt = code.toUpperCase(); }
   const lb = $('nml-lang-label');       if (lb) lb.textContent = t('langChange') || 'Change Language';
+  const sl = $('nml-search-label');     if (sl) sl.textContent = t('searchLabel') || 'Search';
 
   const gate = $('lang-gate');
   const loader = $('loader');
@@ -1117,6 +1118,9 @@ function applyWorksPageLabels() {
    SEARCH MODAL
 ══════════════════════════════════════════ */
 function openSearch() {
+  // Close mobile menu if open
+  $('nav-mobile')?.classList.remove('open');
+  $('nav-burger')?.classList.remove('open');
   const modal = $('search-modal');
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';

@@ -32,7 +32,7 @@ const FILMS = [
     },
     glow:'o', tint:'#ff6a00',
     cover:'assets/images/films/trick-or-treat.svg',
-    logo:'assets/images/games/LOGO%20GAMES%20-%20FILMS/FILMS/TEST_TOT_NEWLOGOV2_4.png',
+    logo:'assets/images/games/trick-or-treat-logo.png',
     screenshots:[
       'assets/images/films/trick-or-treat-ss1.svg',
       'assets/images/films/trick-or-treat-ss2.svg',
