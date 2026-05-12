@@ -39,6 +39,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
+  <!-- Protection: loaded synchronously so it fires before any user action -->
+  <script src="js/protection.js"></script>
 </head>
 <body>
 
@@ -133,6 +135,10 @@
     <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
     <button class="nav-link nav-cta" data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
   </div>
+  <!-- Language flag: shows current lang, click to reopen the language gate -->
+  <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
+    <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
+  </button>
   <button class="nav-burger" id="nav-burger" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
@@ -143,6 +149,11 @@
   <button class="nav-mobile-link" id="nml-shop"    onclick="showPage('shop')">Shop</button>
   <button class="nav-mobile-link" id="nml-about"   onclick="showPage('about')">About Us</button>
   <button class="nav-mobile-link" id="nml-contact" onclick="showPage('contact')">Contact</button>
+  <!-- Language change option in mobile menu -->
+  <button class="nav-mobile-lang-btn" onclick="showPage('home'); reopenLangGate()" aria-label="Change language">
+    <img id="nav-lang-flag-mobile" src="" alt="" style="width:22px;height:16px;object-fit:cover;display:inline-block;vertical-align:middle;margin-right:10px">
+    <span id="nml-lang-label">Change Language</span>
+  </button>
 </div>
 
 
@@ -486,8 +497,8 @@
       <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:26px" id="form-head">Send us a message</p>
       <form id="contact-form" onsubmit="handleContactForm(event)" novalidate>
         <div class="form-row2">
-          <div class="form-group"><label class="form-label" id="lbl-first">First name</label><input class="form-input" type="text" placeholder="John" required autocomplete="given-name"></div>
-          <div class="form-group"><label class="form-label" id="lbl-last">Last name</label><input class="form-input" type="text" placeholder="Doe" required autocomplete="family-name"></div>
+          <div class="form-group"><label class="form-label" id="lbl-first">First name *</label><input class="form-input" type="text" placeholder="John" required autocomplete="given-name"></div>
+          <div class="form-group"><label class="form-label" id="lbl-last">Last name *</label><input class="form-input" type="text" placeholder="Doe" required autocomplete="family-name"></div>
         </div>
         <div class="form-group"><label class="form-label" id="lbl-email">Email *</label><input class="form-input" type="email" placeholder="hello@studio.com" required autocomplete="email"></div>
         <div class="form-group"><label class="form-label" id="lbl-company">Company / Studio</label><input class="form-input" type="text" placeholder="Optional" autocomplete="organization"></div>
@@ -504,11 +515,14 @@
       </form>
     </div>
     <div class="contact-info-col">
-      <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:26px" id="contact-info-title">Direct contact</p>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-gen">General</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-gen">All inquiries</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-press">Press kit on request</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div><div class="c-info-val">geeklearngames.studio@gmail.com</div><div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div></div>
+      <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:16px" id="contact-info-title">Direct contact</p>
+      <!-- Single email displayed prominently -->
+      <a href="mailto:geeklearngames.studio@gmail.com" class="c-main-email">geeklearngames.studio@gmail.com</a>
+      <!-- Topic rows — no repeated email -->
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-gen">General</div><div class="c-info-sub" id="ci-sub-gen">All inquiries</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div><div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div><div class="c-info-sub" id="ci-sub-press">Press kit on request</div></div>
+      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div><div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div></div>
       <div class="socials-row">
         <button class="soc-btn" onclick="window.open('https://x.com/geeklearngames')">𝕏 Twitter</button>
         <button class="soc-btn" onclick="window.open('https://discord.gg/M7YJsC9BwH')">Discord</button>

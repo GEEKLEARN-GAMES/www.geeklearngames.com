@@ -1,4 +1,4 @@
-/* ═══════════════════════════════════════════
+﻿/* ═══════════════════════════════════════════
    GEEKLEARN GAMES — app.js
    ═══════════════════════════════════════════ */
 'use strict';
@@ -99,6 +99,12 @@ function selectLang(code) {
     b.classList.toggle('selected',  b.dataset.code === code);
   });
 
+  // Update nav flag to the chosen language
+  const flagSrc = `assets/images/FLAGS/${code}.svg`;
+  const f1 = $('nav-lang-flag');        if (f1) { f1.src = flagSrc; f1.alt = code.toUpperCase(); }
+  const f2 = $('nav-lang-flag-mobile'); if (f2) { f2.src = flagSrc; f2.alt = code.toUpperCase(); }
+  const lb = $('nml-lang-label');       if (lb) lb.textContent = t('langChange') || 'Change Language';
+
   const gate = $('lang-gate');
   const loader = $('loader');
 
@@ -125,7 +131,8 @@ function selectLang(code) {
 
   setTimeout(() => {
     gate.style.display = 'none';
-    document.body.style.overflow = ''; // re-enable scrolling for the site
+    document.documentElement.style.overflow = ''; // re-enable scrolling (iOS Safari fix)
+    document.body.style.overflow = '';
     loader.classList.add('fade');
     setTimeout(() => {
       loader.style.display = 'none';
@@ -136,6 +143,36 @@ function selectLang(code) {
       autoTranslateFallback(code);
     }, 760); // ≥ loader .fade transition duration (720ms) so animation completes first
   }, 2000);
+}
+
+/* ══════════════════════════════════════════
+   REOPEN LANGUAGE GATE
+   Called by the nav flag button.
+   Hides the site, re-shows the gate so the
+   user can switch to another language.
+══════════════════════════════════════════ */
+function reopenLangGate() {
+  const gate = $('lang-gate');
+  if (!gate) return;
+
+  // Close mobile menu if open
+  $('nav-mobile')?.classList.remove('open');
+  $('nav-burger')?.classList.remove('open');
+
+  // Restore display first, then remove .out on next frame so the CSS
+  // fade-in transition (opacity 0→1, scale 1.04→1) fires correctly
+  gate.style.display = 'flex';
+  gate.offsetHeight;           // force reflow — makes transition fire
+  gate.classList.remove('out');
+
+  // Lock scroll — html+body for iOS Safari
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+
+  // Reset selection state so all flags appear neutral again
+  document.querySelectorAll('.gate-lang').forEach(b => {
+    b.classList.remove('dimmed', 'selected');
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -389,8 +426,8 @@ function buildMarquee() {
    CAROUSELS — 4 cards always visible, infinite
 ══════════════════════════════════════════ */
 function buildCarousels() {
-  buildCarousel('films-carousel', FILMS, 'Interactive Film');
-  buildCarousel('games-carousel', GAMES, 'Video Game');
+  buildCarousel('films-carousel', FILMS, FILM_LABELS[LANG] || 'Interactive Film');
+  buildCarousel('games-carousel', GAMES, GAME_LABELS[LANG] || 'Video Game');
 }
 
 function buildCarousel(id, items, typeLabel) {
@@ -902,10 +939,54 @@ function initCounters() {
 ══════════════════════════════════════════ */
 function handleContactForm(e) {
   e.preventDefault();
+  const form = e.target;
+
+  /* ── Clear previous inline errors ── */
+  form.querySelectorAll('.form-err').forEach(el => el.remove());
+  form.querySelectorAll('.form-input--err, .form-select--err, .form-textarea--err')
+    .forEach(el => el.classList.remove('form-input--err','form-select--err','form-textarea--err'));
+
+  /* ── Gather fields ── */
+  const inputs = form.querySelectorAll('[required]');
+  let valid = true;
+
+  inputs.forEach(input => {
+    const val = input.value.trim();
+    let errMsg = '';
+
+    if (!val) {
+      const tag = input.tagName.toLowerCase();
+      if (tag === 'select') errMsg = t('errRequired') || 'Required';
+      else if (input.type === 'email') errMsg = t('errEmail') || 'Valid email required';
+      else errMsg = t('errRequired') || 'Required';
+    } else if (input.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      errMsg = t('errEmail') || 'Valid email required';
+    }
+
+    if (errMsg) {
+      valid = false;
+      /* Mark input */
+      const errClass = input.tagName === 'SELECT'
+        ? 'form-select--err'
+        : input.tagName === 'TEXTAREA'
+          ? 'form-textarea--err'
+          : 'form-input--err';
+      input.classList.add(errClass);
+      /* Inject error message */
+      const err = document.createElement('p');
+      err.className = 'form-err';
+      err.textContent = errMsg;
+      input.parentNode.appendChild(err);
+    }
+  });
+
+  if (!valid) return; /* Stop — errors shown */
+
+  /* ── All valid — show success ── */
   const btn = $('form-submit-btn');
   if (!btn) return;
   const orig = btn.innerHTML;
-  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> <span id="form-submit-txt">Sent!</span>`;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> <span id="form-submit-txt">${t('formSent') || 'Sent!'}</span>`;
   btn.style.background = 'transparent';
   btn.style.color = 'var(--white)';
   btn.disabled = true;
@@ -914,7 +995,7 @@ function handleContactForm(e) {
     btn.style.background = '';
     btn.style.color = '';
     btn.disabled = false;
-    e.target.reset();
+    form.reset();
   }, 3500);
 }
 
@@ -974,25 +1055,20 @@ function buildPuzzleStrips() {
    * Recommended: wide landscape photos (16:9 or wider), min 1600px wide.
    * Leave img as '' to keep the dark placeholder panel.
    */
+  const quotes = t('stripQuotes') || [
+    "We don't make games. We build worlds that leave marks on the people who enter them.",
+    "From horror to celebration - every experience we craft carries a specific human truth.",
+    "Games that teach. Games that move. Games that haunt your mind long after the screen goes dark.",
+  ];
+  const tags = t('stripTags') || [
+    'GeekLearn Games - Est. 2026',
+    'Interactive Films & Video Games',
+    'Our Studio Manifesto',
+  ];
   const strips = [
-    {
-      img:   '', // e.g. 'assets/images/showcase/scene-01.jpg'
-      quote: '"We don\u2019t make games. We build worlds that leave marks on the people who enter them."',
-      tag:   'GeekLearn Games — Est. 2026',
-      num:   '01',
-    },
-    {
-      img:   '',
-      quote: '"From horror to celebration \u2014 every experience we craft carries a specific human truth."',
-      tag:   'Interactive Films & Video Games',
-      num:   '02',
-    },
-    {
-      img:   '',
-      quote: '"Games that teach. Games that move. Games that haunt your mind long after the screen goes dark."',
-      tag:   'Our Studio Manifesto',
-      num:   '03',
-    },
+    { img: '', quote: quotes[0], tag: tags[0], num: '01' },
+    { img: '', quote: quotes[1], tag: tags[1], num: '02' },
+    { img: '', quote: quotes[2], tag: tags[2], num: '03' },
   ];
 
   container.innerHTML = strips.map(s => `
@@ -1103,10 +1179,13 @@ function escRe(s) {
 
 /* ══════════════════════════════════════════
    CAROUSEL TOUCH — mobile swipe (≤ 640px)
-   Drag: finger takes direct control of the
-   track. Release: CSS animation resumes from
-   the exact frame where the drag ended —
-   no jump, no snap, perfectly seamless.
+
+   Drag:    finger takes live control.
+   Flick:   if finger lifts with velocity,
+            momentum decelerates via rAF
+            before animation resumes.
+   Release: animation resumes from the exact
+            pixel position — no jump, no snap.
 ══════════════════════════════════════════ */
 function initCarouselTouch() {
   [
@@ -1116,25 +1195,56 @@ function initCarouselTouch() {
     const el = document.querySelector(selector);
     if (!el) return;
 
-    let isDragging = false;
-    let startX     = 0;
-    let startPx    = 0;
+    let isDragging  = false;
+    let startX      = 0;
+    let startPx     = 0;
+    let velocity    = 0;   // px / ms
+    let lastX       = 0;
+    let lastT       = 0;
+    let rafId       = null; // momentum animation frame handle
 
-    /* Read the current CSS translateX in pixels from the live animation frame */
-    function getTranslatePx() {
+    /* Read animated translateX in pixels from computed style */
+    function getAnimPx() {
       const t = window.getComputedStyle(el).transform;
       if (!t || t === 'none') return 0;
       const vals = t.match(/matrix.*\((.+)\)/)?.[1].split(',');
       return vals ? parseFloat(vals[4]) : 0;
     }
 
-    el.addEventListener('touchstart', e => {
-      if (window.innerWidth > 640) return; // desktop: do nothing
-      startPx = getTranslatePx();           // capture live frame
-      startX  = e.touches[0].clientX;
+    /* Read inline transform translateX in pixels */
+    function getInlinePx() {
+      const raw = el.style.transform.match(/-?[\d.]+/);
+      return raw ? parseFloat(raw[0]) : 0;
+    }
 
-      /* Atomically detach animation and pin at captured position —
-         both happen in the same JS task, so no intermediate paint */
+    /* Re-engage CSS animation from pixel position px */
+    function resumeFromPx(px) {
+      const halfW    = el.scrollWidth / 2;
+      const duration = 90; // must match CSS
+      let progress;
+      if (dir === 'left') {
+        progress = Math.abs(px) / halfW;
+      } else {
+        progress = (halfW + px) / halfW;
+      }
+      progress = ((progress % 1) + 1) % 1;
+      el.style.transform      = '';
+      el.style.animation      = '';
+      el.style.animationDelay = `${-(progress * duration)}s`;
+    }
+
+    el.addEventListener('touchstart', e => {
+      if (window.innerWidth > 640) return;
+      /* Cancel any in-progress momentum deceleration */
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+      startPx  = getAnimPx(); // capture live animation frame
+      startX   = e.touches[0].clientX;
+      lastX    = startX;
+      lastT    = Date.now();
+      velocity = 0;
+
+      /* Atomically freeze animation + pin to captured position */
       el.style.animation = 'none';
       el.style.transform = `translateX(${startPx}px)`;
       isDragging = true;
@@ -1142,10 +1252,18 @@ function initCarouselTouch() {
 
     el.addEventListener('touchmove', e => {
       if (!isDragging) return;
-      const delta = e.touches[0].clientX - startX;
-      let   newPx = startPx + delta;
+      const now = Date.now();
+      const cx  = e.touches[0].clientX;
 
-      /* Wrap within the seamless loop range */
+      /* Rolling velocity sample (px/ms) */
+      const dt = now - lastT;
+      if (dt > 0) velocity = (cx - lastX) / dt;
+      lastX = cx;
+      lastT = now;
+
+      let newPx = startPx + (cx - startX);
+
+      /* Seamless wrap within loop range */
       const halfW = el.scrollWidth / 2;
       if (newPx > 0)      newPx -= halfW;
       if (newPx < -halfW) newPx += halfW;
@@ -1157,36 +1275,45 @@ function initCarouselTouch() {
       if (!isDragging) return;
       isDragging = false;
 
-      /* Parse the final inline position */
-      const raw      = el.style.transform.match(/-?[\d.]+/);
-      const currentPx = raw ? parseFloat(raw[0]) : 0;
-      const halfW    = el.scrollWidth / 2;
-      const duration = 90; // must match CSS animation duration
+      /* Convert velocity: px/ms → px/frame (@ 60 fps = 16.67 ms/frame) */
+      const velPF  = velocity * 16.67;
+      const THRESH = 0.5; // px/frame — below this: no perceptible momentum
+      const FRICTION = 0.88; // multiplied each frame → ~0.5 s deceleration
 
-      /* Map pixel position → animation progress [0, 1) → negative delay */
-      let progress;
-      if (dir === 'left') {
-        // carouselLeft: 0 → -halfW  →  progress = |px| / halfW
-        progress = Math.abs(currentPx) / halfW;
+      if (Math.abs(velPF) > THRESH) {
+        /* ── Momentum phase ── */
+        let px = getInlinePx();
+        let v  = velPF;
+
+        function tick() {
+          v  *= FRICTION;
+          px += v;
+
+          const halfW = el.scrollWidth / 2;
+          if (px > 0)      px -= halfW;
+          if (px < -halfW) px += halfW;
+
+          el.style.transform = `translateX(${px}px)`;
+
+          if (Math.abs(v) > THRESH) {
+            rafId = requestAnimationFrame(tick);
+          } else {
+            rafId = null;
+            resumeFromPx(px); // hand back to CSS animation
+          }
+        }
+        rafId = requestAnimationFrame(tick);
       } else {
-        // carouselRight: -halfW → 0  →  progress = (halfW + px) / halfW
-        progress = (halfW + currentPx) / halfW;
+        /* No momentum — resume immediately */
+        resumeFromPx(getInlinePx());
       }
-      progress = ((progress % 1) + 1) % 1; // clamp to [0, 1) safely
-
-      const delay = -(progress * duration); // negative = already elapsed time
-
-      /* Re-enable CSS animation from the correct frame — clears the inline
-         animation:none, then overrides only the delay sub-property */
-      el.style.transform      = '';
-      el.style.animation      = '';
-      el.style.animationDelay = `${delay}s`;
     }, { passive: true });
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Lock body scroll while language gate is showing
+  // Lock scroll while language gate is showing (html+body for iOS Safari)
+  document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
 
   $('modal-buy')?.addEventListener('click', e => { if (e.target === $('modal-buy')) closeBuyModal(); });
