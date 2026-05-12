@@ -686,35 +686,8 @@ ul{list-style:none}
   width: max-content;
   will-change: transform;
 }
-.carousel-track:hover{animation-play-state:paused}
-
-/*
-  carouselLeft  (films)  : 0 → -50%  (drifts left)
-  carouselRight (games)  : -50% → 0  (drifts right)
-
-  KEY RULE: each card uses margin-right (not flex gap) so
-  total track = N × (cardWidth + margin), and -50% = exactly N cards.
-  → The loop point is visually identical content, no jump.
-
-  games-t gets a static transform:-50% as its CSS initial state so
-  it's never shown at position 0 before the animation frame fires.
-*/
-.carousel-track.films-t { animation: carouselLeft  90s linear infinite }
-.carousel-track.games-t {
-  animation: carouselRight 90s linear infinite;
-  /* Keeps the element pre-positioned at the loop midpoint before the
-     first animation frame renders — prevents a flash at position 0 */
-  transform: translateX(-50%);
-}
-
-@keyframes carouselLeft {
-  from { transform: translateX(0)    }
-  to   { transform: translateX(-50%) }
-}
-@keyframes carouselRight {
-  from { transform: translateX(-50%) }
-  to   { transform: translateX(0)    }
-}
+/* Carousel movement handled entirely by JS requestAnimationFrame (app.js)
+   — no CSS animations needed. will-change:transform is already on .carousel-track. */
 
 /* Cards — fixed small size */
 .c-card{
@@ -863,9 +836,11 @@ ul{list-style:none}
   transition:border-color .2s,color .2s;
 }
 .c-main-email:hover{border-color:var(--bhi);color:var(--white)}
-.socials-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:32px;padding-top:32px;border-top:1px solid var(--border)}
-.soc-btn{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;padding:7px 12px;border:1px solid var(--border);color:var(--grey);background:none;cursor:pointer;transition:all .2s}
-.soc-btn:hover{color:var(--white);border-color:var(--bmd)}
+.socials-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:32px;padding-top:32px;border-top:1px solid var(--border);align-items:center}
+.soc-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:none;background:none;cursor:pointer;transition:transform .2s var(--ease);flex-shrink:0}
+.soc-btn:hover{transform:translateY(-3px)}
+.soc-icon{width:24px;height:24px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.4;transition:opacity .2s}
+.soc-btn:hover .soc-icon{opacity:1}
 
 /* ─── FOOTER ────────────────────────────────────────── */
 footer{
@@ -880,6 +855,11 @@ footer{
 .footer-links{display:flex;flex-direction:column;gap:9px}
 .footer-links button,.footer-links a{font-size:.8rem;color:var(--grey);background:none;border:none;text-align:left;cursor:pointer;transition:color .2s;line-height:1}
 .footer-links button:hover,.footer-links a:hover{color:var(--white)}
+/* Social icon row in footer */
+.footer-socials-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px;align-items:center}
+.footer-soc-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;background:none;cursor:pointer;transition:transform .2s var(--ease);flex-shrink:0}
+.footer-soc-btn:hover{transform:translateY(-3px)}
+.footer-soc-btn .soc-icon{width:20px;height:20px}
 .footer-bottom{display:flex;align-items:center;justify-content:space-between;padding:20px clamp(16px,5vw,72px);border-top:1px solid var(--border);max-width:1440px;margin:0 auto;flex-wrap:wrap;gap:8px}
 .footer-copy{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.17em;text-transform:uppercase;color:var(--grey)}
 

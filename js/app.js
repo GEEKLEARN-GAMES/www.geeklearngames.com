@@ -12,6 +12,9 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 let LANG = 'en';
 const t = k => I18N[LANG]?.[k] ?? I18N.en[k] ?? k;
 
+/* rAF handles for carousel loops — keyed by carousel element id */
+const _carouselRAF = {};
+
 /* ── Localised price helper ── */
 function getPrice(item) {
   if (item.isFree) return t('free') || 'FREE';
@@ -105,6 +108,10 @@ function selectLang(code) {
   const f2 = $('nav-lang-flag-mobile'); if (f2) { f2.src = flagSrc; f2.alt = code.toUpperCase(); }
   const lb = $('nml-lang-label');       if (lb) lb.textContent = t('langChange') || 'Change Language';
   const sl = $('nml-search-label');     if (sl) sl.textContent = t('searchLabel') || 'Search';
+  // Update protection-shield message to current language
+  if (typeof window._glgSetShieldMsg === 'function') {
+    window._glgSetShieldMsg(t('accessRestricted') || 'Access restricted');
+  }
 
   const gate = $('lang-gate');
   const loader = $('loader');
@@ -380,6 +387,8 @@ function showPage(name, itemId = null) {
   } else {
     const page = $('page-' + name);
     if (page) page.classList.add('active');
+    /* Rebuild carousels once the works page is visible so scrollWidth is accurate */
+    if (name === 'works') requestAnimationFrame(buildCarousels);
   }
 
   // Update browser URL without reload
@@ -438,31 +447,64 @@ function buildCarousel(id, items, typeLabel) {
   const el = $(id);
   if (!el) return;
 
+  /* ── Cancel any previous rAF loop for this carousel ── */
+  if (_carouselRAF[id]) {
+    cancelAnimationFrame(_carouselRAF[id]);
+    _carouselRAF[id] = null;
+  }
+
   /*
-   * How many loops (copies of the items array) do we need?
-   *
-   * The -50% trick requires:  total track width ≥ 2 × viewport width
-   * so that when the animation translates by -50%, the second half of the
-   * track is always at least as wide as the viewport (no empty space visible).
-   *
-   * Card width: clamp(130px, 16vw, 200px) + 10px margin-right.
-   * We add a 1.5× safety factor and enforce a minimum of 4 loops.
+   * Direction: films scroll LEFT (-1), games scroll RIGHT (+1).
+   * Speed: px per frame at 60 fps → ~33 px/s at 0.55.
    */
-  const vw       = window.innerWidth;
-  const cardW    = Math.min(200, Math.max(130, vw * 0.16)) + 10; // width + margin
-  const minLoops = Math.max(4, Math.ceil((vw * 3) / (items.length * cardW)));
+  const dir   = (id === 'games-carousel') ? 1 : -1;
+  const speed = 0.55;
+
+  /* ── Build enough copies so the track is always wider than the viewport ── */
+  const vw    = window.innerWidth || 1280;
+  const cardW = Math.min(200, Math.max(130, vw * 0.16)) + 10; // matches CSS clamp
+  const setW  = items.length * cardW;                         // width of ONE full set
+  /* Need at least 2 full sets visible; round up to an even number for symmetry */
+  let setsNeeded = Math.max(4, Math.ceil((vw * 2.5) / setW + 1));
+  if (setsNeeded % 2 !== 0) setsNeeded++;
 
   let html = '';
-  for (let loop = 0; loop < minLoops; loop++) {
+  for (let i = 0; i < setsNeeded; i++) {
     items.forEach(item => { html += cardHTML(item, typeLabel); });
   }
   el.innerHTML = html;
 
   /*
-   * games-t animation starts at translateX(-50%) via CSS.
-   * No JS pre-positioning needed — the static CSS transform keeps the
-   * element at -50% until the very first animation frame takes over.
+   * Measure the ACTUAL rendered width of one set.
+   * If the page is hidden (display:none), scrollWidth returns 0 — fall back to
+   * the JS estimate (setW).  The carousel is rebuilt with the exact measurement
+   * the moment showPage('works') fires (see below).
    */
+  const measuredW  = el.scrollWidth;
+  const actualSetW = measuredW > 0 ? measuredW / setsNeeded : setW;
+
+  /*
+   * Starting positions:
+   *   Left  (films):  pos = 0        → moves to –actualSetW then teleports to 0
+   *   Right (games):  pos = –actualSetW → moves to 0 then teleports to –actualSetW
+   * The two visible windows are always showing identical content → seamless jump.
+   */
+  let pos = (dir === 1) ? -actualSetW : 0;
+  el.style.transform = `translateX(${pos}px)`;
+
+  function tick() {
+    /* Pause on hover (works for nested cards too via :hover propagation) */
+    if (!el.matches(':hover')) {
+      pos += dir * speed;
+      /* Seamless teleport when one full set has scrolled past */
+      if (dir < 0 && pos <= -actualSetW) pos += actualSetW;
+      if (dir > 0 && pos >= 0)           pos -= actualSetW;
+      el.style.transform = `translateX(${pos}px)`;
+    }
+    _carouselRAF[id] = requestAnimationFrame(tick);
+  }
+
+  _carouselRAF[id] = requestAnimationFrame(tick);
 }
 
 function cardHTML(item, typeLabel) {

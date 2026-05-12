@@ -488,6 +488,7 @@ const I18N = {
     searchLabel:'Rechercher un jeu ou un film',
     searchHint:'Commencez à taper un titre...',
     searchNoResults:'Aucun résultat pour',
+    accessRestricted:'Accès restreint',
     marqueeWords:['GeekLearn Games','Films Interactifs','Jeux Vidéo','Est. 2026','France','Jeux Qui Enseignent','Jeux Qui Émeuvent','Jeux Qui Hantent'],
   },
   en:{
@@ -551,6 +552,7 @@ const I18N = {
     searchLabel:'Search a game or film',
     searchHint:'Start typing a title...',
     searchNoResults:'No results for',
+    accessRestricted:'Access restricted',
     marqueeWords:['GeekLearn Games','Interactive Films','Video Games','Est. 2026','France','Games That Teach','Games That Move','Games That Haunt'],
   },
   es:{
@@ -608,6 +610,7 @@ const I18N = {
     searchLabel:'Buscar un juego o película',
     searchHint:'Empieza a escribir un título...',
     searchNoResults:'Sin resultados para',
+    accessRestricted:'Acceso restringido',
     marqueeWords:['GeekLearn Games','Films Interactivos','Videojuegos','Est. 2026','Francia','Juegos Que Enseñan','Juegos Que Emocionan','Juegos Que Persiguen'],
   },
   de:{
@@ -665,6 +668,7 @@ const I18N = {
     searchLabel:'Ein Spiel oder Film suchen',
     searchHint:'Titel eingeben...',
     searchNoResults:'Keine Ergebnisse für',
+    accessRestricted:'Zugang eingeschränkt',
     marqueeWords:['GeekLearn Games','Interaktive Filme','Videospiele','Gegr. 2026','Frankreich','Lehrende Spiele','Bewegende Spiele','Verfolgende Spiele'],
   },
   ar:{
@@ -722,6 +726,7 @@ const I18N = {
     searchLabel:'ابحث عن لعبة أو فيلم',
     searchHint:'ابدأ بكتابة عنوان...',
     searchNoResults:'لا نتائج لـ',
+    accessRestricted:'الوصول مقيّد',
     marqueeWords:['GeekLearn Games','أفلام تفاعلية','ألعاب فيديو','تأسست 2026','فرنسا','ألعاب تعلّم','ألعاب تحرّك','ألعاب تسكن'],
   },
   zh:{
@@ -779,6 +784,7 @@ const I18N = {
     searchLabel:'搜索游戏或电影',
     searchHint:'开始输入标题...',
     searchNoResults:'未找到结果：',
+    accessRestricted:'访问受限',
     marqueeWords:['GeekLearn Games','互动电影','电子游戏','创立于2026年','法国','教育游戏','感动游戏','萦绕心头的游戏'],
   },
   ja:{
@@ -836,6 +842,7 @@ const I18N = {
     searchLabel:'ゲームまたはフィルムを検索',
     searchHint:'タイトルを入力してください...',
     searchNoResults:'結果なし：',
+    accessRestricted:'アクセス制限中',
     marqueeWords:['GeekLearn Games','インタラクティブフィルム','ビデオゲーム','2026年設立','フランス','学ぶゲーム','感動するゲーム','心に残るゲーム'],
   },
   ru:{
@@ -893,6 +900,7 @@ const I18N = {
     searchLabel:'Найти игру или фильм',
     searchHint:'Начните вводить название...',
     searchNoResults:'Нет результатов для',
+    accessRestricted:'Доступ ограничен',
     marqueeWords:['GeekLearn Games','Интерактивные фильмы','Видеоигры','Осн. 2026','Франция','Игры Что Учат','Игры Что Волнуют','Игры Что Преследуют'],
   },
   pl:{
@@ -950,6 +958,7 @@ const I18N = {
     searchLabel:'Szukaj gry lub filmu',
     searchHint:'Zacznij wpisywać tytuł...',
     searchNoResults:'Brak wyników dla',
+    accessRestricted:'Dostęp ograniczony',
     marqueeWords:['GeekLearn Games','Filmy Interaktywne','Gry Wideo','Zał. 2026','Francja','Gry Które Uczą','Gry Które Wzruszają','Gry Które Prześladują'],
   },
   it:{
@@ -1007,6 +1016,7 @@ const I18N = {
     searchLabel:'Cerca un gioco o film',
     searchHint:'Inizia a digitare un titolo...',
     searchNoResults:'Nessun risultato per',
+    accessRestricted:'Accesso limitato',
     marqueeWords:['GeekLearn Games','Film Interattivi','Videogiochi','Fond. 2026','Francia','Giochi Che Insegnano','Giochi Che Commuovono','Giochi Che Ossessionano'],
   },
 };
