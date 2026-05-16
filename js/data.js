@@ -399,12 +399,13 @@ const LANG_CURRENCY = {
    level 0 = founder / root node · level 1 = branch members */
 const TEAM = [
   {
-    id:    'founder',
-    name:  'EVAN',
-    role:  'CEO · Founder · Art Director',
-    quote: '"Every world we build starts with a single honest question: what do we want people to feel?"',
-    photo: '',
-    level: 0,
+    id:       'founder',
+    name:     'GEEKLEARN',
+    realName: 'Evan PRENNEY',
+    role:     'CEO · Founder · Art Director',
+    quote:    '"Every world we build starts with a single honest question: what do we want people to feel?"',
+    photo:    'assets/images/about/evan-preney.png',
+    level:    0,
   },
 ];
 
@@ -588,7 +589,7 @@ const I18N = {
     footerDesc:'Estudio de videojuegos independiente. Creamos experiencias interactivas que enseñan, emocionan y persiguen tu mente.',
     footerNavTitle:'Navegación',footerWorksTitle:'Nuestras Obras',footerFollowTitle:'Síguenos',copyright:'Todos los derechos reservados',
     free:'GRATIS',langChange:'Cambiar idioma',errRequired:'Requerido',errEmail:'Email válido requerido',formSent:'¡Enviado!',formOptional:'Opcional',formMsgHint:'Cuéntanos sobre tu proyecto...',
-    ciLblGen:'General',ciSubGen:'Todas las consultas',ciLblPar:'Editores y Socios',ciSubPar:'Colaboraciones, licencias, distribución',ciLblPress:'Prensa y Medios',ciSubPress:'Kit de prensa a petición',ciLblBug:'Informe de error',ciSubBug:'Jugadores — reporta un problema recurrente',footerTagline:'Juegos que ensean, emocionan y persiguen tu mente.',
+    ciLblGen:'General',ciSubGen:'Todas las consultas',ciLblPar:'Editores y Socios',ciSubPar:'Colaboraciones, licencias, distribución',ciLblPress:'Prensa y Medios',ciSubPress:'Kit de prensa a petición',ciLblBug:'Informe de error',ciSubBug:'Jugadores — reporta un problema recurrente',footerTagline:'Juegos que enseñan, emocionan y persiguen tu mente.',
     showcaseTitle:'LO QUE\nCREAMOS',
     worksEye:'Catálogo Completo',
     ctaEye:'Editores y Socios',
@@ -993,7 +994,7 @@ const I18N = {
     subjectOpts:['Partnership editore / Distribuzione','Collaborazione creativa','Stampa e Media','Candidatura','Supporto giocatore','Segnalazione bug','Licenze e Diritti','Altro'],
     formSubmit:'Invia messaggio',formLegal:'Inviando questo modulo accetti che i tuoi dati vengano utilizzati esclusivamente per elaborare la tua richiesta.',
     buyNow:'Acquista',buyModal:'Disponibile su',detailBack:'← Torna alle opere',trailerBtn:'▶ Trailer',
-    aboutHead:'Informazioni',featuresHead:'Caratteristiche principali',ssHead:'Screenshot',specsHead:'Requisiti di sistema',infoHead:'Informazioni',platHead:'Piattaforme',
+    aboutHead:'Descrizione',featuresHead:'Caratteristiche principali',ssHead:'Screenshot',specsHead:'Requisiti di sistema',infoHead:'Informazioni',platHead:'Piattaforme',
     specMin:'Minimi',specRec:'Consigliati',specOs:'Sistema operativo',specCpu:'Processore',specGpu:'Scheda grafica',specRam:'Memoria',specStorage:'Archiviazione',specDx:'DirectX',
     statTitles:'Titoli',statFilms:'Film Interattivi',statGames:'Videogiochi',statPlatforms:'Piattaforme',
     infoType:'Tipo',infoGenre:'Genere',infoDuration:'Durata',infoYear:'Anno',infoStudio:'Studio',infoStatus:'Stato',infoPrice:'Prezzo',
@@ -1010,7 +1011,7 @@ const I18N = {
     aboutEye:'Lo Studio',
     aboutDesc:'Incontra le persone dietro i mondi — creando esperienze che insegnano, commuovono e ossessionano la mente.',
     teamEye:'Il Team',
-    teamTitle:'CHI\nSIAMO',
+    teamTitle:'IL NOSTRO\nTEAM',
     manifestoLabel:'Manifesto dello Studio',
     manifestoQuote:'"Non sviluppiamo giochi.<br>Costruiamo <em>mondi che lasciano il segno</em> nelle persone che vi entrano —<br>esperienze che insegnano, commuovono e ossessionano la mente molto dopo che lo schermo si spegne."',
     stripQuotes:['"Non facciamo giochi. Costruiamo mondi che lasciano il segno nelle persone che vi entrano."','"Dal terrore alla celebrazione — ogni esperienza che creiamo porta una verità umana specifica."','"Giochi che insegnano. Giochi che commuovono. Giochi che perseguitano la mente dopo che lo schermo si spegne."'],

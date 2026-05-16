@@ -61,18 +61,19 @@ ul{list-style:none}
 .gate-bl{bottom:clamp(14px,2.4vh,28px);left:clamp(14px,2.4vw,28px);border-bottom:1px solid rgba(255,255,255,.2);border-left:1px solid rgba(255,255,255,.2)}
 .gate-br{bottom:clamp(14px,2.4vh,28px);right:clamp(14px,2.4vw,28px);border-bottom:1px solid rgba(255,255,255,.2);border-right:1px solid rgba(255,255,255,.2)}
 
-.gate-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:clamp(14px,2.8vh,28px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .08s var(--ease) forwards}
+/* Shadow radiating from centre of each element — darkest at the element, fades outward */
+.gate-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:clamp(14px,2.8vh,28px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .08s var(--ease) forwards;filter:drop-shadow(0 0 14px rgba(0,0,0,.98)) drop-shadow(0 0 48px rgba(0,0,0,.72)) drop-shadow(0 0 110px rgba(0,0,0,.38))}
 .gate-logo-img{height:42px;width:auto;filter:brightness(0) invert(1);opacity:.92}
 .gate-studio-name{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.55em;text-transform:uppercase;color:rgba(255,255,255,.3)}
-.gate-tagline{font-family:var(--f-serif);font-style:italic;font-size:clamp(.8rem,1.5vw,.94rem);color:rgba(255,255,255,.28);margin-bottom:clamp(14px,2.6vh,24px);text-align:center;position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .22s var(--ease) forwards}
+.gate-tagline{font-family:var(--f-serif);font-style:italic;font-size:clamp(.8rem,1.5vw,.94rem);color:rgba(255,255,255,.28);margin-bottom:clamp(14px,2.6vh,24px);text-align:center;position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .22s var(--ease) forwards;text-shadow:0 0 16px rgba(0,0,0,1),0 0 50px rgba(0,0,0,.78),0 0 100px rgba(0,0,0,.38)}
 
 /* ── Inline separator: ─── CHOOSE YOUR LANGUAGE ─── */
 .gate-separator{display:flex;align-items:center;gap:clamp(8px,1.5vw,16px);width:min(100%,clamp(300px,55vw,760px));margin-bottom:clamp(10px,1.8vh,18px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .34s var(--ease) forwards}
 .gate-sep-line{flex:1;height:1px;background:rgba(255,255,255,.1)}
-.gate-sep-label{font-family:var(--f-mono);font-size:.4rem;letter-spacing:.44em;text-transform:uppercase;color:rgba(255,255,255,.22);white-space:nowrap}
+.gate-sep-label{font-family:var(--f-mono);font-size:.4rem;letter-spacing:.44em;text-transform:uppercase;color:rgba(255,255,255,.22);white-space:nowrap;text-shadow:0 0 10px rgba(0,0,0,1),0 0 32px rgba(0,0,0,.75)}
 
 /* ── Flag mosaic grid ── */
-.gate-grid{display:grid;grid-template-columns:repeat(5,clamp(96px,12.5vw,150px));grid-auto-rows:clamp(64px,8.3vw,100px);gap:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .46s var(--ease) forwards}
+.gate-grid{display:grid;grid-template-columns:repeat(5,clamp(96px,12.5vw,150px));grid-auto-rows:clamp(64px,8.3vw,100px);gap:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .46s var(--ease) forwards;box-shadow:0 0 38px 18px rgba(0,0,0,.75),0 0 90px 35px rgba(0,0,0,.45),0 0 160px 55px rgba(0,0,0,.22)}
 
 /* Individual flag card */
 .gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease}
@@ -102,11 +103,45 @@ ul{list-style:none}
 .gate-lang:hover::after{transform:scaleX(1)}
 
 /* ── Bottom info strip ── */
-.gate-bottom{display:flex;align-items:center;gap:clamp(5px,1vw,11px);flex-wrap:wrap;justify-content:center;margin-top:clamp(10px,2vh,20px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .62s var(--ease) forwards}
+.gate-bottom{display:flex;align-items:center;gap:clamp(5px,1vw,11px);flex-wrap:wrap;justify-content:center;margin-top:clamp(10px,2vh,20px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .62s var(--ease) forwards;filter:drop-shadow(0 0 8px rgba(0,0,0,.98)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
 .gate-bottom-item{font-family:var(--f-mono);font-size:.34rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.14)}
 .gate-bottom-dot{font-family:var(--f-mono);font-size:.34rem;color:rgba(255,255,255,.09)}
 
 @keyframes gFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ── Flag rain background ── */
+.gate-rain{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+/* Opacity is baked into gateFall keyframes — more reliable than mask-image
+   when children have will-change:transform (avoids compositing conflicts).    */
+.gate-rain-item{position:absolute;animation:gateFall var(--fall-dur,50s) linear infinite;will-change:transform}
+.gate-rain-inner{
+  position:relative;border-radius:2px;overflow:hidden;
+  filter:blur(var(--blur,1.5px)) grayscale(1) brightness(.8);
+  opacity:var(--opacity,.80);
+  animation:gateRotZ var(--rot-dur,18s) linear infinite;
+  will-change:transform;
+  /* Smooth colour/opacity transition when hovering a language button */
+  transition:filter .55s ease, opacity .5s ease;
+}
+/* On hover: flags recover full colour, slightly dimmed so UI stays legible */
+.gate-rain--hover .gate-rain-inner{
+  filter:blur(var(--blur,1.5px)) grayscale(0) brightness(.88);
+  opacity:calc(var(--opacity,.80) * .6);
+}
+/* Two stacked imgs per flag — direct dissolve, never through black */
+.grfi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:opacity .65s ease}
+/* Fade in from top (0–8%), full opacity 8–87%, fade out at bottom (87–100%) */
+@keyframes gateFall{
+  0%   {transform:translateY(0);      opacity:0}
+  8%   {transform:translateY(8.5vh);  opacity:1}
+  87%  {transform:translateY(91.4vh); opacity:1}
+  100% {transform:translateY(106vh);  opacity:0}
+}
+@keyframes gateRotZ{from{transform:rotateZ(0deg)}to{transform:rotateZ(360deg)}}
+@media(max-width:900px){
+  .gate-rain-inner{filter:blur(calc(var(--blur,1.5px) + .4px)) grayscale(1) brightness(.72);opacity:calc(var(--opacity,.80) * .78)}
+  .gate-rain--hover .gate-rain-inner{filter:blur(calc(var(--blur,1.5px) + .4px)) grayscale(0) brightness(.82);opacity:calc(var(--opacity,.80) * .5)}
+}
 
 @media(max-width:900px){.gate-grid{grid-template-columns:repeat(5,1fr);width:min(100%,580px)}.gate-separator{width:min(100%,500px)}}
 @media(max-width:580px){.gate-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:clamp(60px,20vw,96px);width:min(100%,340px)}.gate-lang.dimmed{opacity:.44}.gate-separator{width:min(100%,300px)}.gate-corner{width:16px;height:16px}}
@@ -674,6 +709,10 @@ ul{list-style:none}
 /* ─── CAROUSEL — smaller cards ──────────────────────── */
 .carousel-viewport{
   position:relative;overflow:hidden;padding:8px 0 20px;
+  direction:ltr; /* CRITICAL: force LTR on the overflow container so the track's LEFT edge
+                    anchors to the viewport left edge in RTL documents (Arabic etc.).
+                    Without this, RTL layout makes translateX(0) show the RIGHT end of the
+                    track instead of the left, breaking the seamless loop teleport logic. */
   touch-action: pan-y; /* allow vertical scroll while capturing horizontal swipes */
   /* Gradient fade edges — hides items as they enter/leave */
   mask-image:linear-gradient(to right,transparent 0%,#000 8%,#000 92%,transparent 100%);
@@ -859,7 +898,8 @@ footer{
 .footer-socials-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px;align-items:center}
 .footer-soc-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;background:none;cursor:pointer;transition:transform .2s var(--ease);flex-shrink:0}
 .footer-soc-btn:hover{transform:translateY(-3px)}
-.footer-soc-btn .soc-icon{width:20px;height:20px}
+.footer-soc-btn .soc-icon{width:20px;height:20px;filter:brightness(0) invert(1);opacity:.38;transition:opacity .2s}
+.footer-soc-btn:hover .soc-icon{opacity:.85}
 .footer-bottom{display:flex;align-items:center;justify-content:space-between;padding:20px clamp(16px,5vw,72px);border-top:1px solid var(--border);max-width:1440px;margin:0 auto;flex-wrap:wrap;gap:8px}
 .footer-copy{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.17em;text-transform:uppercase;color:var(--grey)}
 
@@ -1075,102 +1115,167 @@ footer{
 .about-team-section .about-section-eye{justify-content:center;}
 .about-team-section .about-section-title{text-align:center;}
 
-/* ── Org-tree — alternating member cards container ── */
+/* ── Org-tree — cinema split cards container ── */
 .org-tree{
-  max-width:960px;margin:0 auto;
   display:flex;flex-direction:column;
+  overflow:hidden;
+  border-top:1px solid var(--border);
+  /* Bleed cards edge-to-edge, countering .about-section horizontal padding */
+  margin-left:calc(-1 * clamp(16px,5vw,72px));
+  margin-right:calc(-1 * clamp(16px,5vw,72px));
 }
 
-/* ── Member card ── */
-.about-member{
+/* ══════════════════════════════════════════════
+   STUDIO PROFILE — team member cards
+   Clean horizontal split: photo | info panel
+   No clip-path — reliable rendering on all browsers.
+   Photo absolutely fills its cell via inset:0.
+   Row height driven by info content (min 560px).
+   Even index → photo left / odd → photo right.
+══════════════════════════════════════════════ */
+.cm-card{
   display:grid;
-  grid-template-columns:300px 1fr;
-  gap:clamp(28px,5vw,72px);
-  align-items:start;
+  grid-template-columns:45% 55%;
+  min-height:clamp(520px,55vw,640px);
+  border-bottom:1px solid var(--border);
+  position:relative;
 }
-.about-member--right{
-  grid-template-columns:1fr 300px;
-}
+.cm-card--right{grid-template-columns:55% 45%}
 
-/* Photo box — tall portrait rectangle */
-.about-member-photo-wrap{
-  width:100%;aspect-ratio:3/4;
-  background:var(--s2);border:1px solid var(--border);
-  position:relative;overflow:hidden;flex-shrink:0;
+/* ── Photo cell ── */
+.cm-photo{
+  position:relative;
+  overflow:hidden;
+  min-height:clamp(520px,55vw,640px); /* matches card so img always fills */
+  border-right:1px solid var(--border);
 }
-.about-member-photo-img{
-  width:100%;height:100%;object-fit:cover;display:block;
-  filter:grayscale(.2) brightness(.82);
-  transition:filter .5s var(--ease);
+.cm-card--right .cm-photo{border-right:none;border-left:1px solid var(--border)}
+
+/* Image fills cell absolutely — never drives row height */
+.cm-photo img{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;object-position:top center;
+  filter:grayscale(1) brightness(.75) contrast(1.12);
+  transition:filter 1s var(--ease),transform 1s var(--ease);
 }
-.about-member:hover .about-member-photo-img{filter:grayscale(0) brightness(1)}
-/* Initials shown when no photo is provided */
-.about-member-photo-init{
+.cm-card:hover .cm-photo img{
+  filter:grayscale(1) brightness(.88) contrast(1.12);
+  transform:scale(1.035);
+}
+/* Subtle bottom vignette on photo */
+.cm-photo-grad{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 50%);
+}
+/* Initials fallback — shown when no photo */
+.cm-photo-init{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--f-disp);
-  font-size:clamp(5rem,10vw,11rem);
-  color:rgba(255,255,255,.05);letter-spacing:.04em;
-  user-select:none;
+  font-family:var(--f-disp);font-size:clamp(6rem,13vw,16rem);
+  color:rgba(255,255,255,.05);background:var(--s2);
+  letter-spacing:.06em;user-select:none;
 }
 
-/* Text block */
-.about-member-content{
-  padding-top:clamp(8px,1.5vw,20px);
-  display:flex;flex-direction:column;gap:6px;
+/* ── Info cell ── */
+.cm-info{
+  background:var(--s1);
+  padding:clamp(48px,6vw,80px) clamp(44px,5.5vw,76px) clamp(32px,4vw,52px);
+  display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;overflow:hidden;
 }
-/* Right-photo variant: text aligns right */
-.about-member--right .about-member-content{text-align:right}
+/* Groups eye → quote so space-between pushes stats to bottom cleanly */
+.cm-info-top{display:flex;flex-direction:column}
 
-.about-member-name{
+/* Small index tag — top right corner */
+.cm-idx{
+  position:absolute;top:clamp(20px,3vw,32px);right:clamp(20px,3vw,32px);
+  font-family:var(--f-mono);font-size:.42rem;letter-spacing:.4em;
+  color:rgba(255,255,255,.18);user-select:none;
+}
+
+/* Eyebrow — role category + line */
+.cm-eye{
+  font-family:var(--f-mono);font-size:.44rem;
+  letter-spacing:.46em;text-transform:uppercase;color:var(--grey);
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;
+}
+.cm-eye::before{content:'';width:28px;height:1px;background:var(--grey);flex-shrink:0}
+
+/* Member alias / studio name */
+.cm-name{
   font-family:var(--f-disp);
-  font-size:clamp(2.8rem,5.8vw,5.8rem);
-  letter-spacing:.03em;text-transform:uppercase;
-  line-height:.88;color:var(--white);
+  font-size:clamp(3.5rem,7.8vw,9rem);
+  letter-spacing:.01em;line-height:.84;
+  color:var(--white);text-transform:uppercase;
 }
-.about-member-role{
-  font-family:var(--f-mono);font-size:.5rem;
-  letter-spacing:.34em;text-transform:uppercase;
-  color:var(--grey);margin-top:10px;
-}
-.about-member-quote{
+
+/* Real name — italic serif, subtle */
+.cm-realname{
   font-family:var(--f-serif);font-style:italic;
-  font-size:clamp(.83rem,1.1vw,.96rem);
-  color:var(--w50);line-height:1.75;
-  margin-top:14px;
-  max-width:42ch;
+  font-size:clamp(.8rem,1.1vw,.96rem);
+  color:var(--greyt);margin-top:16px;letter-spacing:.03em;
 }
-.about-member--right .about-member-quote{margin-left:auto}
 
-/* ── L-bracket connectors between cards ── */
-/* --photo-ctr = half the photo column width (300px ÷ 2 = 150px)
-   At smaller viewports this is overridden by the responsive block.    */
-.about-connector-row{
-  position:relative;height:60px;
-  --photo-ctr:150px;
+/* Full role string */
+.cm-role{
+  font-family:var(--f-mono);font-size:.43rem;
+  letter-spacing:.3em;text-transform:uppercase;
+  color:var(--grey);margin-top:7px;
 }
-/* Left-photo → right-photo: vertical line below left photo,
-   horizontal line along the bottom edge reaching right-photo center */
-.about-connector-row--lr::before{
-  content:'';position:absolute;
-  left:var(--photo-ctr);top:0;bottom:0;
-  width:1px;background:rgba(255,255,255,.12);
+
+/* Thin rule between role and quote */
+.cm-divider{
+  width:40px;height:1px;
+  background:rgba(255,255,255,.15);
+  margin:28px 0 24px;flex-shrink:0;
 }
-.about-connector-row--lr::after{
-  content:'';position:absolute;
-  left:var(--photo-ctr);right:var(--photo-ctr);
-  bottom:0;height:1px;background:rgba(255,255,255,.12);
+
+/* Quote */
+.cm-quote{
+  font-family:var(--f-serif);font-style:italic;
+  font-size:clamp(.88rem,1.2vw,1.05rem);
+  color:var(--w80);line-height:1.78;max-width:44ch;
 }
-/* Right-photo → left-photo: mirror of above */
-.about-connector-row--rl::before{
-  content:'';position:absolute;
-  right:var(--photo-ctr);top:0;bottom:0;
-  width:1px;background:rgba(255,255,255,.12);
+
+/* ── Stats row ──────────────────────────────────
+   Three chips at the bottom: Role | Studio | Est.
+   space-between on .cm-info pushes this to foot.
+────────────────────────────────────────────── */
+.cm-stats{
+  display:flex;align-items:stretch;
+  padding-top:24px;
+  border-top:1px solid var(--border);
 }
-.about-connector-row--rl::after{
-  content:'';position:absolute;
-  left:var(--photo-ctr);right:var(--photo-ctr);
-  bottom:0;height:1px;background:rgba(255,255,255,.12);
+.cm-stat{
+  flex:1;display:flex;flex-direction:column;gap:7px;
+  padding-right:clamp(14px,2vw,24px);
+}
+.cm-stat + .cm-stat{
+  padding-right:clamp(14px,2vw,24px);
+  padding-left:clamp(14px,2vw,24px);
+  border-left:1px solid var(--border);
+}
+.cm-stat:last-child{padding-right:0}
+.cm-stat-label{
+  font-family:var(--f-mono);font-size:.38rem;
+  letter-spacing:.42em;text-transform:uppercase;color:var(--grey);
+}
+.cm-stat-value{
+  font-family:var(--f-disp);
+  font-size:clamp(.95rem,1.6vw,1.3rem);
+  letter-spacing:.04em;text-transform:uppercase;
+  color:var(--white);line-height:1;
+}
+
+/* Bottom accent bar */
+.cm-accent{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,rgba(255,255,255,.22) 0%,transparent 60%);
+}
+.cm-card--right .cm-accent{
+  background:linear-gradient(to left,rgba(255,255,255,.22) 0%,transparent 60%);
 }
 
 /* ── Manifesto ── */
@@ -1270,27 +1375,31 @@ footer{
   text-transform:uppercase;color:rgba(255,255,255,.15);text-align:center;
 }
 
-/* ── About responsive ── */
-@media(max-width:860px){
-  .about-member,.about-member--right{
-    grid-template-columns:200px 1fr;
-    gap:clamp(18px,3vw,36px);
-  }
-  .about-connector-row{--photo-ctr:100px}
-  /* Keep text left-aligned on smaller screens regardless of card side */
-  .about-member--right .about-member-content{text-align:left}
-  .about-member--right .about-member-quote{margin-left:0}
-}
-@media(max-width:600px){
-  .about-member,.about-member--right{
+/* ── Studio Profile responsive ── */
+@media(max-width:900px){
+  .cm-card,.cm-card--right{
     grid-template-columns:1fr;
-    gap:20px;
+    min-height:auto;
   }
-  /* Photo always on top when single-column */
-  .about-member--right .about-member-photo-wrap{order:-1}
-  .about-member--right .about-member-content{text-align:left}
-  /* Hide connectors on mobile — stacking is self-evident */
-  .about-connector-row{display:none}
+  .cm-photo,.cm-card--right .cm-photo{
+    height:clamp(280px,55vw,420px);
+    border-right:none;border-left:none;
+    border-bottom:1px solid var(--border);
+    min-height:0;
+  }
+  .cm-photo-grad,.cm-card--right .cm-photo-grad{
+    background:linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 55%);
+  }
+  .cm-card--right .cm-photo{order:-1}
+  .cm-stats{margin-top:24px;padding-top:20px}
+}
+@media(max-width:560px){
+  .cm-photo,.cm-card--right .cm-photo{height:240px}
+  .cm-info{padding:28px 20px 36px}
+  .cm-divider{margin:20px 0 16px}
+  .cm-name{font-size:clamp(2.8rem,12vw,4.5rem)}
+  .cm-stats{flex-wrap:wrap;gap:16px}
+  .cm-stat+.cm-stat{border-left:none;padding-left:0}
   .awards-grid{grid-template-columns:1fr}
 }
 

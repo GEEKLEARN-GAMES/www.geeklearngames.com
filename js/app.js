@@ -58,11 +58,127 @@ function setText(id, txt) { const e = $(id); if(e) e.textContent = txt; }
 /* ══════════════════════════════════════════
    LANGUAGE GATE
 ══════════════════════════════════════════ */
+
+// True crossfade — two stacked imgs per element, swap which slot is on top.
+// KEY FIX: we listen to mouseleave on the GRID CONTAINER, not on individual
+// buttons — this prevents the EN→FR→DE double-transition when moving between buttons.
+let _rainActiveSlot = 'a';
+let _rainCurrentCode = null;
+function setGateRainFlag(code) {
+  if (code === _rainCurrentCode) return;
+  _rainCurrentCode = code;
+  const rain   = $('gate-rain');
+  const inners = rain ? rain.querySelectorAll('.gate-rain-inner') : [];
+  if (!inners.length) return;
+  const nextSlot = _rainActiveSlot === 'a' ? 'b' : 'a';
+  const curSlot  = _rainActiveSlot;
+  const src      = `assets/images/FLAGS/${code}.svg`;
+  inners.forEach(inner => {
+    const next = inner.querySelector(`.grfi-${nextSlot}`);
+    const cur  = inner.querySelector(`.grfi-${curSlot}`);
+    if (!next || !cur) return;
+    next.src = src;
+    // Two rAFs: frame 1 registers the new src, frame 2 triggers the CSS
+    // opacity transition — produces a direct dissolve with no black gap.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      next.style.opacity = '1';
+      cur.style.opacity  = '0';
+    }));
+  });
+  _rainActiveSlot = nextSlot;
+}
+
 function buildGate() {
   const wrap = $('gate-langs');
   if (!wrap) return;
 
-  // Render flag mosaic cards with full-bleed SVG images
+  // ── Flag rain background (built once) ──────────────────────────
+  if (!$('gate-rain')) {
+    const gate = $('lang-gate');
+    const rain = document.createElement('div');
+    rain.id = 'gate-rain';
+    rain.className = 'gate-rain';
+    rain.setAttribute('aria-hidden', 'true');
+
+    const defaultCode = LANG_GATE[0].code;
+    _rainCurrentCode  = defaultCode;
+
+    const vpW   = window.innerWidth;
+    // Adaptive count — more on wide screens, fewer on mobile
+    const COUNT = vpW < 600 ? 11 : vpW < 1024 ? 17 : 23;
+
+    // ── Jittered-grid placement with collision sweep ────────────────
+    // 1. Generate random sizes and shuffle them independently of positions.
+    const sizes = Array.from({ length: COUNT }, () => {
+      const w    = Math.round(58 + Math.random() * 122);   // 58–180 px
+      const h    = Math.round(w * 0.667);
+      const diag = Math.ceil(Math.sqrt(w * w + h * h));    // bounding circle ≈ diagonal
+      return { w, h, diag };
+    }).sort(() => Math.random() - 0.5);                     // shuffle sizes
+
+    // 2. One flag per zone (guarantees even coverage, no big gaps).
+    const zoneW = vpW / COUNT;
+    const flags = sizes.map((sz, i) => {
+      const margin = sz.diag / 2 + 6;                       // keep flag within zone
+      const lo     = i * zoneW + margin;
+      const hi     = (i + 1) * zoneW - margin;
+      const cx     = lo + Math.random() * Math.max(1, hi - lo);
+      return { ...sz, cx };
+    });
+
+    // 3. Left-to-right sweep: push any overlapping flag right.
+    for (let i = 1; i < flags.length; i++) {
+      const p = flags[i - 1], c = flags[i];
+      const minDist = (p.diag + c.diag) / 2 + 12;
+      if (c.cx - p.cx < minDist) c.cx = p.cx + minDist;
+    }
+
+    // 4. Build DOM elements.
+    flags.forEach(f => {
+      const leftPx  = f.cx - f.w / 2;
+      const leftPct = (leftPx / vpW * 100).toFixed(2);
+      const fallDur = (30 + Math.random() * 38).toFixed(1);  // 30–68 s
+      const delay   = -(Math.random() * parseFloat(fallDur)).toFixed(2);
+      const rotDur  = (9  + Math.random() * 22).toFixed(1);  // 9–31 s
+      const blur    = (f.w > 120                             // larger → less blur
+                         ? (0.6 + Math.random() * 1.6)
+                         : (1.4 + Math.random() * 2.8)).toFixed(1);
+      const op      = (f.w > 120
+                         ? 0.70 + Math.random() * 0.20        // 0.70–0.90
+                         : 0.60 + Math.random() * 0.22).toFixed(2);
+      const reverse = Math.random() > 0.5;
+
+      const item = document.createElement('div');
+      item.className = 'gate-rain-item';
+      item.style.cssText =
+        `left:${leftPct}%;top:-${f.h + 20}px;` +
+        `animation-delay:${delay}s;--fall-dur:${fallDur}s;`;
+
+      const inner = document.createElement('div');
+      inner.className = 'gate-rain-inner';
+      inner.style.cssText =
+        `width:${f.w}px;height:${f.h}px;` +
+        `--blur:${blur}px;--opacity:${op};--rot-dur:${rotDur}s;`;
+      if (reverse) inner.style.animationDirection = 'reverse';
+
+      // Two stacked imgs — slot 'a' visible on load, 'b' prepped for crossfade
+      ['a', 'b'].forEach((slot, si) => {
+        const img = document.createElement('img');
+        img.className = `grfi grfi-${slot}`;
+        img.src = `assets/images/FLAGS/${defaultCode}.svg`;
+        img.alt = '';
+        img.style.opacity = si === 0 ? '1' : '0';
+        inner.appendChild(img);
+      });
+
+      item.appendChild(inner);
+      rain.appendChild(item);
+    });
+
+    if (gate) gate.insertBefore(rain, gate.firstChild);
+  }
+
+  // ── Render flag mosaic buttons ──────────────────────────────────
   wrap.innerHTML = LANG_GATE.map((l, i) => `
     <button class="gate-lang" data-code="${l.code}"
             onclick="selectLang('${l.code}')" aria-label="${l.label}">
@@ -78,15 +194,24 @@ function buildGate() {
     </button>
   `).join('');
 
-  // Hover: dim all non-hovered cards
+  // ── Hover: dim others + crossfade rain flag ─────────────────────
+  // mouseleave is on the GRID CONTAINER — moving between buttons doesn't
+  // trigger an intermediate reset to the default flag (was the crossfade bug).
   const btns = wrap.querySelectorAll('.gate-lang');
+  const rain  = $('gate-rain');
+
   btns.forEach(btn => {
     btn.addEventListener('mouseenter', () => {
       btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
+      if (rain) rain.classList.add('gate-rain--hover');
+      setGateRainFlag(btn.dataset.code);
     });
-    btn.addEventListener('mouseleave', () => {
-      btns.forEach(b => b.classList.remove('dimmed'));
-    });
+  });
+
+  wrap.addEventListener('mouseleave', () => {
+    btns.forEach(b => b.classList.remove('dimmed'));
+    if (rain) rain.classList.remove('gate-rain--hover');
+    setGateRainFlag(LANG_GATE[0].code);
   });
 }
 
@@ -181,6 +306,9 @@ function reopenLangGate() {
   document.querySelectorAll('.gate-lang').forEach(b => {
     b.classList.remove('dimmed', 'selected');
   });
+
+  // Reset rain to the default flag (first language)
+  setGateRainFlag(LANG_GATE[0].code);
 }
 
 /* ══════════════════════════════════════════
@@ -459,6 +587,15 @@ function buildCarousel(id, items, typeLabel) {
   }
 
   /*
+   * RTL-safety: force direction:ltr on the overflow container (.carousel-viewport).
+   * In an RTL document (Arabic etc.), an overflow:hidden parent aligns its child's
+   * RIGHT edge to the container right edge, so translateX(0) would expose the wrong
+   * end of the track. Pinning the viewport to LTR guarantees the track's LEFT edge
+   * always anchors left, making translateX / teleport logic direction-agnostic.
+   */
+  if (el.parentElement) el.parentElement.style.direction = 'ltr';
+
+  /*
    * Direction: films scroll LEFT (-1), games scroll RIGHT (+1).
    * Speed: px per frame at 60 fps → ~33 px/s at 0.55.
    */
@@ -547,57 +684,80 @@ function buildAboutPage() {
   buildAwards();
 }
 
-/* ── Team alternating cards with L-bracket connectors ── */
+/* ── CINEMA SPLIT — team member cards ── */
 function buildOrgTree() {
   const container = $('org-tree');
   if (!container || !TEAM.length) return;
-
   container.innerHTML = '';
 
   TEAM.forEach((member, i) => {
-    const isLeft = i % 2 === 0; // even index → photo on left
-
-    // Member card
+    const isLeft = i % 2 === 0; // even index → photo left, odd → photo right
     const card = document.createElement('div');
-    card.className = `about-member${isLeft ? '' : ' about-member--right'} reveal`;
-    card.innerHTML = memberCardHTML(member, isLeft);
+    card.className = `cm-card${isLeft ? '' : ' cm-card--right'} reveal`;
+    card.innerHTML = memberCardHTML(member, isLeft, i);
     container.appendChild(card);
-
-    // L-bracket connector between this card and the next (not after the last)
-    if (i < TEAM.length - 1) {
-      const conn = document.createElement('div');
-      conn.className = `about-connector-row about-connector-row--${isLeft ? 'lr' : 'rl'}`;
-      container.appendChild(conn);
-    }
   });
 }
 
-/* Builds the inner HTML for one team member card */
-function memberCardHTML(member, isLeft) {
+/* Builds the inner HTML for one Studio Profile member card */
+function memberCardHTML(member, isLeft, index) {
   const words    = member.name.trim().split(/\s+/);
   const initials = words.length > 1
     ? words.map(w => w[0]).join('').slice(0, 2)
     : member.name.slice(0, 2);
 
+  const idx     = String((index ?? 0) + 1).padStart(2, '0');
+  const eyebrow = member.role.split(/\s*[·\-,]\s*/)[0].trim();
+
+  // Stats row — three chips beneath the quote
+  const statRole   = eyebrow;
+  const statStudio = 'GLG';
+  const statEst    = member.year || '2026';
+  // Labels adapt to current language
+  const lbl = {
+    role:   { fr:'Rôle',    es:'Rol',    de:'Rolle',   ar:'الدور',   zh:'职位',  ja:'役職',  ru:'Роль',   pl:'Rola',   it:'Ruolo',  en:'Role'   }[LANG] || 'Role',
+    studio: { fr:'Studio',  es:'Studio', de:'Studio',  ar:'الأستوديو',zh:'工作室',ja:'スタジオ',ru:'Студия', pl:'Studio', it:'Studio', en:'Studio' }[LANG] || 'Studio',
+    est:    { fr:'Fondé en',es:'Fundado',de:'Gegründet',ar:'تأسيس',  zh:'成立',  ja:'設立',  ru:'Осн.',   pl:'Założone',it:'Fondato',en:'Est.'   }[LANG] || 'Est.',
+  };
+
   const photoBlock = `
-    <div class="about-member-photo-wrap">
+    <div class="cm-photo">
       ${member.photo
-        ? `<img class="about-member-photo-img" src="${member.photo}" alt="${member.name}"
-               onerror="this.style.display='none'">`
-        : ''
+        ? `<img src="${member.photo}" alt="${member.name}" onerror="this.style.display='none'">`
+        : `<div class="cm-photo-init">${initials.toUpperCase()}</div>`
       }
-      <div class="about-member-photo-init">${initials.toUpperCase()}</div>
+      <div class="cm-photo-grad"></div>
     </div>`;
 
-  const textBlock = `
-    <div class="about-member-content">
-      <div class="about-member-name">${member.name}</div>
-      <div class="about-member-role">${member.role}</div>
-      <p class="about-member-quote">${member.quote}</p>
+  const infoBlock = `
+    <div class="cm-info">
+      <div class="cm-idx">${idx}</div>
+      <div class="cm-info-top">
+        <div class="cm-eye">${eyebrow}</div>
+        <div class="cm-name">${member.name}</div>
+        ${member.realName ? `<div class="cm-realname">${member.realName}</div>` : ''}
+        <div class="cm-role">${member.role}</div>
+        <div class="cm-divider"></div>
+        <p class="cm-quote">${member.quote}</p>
+      </div>
+      <div class="cm-stats">
+        <div class="cm-stat">
+          <div class="cm-stat-label">${lbl.role}</div>
+          <div class="cm-stat-value">${statRole}</div>
+        </div>
+        <div class="cm-stat">
+          <div class="cm-stat-label">${lbl.studio}</div>
+          <div class="cm-stat-value">${statStudio}</div>
+        </div>
+        <div class="cm-stat">
+          <div class="cm-stat-label">${lbl.est}</div>
+          <div class="cm-stat-value">${statEst}</div>
+        </div>
+      </div>
+      <div class="cm-accent"></div>
     </div>`;
 
-  // Photo goes first (left) or last (right) in the grid
-  return isLeft ? photoBlock + textBlock : textBlock + photoBlock;
+  return isLeft ? photoBlock + infoBlock : infoBlock + photoBlock;
 }
 
 /* ── Awards ── */
@@ -891,6 +1051,7 @@ function closeTrailerModal() {
    FOOTER HTML
 ══════════════════════════════════════════ */
 function footerHTML() {
+  const nav = t('nav'); // [home, works, shop, about, contact]
   return `
   <footer class="glg-pattern glg-pat-subtle">
     <div class="glg-pattern-bg" style="--glg-speed:40s;--glg-direction:reverse"></div>
@@ -899,32 +1060,42 @@ function footerHTML() {
         <div class="footer-logo">
           <img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GLG" onerror="this.style.display='none'">
         </div>
-        <p class="footer-brand-desc" id="footer-desc-d">An independent game studio creating interactive experiences that teach, move, and haunt your mind. Est. 2026, France.</p>
+        <p class="footer-brand-desc">${t('footerDesc')}</p>
       </div>
       <div>
-        <div class="footer-col-title">Navigate</div>
+        <div class="footer-col-title">${t('footerNavTitle')}</div>
         <div class="footer-links">
-          <button onclick="showPage('home')">Home</button>
-          <button onclick="showPage('works')">Our Works</button>
-          <button onclick="showPage('shop')">Shop</button>
-          <button onclick="showPage('about')">About Us</button>
-          <button onclick="showPage('contact')">Contact</button>
+          <button onclick="showPage('home')">${nav[0]}</button>
+          <button onclick="showPage('works')">${nav[1]}</button>
+          <button onclick="showPage('shop')">${nav[2]}</button>
+          <button onclick="showPage('about')">${nav[3]}</button>
+          <button onclick="showPage('contact')">${nav[4]}</button>
         </div>
       </div>
       <div>
-        <div class="footer-col-title">Our Works</div>
+        <div class="footer-col-title">${t('footerWorksTitle')}</div>
         <div class="footer-links">
           ${ALL_WORKS.map(w => `<button onclick="showPage('detail','${w.id}')">${w.title}</button>`).join('')}
         </div>
       </div>
       <div>
-        <div class="footer-col-title">Follow Us</div>
-        <div class="footer-links">
-          <a href="#" target="_blank" rel="noopener">Twitter / X</a>
-          <a href="#" target="_blank" rel="noopener">Discord</a>
-          <a href="#" target="_blank" rel="noopener">YouTube</a>
-          <a href="#" target="_blank" rel="noopener">Instagram</a>
-          <a href="#" target="_blank" rel="noopener">Steam</a>
+        <div class="footer-col-title">${t('footerFollowTitle')}</div>
+        <div class="footer-socials-row">
+          <a href="https://x.com/geeklearngames" target="_blank" rel="noopener" class="footer-soc-btn" title="X / Twitter" aria-label="X Twitter">
+            <img src="assets/images/LINKS - LOGOS/X_logo_2023_(white).png" alt="X" class="soc-icon">
+          </a>
+          <a href="https://discord.gg/M7YJsC9BwH" target="_blank" rel="noopener" class="footer-soc-btn" title="Discord" aria-label="Discord">
+            <img src="assets/images/LINKS - LOGOS/DISCORD - LOGO - TRANSPARANT.png" alt="Discord" class="soc-icon">
+          </a>
+          <a href="https://www.youtube.com/@GEEKLEARN-GAMES" target="_blank" rel="noopener" class="footer-soc-btn" title="YouTube" aria-label="YouTube">
+            <img src="assets/images/LINKS - LOGOS/YOUTUBE - LOGO - TRANSPARENT.png" alt="YouTube" class="soc-icon">
+          </a>
+          <a href="https://www.instagram.com/geeklearn_games/" target="_blank" rel="noopener" class="footer-soc-btn" title="Instagram" aria-label="Instagram">
+            <img src="assets/images/LINKS - LOGOS/INSTAGRAM - LOGO - TRANSPARENT.png" alt="Instagram" class="soc-icon">
+          </a>
+          <a href="https://store.steampowered.com/dev/GEEKLEARN-GAMES" target="_blank" rel="noopener" class="footer-soc-btn" title="Steam" aria-label="Steam">
+            <img src="assets/images/LINKS - LOGOS/STEAM - LOGO - TRANSPARENT.png" alt="Steam" class="soc-icon">
+          </a>
         </div>
       </div>
     </div>
