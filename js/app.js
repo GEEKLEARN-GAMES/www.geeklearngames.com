@@ -105,33 +105,38 @@ function buildGate() {
 
     const vpW   = window.innerWidth;
     // Adaptive count — more on wide screens, fewer on mobile
-    const COUNT = vpW < 600 ? 11 : vpW < 1024 ? 17 : 23;
+    // COUNT chosen so each zone is wide enough for real random jitter.
+    // Rule of thumb: zoneW ≥ max_flag_diag (≈130px) → COUNT ≤ vpW/130.
+    const COUNT = vpW < 600 ? 7 : vpW < 1024 ? 10 : 14;
 
     // ── Jittered-grid placement with collision sweep ────────────────
-    // 1. Generate random sizes and shuffle them independently of positions.
+    // 1. Sizes: cap at 120px wide so diag ≈ 144px ≤ zoneW at every breakpoint.
+    //    Shuffle sizes independently of positions for natural variety.
     const sizes = Array.from({ length: COUNT }, () => {
-      const w    = Math.round(58 + Math.random() * 122);   // 58–180 px
+      const w    = Math.round(52 + Math.random() * 68);    // 52–120 px
       const h    = Math.round(w * 0.667);
-      const diag = Math.ceil(Math.sqrt(w * w + h * h));    // bounding circle ≈ diagonal
+      const diag = Math.ceil(Math.sqrt(w * w + h * h));
       return { w, h, diag };
-    }).sort(() => Math.random() - 0.5);                     // shuffle sizes
+    }).sort(() => Math.random() - 0.5);
 
-    // 2. One flag per zone (guarantees even coverage, no big gaps).
+    // 2. Jittered grid: one flag per zone, center randomly in [20 %, 80 %] of zone.
+    //    No diag-based margin here — that made hi < lo for wide flags.
+    //    The collision sweep below handles any actual overlap.
     const zoneW = vpW / COUNT;
-    const flags = sizes.map((sz, i) => {
-      const margin = sz.diag / 2 + 6;                       // keep flag within zone
-      const lo     = i * zoneW + margin;
-      const hi     = (i + 1) * zoneW - margin;
-      const cx     = lo + Math.random() * Math.max(1, hi - lo);
-      return { ...sz, cx };
-    });
+    const flags = sizes.map((sz, i) => ({
+      ...sz,
+      cx: i * zoneW + zoneW * (0.2 + Math.random() * 0.6),
+    }));
 
-    // 3. Left-to-right sweep: push any overlapping flag right.
+    // 3. Left-to-right sweep: push overlapping flags apart (preserves order).
     for (let i = 1; i < flags.length; i++) {
       const p = flags[i - 1], c = flags[i];
-      const minDist = (p.diag + c.diag) / 2 + 12;
+      const minDist = (p.diag + c.diag) / 2 + 10;
       if (c.cx - p.cx < minDist) c.cx = p.cx + minDist;
     }
+    // Clamp: if sweep pushed the last flag off-screen, shift all left uniformly.
+    const overflow = flags[flags.length - 1].cx - vpW * 0.98;
+    if (overflow > 0) flags.forEach(f => { f.cx -= overflow; });
 
     // 4. Build DOM elements.
     flags.forEach(f => {

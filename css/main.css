@@ -64,20 +64,23 @@ ul{list-style:none}
 /* Shadow radiating from centre of each element — darkest at the element, fades outward */
 .gate-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:clamp(14px,2.8vh,28px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .08s var(--ease) forwards;filter:drop-shadow(0 0 14px rgba(0,0,0,.98)) drop-shadow(0 0 48px rgba(0,0,0,.72)) drop-shadow(0 0 110px rgba(0,0,0,.38))}
 .gate-logo-img{height:42px;width:auto;filter:brightness(0) invert(1);opacity:.92}
-.gate-studio-name{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.55em;text-transform:uppercase;color:rgba(255,255,255,.3)}
-.gate-tagline{font-family:var(--f-serif);font-style:italic;font-size:clamp(.8rem,1.5vw,.94rem);color:rgba(255,255,255,.28);margin-bottom:clamp(14px,2.6vh,24px);text-align:center;position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .22s var(--ease) forwards;text-shadow:0 0 16px rgba(0,0,0,1),0 0 50px rgba(0,0,0,.78),0 0 100px rgba(0,0,0,.38)}
+.gate-studio-name{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.55em;text-transform:uppercase;color:rgb(255, 255, 255)}
+.gate-tagline{font-family:var(--f-serif);font-style:bold;font-size:clamp(.8rem,1.5vw,.94rem);color:rgb(255, 255, 255);margin-bottom:clamp(14px,2.6vh,24px);text-align:center;position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .22s var(--ease) forwards;text-shadow:0 0 16px rgba(0,0,0,1),0 0 50px rgba(0,0,0,.78),0 0 100px rgba(0,0,0,.38)}
 
 /* ── Inline separator: ─── CHOOSE YOUR LANGUAGE ─── */
 .gate-separator{display:flex;align-items:center;gap:clamp(8px,1.5vw,16px);width:min(100%,clamp(300px,55vw,760px));margin-bottom:clamp(10px,1.8vh,18px);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .34s var(--ease) forwards}
-.gate-sep-line{flex:1;height:1px;background:rgba(255,255,255,.1)}
-.gate-sep-label{font-family:var(--f-mono);font-size:.4rem;letter-spacing:.44em;text-transform:uppercase;color:rgba(255,255,255,.22);white-space:nowrap;text-shadow:0 0 10px rgba(0,0,0,1),0 0 32px rgba(0,0,0,.75)}
+.gate-sep-line{flex:1;height:1px;background:rgb(255, 255, 255)}
+.gate-sep-label{font-family:var(--f-mono);font-size:.4rem;letter-spacing:.44em;text-transform:uppercase;color:rgb(255, 255, 255);white-space:nowrap;text-shadow:0 0 10px rgba(0,0,0,1),0 0 32px rgba(0,0,0,.75)}
 
 /* ── Flag mosaic grid ── */
-.gate-grid{display:grid;grid-template-columns:repeat(5,clamp(96px,12.5vw,150px));grid-auto-rows:clamp(64px,8.3vw,100px);gap:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .46s var(--ease) forwards;box-shadow:0 0 38px 18px rgba(0,0,0,.75),0 0 90px 35px rgba(0,0,0,.45),0 0 160px 55px rgba(0,0,0,.22)}
+.gate-grid{display:grid;grid-template-columns:repeat(5,clamp(96px,12.5vw,150px));grid-auto-rows:clamp(64px,8.3vw,100px);gap:1px;background:rgba(255, 255, 255, 0.07);border:1px solid rgba(255,255,255,.07);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .46s var(--ease) forwards;box-shadow:0 0 38px 18px rgba(0,0,0,.75),0 0 90px 35px rgba(0,0,0,.45),0 0 160px 55px rgba(0,0,0,.22)}
 
 /* Individual flag card */
 .gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease}
-.gate-lang.dimmed{opacity:.32;filter:grayscale(100%)}
+/* Dimmed = opaque but 82% brightness — the rain behind stays hidden */
+.gate-lang.dimmed{opacity:1;filter:grayscale(100%) brightness(.82)}
+/* Override the .gate-grid:hover rule (same specificity, appears later → wins) */
+.gate-grid:hover .gate-lang.dimmed{opacity:1;filter:grayscale(100%) brightness(.82)}
 /* Mobile: tapped flag stays in full colour (no hover available on touch screens) */
 .gate-lang.selected{filter:grayscale(0%) !important}
 .gate-lang:hover{transform:scale(1.06);z-index:2;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
