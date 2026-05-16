@@ -86,6 +86,11 @@ function setGateRainFlag(code) {
     }));
   });
   _rainActiveSlot = nextSlot;
+
+  // Update ambient colour wash (background-image swap at very low opacity
+  // is imperceptible — only the opacity transition matters visually).
+  const wash = $('gate-wash');
+  if (wash) wash.style.backgroundImage = `url(assets/images/FLAGS/${code}.svg)`;
 }
 
 function buildGate() {
@@ -105,38 +110,25 @@ function buildGate() {
 
     const vpW   = window.innerWidth;
     // Adaptive count — more on wide screens, fewer on mobile
-    // COUNT chosen so each zone is wide enough for real random jitter.
-    // Rule of thumb: zoneW ≥ max_flag_diag (≈130px) → COUNT ≤ vpW/130.
-    const COUNT = vpW < 600 ? 7 : vpW < 1024 ? 10 : 14;
+    // For a rich rain effect: many flags, varied sizes, slight overlaps are fine.
+    // Brief overlaps look natural for falling objects (same as real rain).
+    const COUNT = vpW < 600 ? 10 : vpW < 1024 ? 15 : 22;
 
-    // ── Jittered-grid placement with collision sweep ────────────────
-    // 1. Sizes: cap at 120px wide so diag ≈ 144px ≤ zoneW at every breakpoint.
-    //    Shuffle sizes independently of positions for natural variety.
+    // ── Jittered-grid placement ─────────────────────────────────────
+    // Sizes shuffled independently of positions for natural variety.
     const sizes = Array.from({ length: COUNT }, () => {
-      const w    = Math.round(52 + Math.random() * 68);    // 52–120 px
+      const w    = Math.round(58 + Math.random() * 102);   // 58–160 px (larger range)
       const h    = Math.round(w * 0.667);
       const diag = Math.ceil(Math.sqrt(w * w + h * h));
       return { w, h, diag };
     }).sort(() => Math.random() - 0.5);
 
-    // 2. Jittered grid: one flag per zone, center randomly in [20 %, 80 %] of zone.
-    //    No diag-based margin here — that made hi < lo for wide flags.
-    //    The collision sweep below handles any actual overlap.
+    // One flag per zone with random jitter inside the zone.
     const zoneW = vpW / COUNT;
     const flags = sizes.map((sz, i) => ({
       ...sz,
-      cx: i * zoneW + zoneW * (0.2 + Math.random() * 0.6),
+      cx: i * zoneW + zoneW * (0.15 + Math.random() * 0.7),
     }));
-
-    // 3. Left-to-right sweep: push overlapping flags apart (preserves order).
-    for (let i = 1; i < flags.length; i++) {
-      const p = flags[i - 1], c = flags[i];
-      const minDist = (p.diag + c.diag) / 2 + 10;
-      if (c.cx - p.cx < minDist) c.cx = p.cx + minDist;
-    }
-    // Clamp: if sweep pushed the last flag off-screen, shift all left uniformly.
-    const overflow = flags[flags.length - 1].cx - vpW * 0.98;
-    if (overflow > 0) flags.forEach(f => { f.cx -= overflow; });
 
     // 4. Build DOM elements.
     flags.forEach(f => {
@@ -181,6 +173,15 @@ function buildGate() {
     });
 
     if (gate) gate.insertBefore(rain, gate.firstChild);
+
+    // ── Ambient colour wash (created once, sits above rain, below content) ──
+    if (gate && !$('gate-wash')) {
+      const wash = document.createElement('div');
+      wash.id = 'gate-wash';
+      wash.setAttribute('aria-hidden', 'true');
+      // Insert after rain (DOM order → renders above rain at same z-index)
+      gate.insertBefore(wash, rain.nextSibling);
+    }
   }
 
   // ── Render flag mosaic buttons ──────────────────────────────────
@@ -204,11 +205,13 @@ function buildGate() {
   // trigger an intermediate reset to the default flag (was the crossfade bug).
   const btns = wrap.querySelectorAll('.gate-lang');
   const rain  = $('gate-rain');
+  const wash  = $('gate-wash');
 
   btns.forEach(btn => {
     btn.addEventListener('mouseenter', () => {
       btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
       if (rain) rain.classList.add('gate-rain--hover');
+      if (wash) wash.classList.add('gate-wash--active');
       setGateRainFlag(btn.dataset.code);
     });
   });
@@ -216,6 +219,7 @@ function buildGate() {
   wrap.addEventListener('mouseleave', () => {
     btns.forEach(b => b.classList.remove('dimmed'));
     if (rain) rain.classList.remove('gate-rain--hover');
+    if (wash) wash.classList.remove('gate-wash--active');
     setGateRainFlag(LANG_GATE[0].code);
   });
 }
