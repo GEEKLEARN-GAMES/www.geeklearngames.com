@@ -50,7 +50,15 @@ img{display:block;max-width:100%}
 ul{list-style:none}
 
 /* ─── LANGUAGE GATE ────────────────────────────────── */
-#lang-gate{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(20px,4vh,48px) 20px;gap:0;transition:opacity .7s var(--ease),transform .7s var(--ease)}
+#lang-gate{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(20px,4vh,48px) 20px;gap:0;transition:opacity .7s var(--ease),transform .7s var(--ease);overscroll-behavior:contain}
+/* Notch/island safe-area on iPhone X+ and Android equivalents */
+@supports(padding:max(0px)){
+  #lang-gate{
+    padding-left:max(20px,env(safe-area-inset-left));
+    padding-right:max(20px,env(safe-area-inset-right));
+    padding-bottom:max(clamp(20px,4vh,48px),env(safe-area-inset-bottom));
+  }
+}
 #lang-gate::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
 #lang-gate.out{opacity:0;transform:scale(1.04);pointer-events:none}
 
@@ -76,7 +84,7 @@ ul{list-style:none}
 .gate-grid{display:grid;grid-template-columns:repeat(5,clamp(96px,12.5vw,150px));grid-auto-rows:clamp(64px,8.3vw,100px);gap:1px;background:rgba(255, 255, 255, 0.07);border:1px solid rgba(255,255,255,.07);position:relative;z-index:1;opacity:0;animation:gFadeUp .9s .46s var(--ease) forwards;box-shadow:0 0 38px 18px rgba(0,0,0,.75),0 0 90px 35px rgba(0,0,0,.45),0 0 160px 55px rgba(0,0,0,.22)}
 
 /* Individual flag card */
-.gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease}
+.gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 /* Dimmed = opaque but 82% brightness — the rain behind stays hidden */
 .gate-lang.dimmed{opacity:1;filter:grayscale(100%) brightness(.82)}
 /* Override the .gate-grid:hover rule (same specificity, appears later → wins) */
@@ -110,6 +118,10 @@ ul{list-style:none}
 .gate-bottom-item{font-family:var(--f-mono);font-size:.34rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.14)}
 .gate-bottom-dot{font-family:var(--f-mono);font-size:.34rem;color:rgba(255,255,255,.09)}
 
+/* Bottom separator — full unbroken line below the flag grid */
+.gate-sep-bottom{margin-top:clamp(8px,1.4vh,14px);margin-bottom:0;animation-delay:.54s}
+.gate-sep-bottom .gate-sep-line{flex:1}
+
 @keyframes gFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 /* ── Flag rain background ── */
@@ -131,19 +143,22 @@ ul{list-style:none}
   filter:blur(var(--blur,1.5px)) grayscale(0) brightness(.88);
   opacity:calc(var(--opacity,.80) * .6);
 }
-/* Ambient colour wash — blurred flag image behind gate content on hover */
+/* Ambient colour wash — two-slot crossfade container, same pattern as rain flags */
 #gate-wash{
   position:absolute;
-  inset:-20%;
+  inset:0;
   z-index:0;
   pointer-events:none;
-  background-size:cover;
-  background-position:center;
-  filter:blur(90px) saturate(1.3);
   opacity:0;
-  transition:opacity .8s ease;
+  transition:opacity .9s ease;
 }
-#gate-wash.gate-wash--active{opacity:.07;}
+#gate-wash.gate-wash--active{opacity:1;}
+/* Each slot fills the container and crossfades independently */
+.gwash-slot{
+  position:absolute;
+  inset:0;
+  transition:opacity .75s ease;
+}
 /* Two stacked imgs per flag — direct dissolve, never through black */
 .grfi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:opacity .65s ease}
 /* Fade in from top (0–8%), full opacity 8–87%, fade out at bottom (87–100%) */
@@ -161,7 +176,26 @@ ul{list-style:none}
 
 @media(max-width:900px){.gate-grid{grid-template-columns:repeat(5,1fr);width:min(100%,580px)}.gate-separator{width:min(100%,500px)}}
 @media(max-width:580px){.gate-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:clamp(60px,20vw,96px);width:min(100%,340px)}.gate-lang.dimmed{opacity:.44}.gate-separator{width:min(100%,300px)}.gate-corner{width:16px;height:16px}}
+/* Small phones (≤480px): tighter layout, hide rain for performance */
+@media(max-width:480px){
+  #lang-gate{justify-content:flex-start;padding-top:max(clamp(16px,6vw,28px),env(safe-area-inset-top,16px))}
+  .gate-rain{display:none}
+  .gate-logo-img{height:34px}
+  .gate-tagline{font-size:.75rem;margin-bottom:10px}
+  .gate-grid{grid-auto-rows:clamp(56px,21vw,80px)}
+  .gate-bottom{margin-top:8px}
+}
 @media(max-width:360px){.gate-grid{grid-template-columns:repeat(2,1fr)}}
+/* Touch / no-hover devices: disable rain hover colour shift + wash,
+   keep the rain animation running on tablets (nice pure atmosphere) */
+@media(hover:none){
+  #lang-gate{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .gate-rain--hover .gate-rain-inner{filter:blur(var(--blur,1.5px)) grayscale(1) brightness(.8);opacity:var(--opacity,.80)}
+  #gate-wash{display:none}
+  /* No scale-up on tap — avoids layout jank on touch */
+  .gate-lang:hover{transform:none;box-shadow:none}
+  .gate-lang:active{transform:scale(.97);filter:grayscale(0%)}
+}
 
 /* ─── LOADER ────────────────────────────────────────── */
 #loader{position:fixed;inset:0;z-index:8888;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;opacity:0;pointer-events:none;transition:opacity .4s}
@@ -900,8 +934,6 @@ ul{list-style:none}
 /* ─── FOOTER ────────────────────────────────────────── */
 footer{
   background:var(--black);border-top:1px solid var(--border);
-  position:relative;  /* REQUIRED: contains the absolute glg-pattern-bg child */
-  overflow:hidden;    /* prevents pattern from bleeding onto sections above */
 }
 .footer-inner{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:40px;padding:clamp(44px,6vw,68px) clamp(16px,5vw,72px) clamp(32px,5vw,56px);max-width:1440px;margin:0 auto}
 .footer-logo img{height:22px;filter:brightness(0) invert(1);opacity:.6;margin-bottom:10px}

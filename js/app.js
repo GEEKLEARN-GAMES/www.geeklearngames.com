@@ -60,10 +60,40 @@ function setText(id, txt) { const e = $(id); if(e) e.textContent = txt; }
 ══════════════════════════════════════════ */
 
 // True crossfade — two stacked imgs per element, swap which slot is on top.
-// KEY FIX: we listen to mouseleave on the GRID CONTAINER, not on individual
-// buttons — this prevents the EN→FR→DE double-transition when moving between buttons.
+// KEY FIX: mouseleave on the GRID CONTAINER only — prevents EN→FR→DE triple-fire.
 let _rainActiveSlot = 'a';
 let _rainCurrentCode = null;
+let _washActiveSlot  = 'a';
+let _washCurrentCode = null;
+
+// Flag-layout-accurate gradients — each matches the actual flag's colour disposition.
+// Used for the ambient colour wash that blooms behind the gate on hover.
+const GATE_GLOW = {
+  // Vertical tricolore: blue-left → faint white → red-right
+  fr: 'linear-gradient(90deg, rgba(0,55,164,.18) 0%, rgba(255,255,255,.04) 50%, rgba(237,41,57,.18) 100%)',
+  // Union Jack: ~60% blue field → red cross accent — use lighter blue so it reads on black
+  en: 'radial-gradient(ellipse 88% 70% at 50% 46%, rgba(45,100,230,.22) 0%, rgba(0,36,125,.18) 40%, rgba(200,16,46,.10) 72%, transparent 92%)',
+  // Horizontal bands: red top/bottom, gold centre
+  es: 'linear-gradient(180deg, rgba(198,11,30,.16) 0%, rgba(240,185,11,.20) 50%, rgba(198,11,30,.16) 100%)',
+  // Horizontal bands: near-black top, red centre, gold bottom
+  de: 'linear-gradient(180deg, rgba(12,12,12,.22) 0%, rgba(220,0,0,.16) 50%, rgba(255,200,0,.18) 100%)',
+  // Solid emerald radial
+  ar: 'radial-gradient(ellipse 70% 58% at 50% 46%, rgba(0,122,61,.24) 0%, rgba(0,90,40,.08) 60%, transparent 82%)',
+  // Red field — pure vivid Chinese red, NO yellow (yellow + red → orange on dark bg)
+  zh: 'radial-gradient(ellipse 85% 68% at 50% 46%, rgba(222,41,16,.28) 0%, rgba(200,28,10,.18) 52%, transparent 82%)',
+  // Hi-no-Maru: two-layer composite.
+  // Layer 1 — the red disc: 15%×25% ratio compensates 16:9 aspect → looks circular on screen.
+  // Layer 2 — the white field: boosted to .15 opacity so it's distinctly visible (like FR white band).
+  ja: 'radial-gradient(ellipse 15% 25% at 50% 46%, rgba(215,0,38,.62) 0%, rgba(190,0,45,.20) 50%, transparent 68%), radial-gradient(ellipse 88% 72% at 50% 46%, rgba(252,242,242,.15) 0%, rgba(238,224,224,.06) 52%, transparent 84%)',
+  // Horizontal bands: faint white top, blue centre, red bottom
+  ru: 'linear-gradient(180deg, rgba(220,220,220,.04) 0%, rgba(0,57,166,.18) 50%, rgba(210,43,30,.18) 100%)',
+  // Horizontal halves: faint white top, red bottom
+  pl: 'linear-gradient(180deg, rgba(220,220,220,.04) 0%, rgba(220,20,60,.22) 100%)',
+  // Vertical tricolore: green-left → faint white → red-right
+  it: 'linear-gradient(90deg, rgba(0,146,70,.18) 0%, rgba(255,255,255,.04) 50%, rgba(206,43,55,.18) 100%)',
+};
+
+// Rain flag crossfade — swaps which image slot is shown (a/b per flag element).
 function setGateRainFlag(code) {
   if (code === _rainCurrentCode) return;
   _rainCurrentCode = code;
@@ -78,19 +108,34 @@ function setGateRainFlag(code) {
     const cur  = inner.querySelector(`.grfi-${curSlot}`);
     if (!next || !cur) return;
     next.src = src;
-    // Two rAFs: frame 1 registers the new src, frame 2 triggers the CSS
-    // opacity transition — produces a direct dissolve with no black gap.
+    // Two rAFs: frame 1 registers new src, frame 2 triggers the CSS opacity
+    // transition — direct dissolve with no black gap between flags.
     requestAnimationFrame(() => requestAnimationFrame(() => {
       next.style.opacity = '1';
       cur.style.opacity  = '0';
     }));
   });
   _rainActiveSlot = nextSlot;
+}
 
-  // Update ambient colour wash (background-image swap at very low opacity
-  // is imperceptible — only the opacity transition matters visually).
+// Wash crossfade — same two-slot pattern as rain, so gradient changes always fade.
+// Ensures no instant background swap even on very fast hover.
+function setGateWash(code) {
+  if (code === _washCurrentCode) return;
+  _washCurrentCode = code;
   const wash = $('gate-wash');
-  if (wash) wash.style.backgroundImage = `url(assets/images/FLAGS/${code}.svg)`;
+  if (!wash) return;
+  const nextSlot = _washActiveSlot === 'a' ? 'b' : 'a';
+  const curSlot  = _washActiveSlot;
+  const nextEl   = wash.querySelector(`.gwash-${nextSlot}`);
+  const curEl    = wash.querySelector(`.gwash-${curSlot}`);
+  if (!nextEl || !curEl) return;
+  nextEl.style.background = GATE_GLOW[code] || GATE_GLOW.en;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    nextEl.style.opacity = '1';
+    curEl.style.opacity  = '0';
+  }));
+  _washActiveSlot = nextSlot;
 }
 
 function buildGate() {
@@ -174,20 +219,34 @@ function buildGate() {
 
     if (gate) gate.insertBefore(rain, gate.firstChild);
 
-    // ── Ambient colour wash (created once, sits above rain, below content) ──
+    // ── Ambient colour wash (created once, two slots for smooth crossfade) ──
     if (gate && !$('gate-wash')) {
       const wash = document.createElement('div');
       wash.id = 'gate-wash';
       wash.setAttribute('aria-hidden', 'true');
-      // Insert after rain (DOM order → renders above rain at same z-index)
+      // Two stacked child divs — same crossfade pattern as the rain flag images.
+      // Pre-fill slot 'a' with the default flag's gradient so first hover is
+      // instant (no flash or load delay).
+      ['a', 'b'].forEach((slot, si) => {
+        const el = document.createElement('div');
+        el.className = `gwash-slot gwash-${slot}`;
+        el.style.opacity = si === 0 ? '1' : '0';
+        if (si === 0) el.style.background = GATE_GLOW[defaultCode] || GATE_GLOW.en;
+        wash.appendChild(el);
+      });
+      // Insert after rain (renders above rain at same z-index)
       gate.insertBefore(wash, rain.nextSibling);
+      // Sync internal wash state with pre-filled default
+      _washCurrentCode = defaultCode;
+      _washActiveSlot  = 'a';
     }
   }
 
   // ── Render flag mosaic buttons ──────────────────────────────────
   wrap.innerHTML = LANG_GATE.map((l, i) => `
     <button class="gate-lang" data-code="${l.code}"
-            onclick="selectLang('${l.code}')" aria-label="${l.label}">
+            onclick="selectLang('${l.code}')" aria-label="${l.label}"
+            style="touch-action:manipulation">
       <img class="gate-flag-img"
            src="assets/images/FLAGS/${l.code}.svg"
            alt="${l.label}"
@@ -200,28 +259,41 @@ function buildGate() {
     </button>
   `).join('');
 
-  // ── Hover: dim others + crossfade rain flag ─────────────────────
-  // mouseleave is on the GRID CONTAINER — moving between buttons doesn't
-  // trigger an intermediate reset to the default flag (was the crossfade bug).
+  // ── Hover: dim others + crossfade rain + crossfade wash ─────────
+  // mouseleave on the GRID CONTAINER — moving between buttons never fires
+  // an intermediate reset (was the EN→FR→DE triple-fire crossfade bug).
   const btns = wrap.querySelectorAll('.gate-lang');
   const rain  = $('gate-rain');
   const wash  = $('gate-wash');
 
-  btns.forEach(btn => {
-    btn.addEventListener('mouseenter', () => {
-      btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
-      if (rain) rain.classList.add('gate-rain--hover');
-      if (wash) wash.classList.add('gate-wash--active');
-      setGateRainFlag(btn.dataset.code);
-    });
-  });
-
-  wrap.addEventListener('mouseleave', () => {
+  function activateFlag(code) {
+    if (rain) rain.classList.add('gate-rain--hover');
+    if (wash) wash.classList.add('gate-wash--active');
+    setGateRainFlag(code);
+    setGateWash(code);
+  }
+  function deactivateFlag() {
     btns.forEach(b => b.classList.remove('dimmed'));
     if (rain) rain.classList.remove('gate-rain--hover');
     if (wash) wash.classList.remove('gate-wash--active');
     setGateRainFlag(LANG_GATE[0].code);
+    setGateWash(LANG_GATE[0].code);
+  }
+
+  btns.forEach(btn => {
+    // Mouse hover
+    btn.addEventListener('mouseenter', () => {
+      btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
+      activateFlag(btn.dataset.code);
+    });
+    // Touch: brief visual feedback before selectLang fires via onclick
+    btn.addEventListener('touchstart', () => {
+      btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
+      activateFlag(btn.dataset.code);
+    }, { passive: true });
   });
+
+  wrap.addEventListener('mouseleave', deactivateFlag);
 }
 
 function selectLang(code) {
@@ -419,20 +491,8 @@ function applyTranslations() {
   setText('stat-games', t('statGames'));
   setText('stat-platforms', t('statPlatforms'));
 
-  // Footer
-  setText('footer-desc', t('footerDesc'));
-  setText('footer-nav-title', t('footerNavTitle'));
-  setText('footer-works-title', t('footerWorksTitle'));
-  setText('footer-follow-title', t('footerFollowTitle'));
-  // Footer tagline (appears on works/about/contact/shop static footers)
-  const tagline = t('footerTagline') || 'Games that teach, move, haunt your mind.';
-  document.querySelectorAll('.footer-tagline').forEach(el => { el.textContent = tagline; });
-
-  // Footer links nav labels — same order as navKeys
-  const fNavKeys = ['home','works','shop','about','contact'];
-  t('nav').forEach((label, i) => {
-    setText('fnl-' + fNavKeys[i], label);
-  });
+  // Footer — rebuild all page slots with current language (single source of truth)
+  buildPageFooters();
 
   // Showcase
   const stEl = $('showcase-title');
@@ -492,7 +552,6 @@ function initSite() {
   buildMarquee();
   buildCarousels();
   buildPuzzleStrips();
-  buildFooterWorks();
   buildAboutPage();
   initNav();
   initScrollProgress();
@@ -676,14 +735,7 @@ function cardHTML(item, typeLabel) {
 }
 
 // filterWorks / buildWorksList removed — works page uses carousels only
-
-function buildFooterWorks() {
-  const el = $('footer-works-links');
-  if (!el) return;
-  el.innerHTML = ALL_WORKS.map(w =>
-    `<button onclick="showPage('detail','${w.id}')" id="fwl-${w.id}">${w.title}</button>`
-  ).join('');
-}
+// buildFooterWorks() removed — footer works list is now built inside footerHTML() / buildPageFooters()
 
 /* ══════════════════════════════════════════
    ABOUT PAGE
@@ -1062,8 +1114,7 @@ function closeTrailerModal() {
 function footerHTML() {
   const nav = t('nav'); // [home, works, shop, about, contact]
   return `
-  <footer class="glg-pattern glg-pat-subtle">
-    <div class="glg-pattern-bg" style="--glg-speed:40s;--glg-direction:reverse"></div>
+  <footer>
     <div class="footer-inner">
       <div>
         <div class="footer-logo">
@@ -1113,6 +1164,15 @@ function footerHTML() {
       <span class="footer-copy footer-tagline">${t('footerTagline') || 'Games that teach, move, haunt your mind.'}</span>
     </div>
   </footer>`;
+}
+
+/* ── Inject full footer into every page slot (called on init + language change) ──
+   All static pages (home/works/shop/about/contact) have a .page-footer-slot div.
+   The detail page builds its own footer inline via buildDetail() → footerHTML().  */
+function buildPageFooters() {
+  document.querySelectorAll('.page-footer-slot').forEach(slot => {
+    slot.innerHTML = footerHTML();
+  });
 }
 
 /* ══════════════════════════════════════════
