@@ -124,9 +124,11 @@ function setText(id, txt) { const e = $(id); if(e) e.textContent = txt; }
 
 // True crossfade — two stacked imgs per element, swap which slot is on top.
 // KEY FIX: mouseleave on the GRID CONTAINER only — prevents EN→FR→DE triple-fire.
-let _rainActiveSlot = 'a';
+let _rainActiveSlot  = 'a';
 let _rainCurrentCode = null;
-let _washActiveSlot  = 'a';
+// Wash uses the container's own background directly — no child slots needed.
+// This guarantees the correct gradient is always painted BEFORE the container
+// becomes visible, eliminating any "wrong-language gradient bleed on first hover".
 let _washCurrentCode = null;
 
 // Flag-layout-accurate gradients — each matches the actual flag's colour disposition.
@@ -181,24 +183,23 @@ function setGateRainFlag(code) {
   _rainActiveSlot = nextSlot;
 }
 
-// Wash crossfade — same two-slot pattern as rain, so gradient changes always fade.
-// Ensures no instant background swap even on very fast hover.
+// Wash — gradient is set directly on #gate-wash (no child slots).
+// The container's own opacity (CSS transition) handles the fade in/out.
+// Correct gradient is always painted synchronously BEFORE the container fades in,
+// so the user can never see a "stale" or wrong-language gradient.
 function setGateWash(code) {
-  if (code === _washCurrentCode) return;
-  _washCurrentCode = code;
   const wash = $('gate-wash');
   if (!wash) return;
-  const nextSlot = _washActiveSlot === 'a' ? 'b' : 'a';
-  const curSlot  = _washActiveSlot;
-  const nextEl   = wash.querySelector(`.gwash-${nextSlot}`);
-  const curEl    = wash.querySelector(`.gwash-${curSlot}`);
-  if (!nextEl || !curEl) return;
-  nextEl.style.background = GATE_GLOW[code] || GATE_GLOW.en;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    nextEl.style.opacity = '1';
-    curEl.style.opacity  = '0';
-  }));
-  _washActiveSlot = nextSlot;
+  if (code) {
+    if (code !== _washCurrentCode) {
+      wash.style.background = GATE_GLOW[code] || '';
+      _washCurrentCode = code;
+    }
+    wash.classList.add('gate-wash--active');
+  } else {
+    wash.classList.remove('gate-wash--active');
+    _washCurrentCode = null;
+  }
 }
 
 function buildGate() {
@@ -293,26 +294,15 @@ function buildGate() {
 
     if (gate) gate.insertBefore(rain, gate.firstChild);
 
-    // ── Ambient colour wash (created once, two slots for smooth crossfade) ──
+    // ── Ambient colour wash (created once — single container, no slot children) ──
+    // Gradient is set directly on the container before it becomes visible,
+    // so the correct flag colour is always shown — no bleed from a previous hover.
     if (gate && !$('gate-wash')) {
       const wash = document.createElement('div');
       wash.id = 'gate-wash';
       wash.setAttribute('aria-hidden', 'true');
-      // Two stacked child divs — same crossfade pattern as the rain flag images.
-      // Pre-fill slot 'a' with the default flag's gradient so first hover is
-      // instant (no flash or load delay).
-      ['a', 'b'].forEach((slot, si) => {
-        const el = document.createElement('div');
-        el.className = `gwash-slot gwash-${slot}`;
-        el.style.opacity = si === 0 ? '1' : '0';
-        if (si === 0) el.style.background = GATE_GLOW[defaultCode] || GATE_GLOW.en;
-        wash.appendChild(el);
-      });
-      // Insert after rain (renders above rain at same z-index)
       gate.insertBefore(wash, rain.nextSibling);
-      // Sync internal wash state with pre-filled default
-      _washCurrentCode = defaultCode;
-      _washActiveSlot  = 'a';
+      _washCurrentCode = null;
     }
   }
 
@@ -342,16 +332,14 @@ function buildGate() {
 
   function activateFlag(code) {
     if (rain) rain.classList.add('gate-rain--hover');
-    if (wash) wash.classList.add('gate-wash--active');
     setGateRainFlag(code);
-    setGateWash(code);
+    setGateWash(code); // gradient is set synchronously, THEN container fades in via CSS
   }
   function deactivateFlag() {
     btns.forEach(b => b.classList.remove('dimmed'));
     if (rain) rain.classList.remove('gate-rain--hover');
-    if (wash) wash.classList.remove('gate-wash--active');
-    setGateRainFlag(LANG_GATE[0].code);
-    setGateWash(LANG_GATE[0].code);
+    setGateWash(null);                    // container fades out (1.4 s CSS transition)
+    setGateRainFlag(LANG_GATE[0].code);  // rain returns to first flag; wash stays at its colour then fades
   }
 
   btns.forEach(btn => {
@@ -464,6 +452,7 @@ function reopenLangGate() {
   // Close mobile menu if open
   $('nav-mobile')?.classList.remove('open');
   $('nav-burger')?.classList.remove('open');
+    $('nav-burger')?.setAttribute('aria-expanded', 'false');
 
   // Restore display first, then remove .out on next frame so the CSS
   // fade-in transition (opacity 0→1, scale 1.04→1) fires correctly
@@ -484,8 +473,8 @@ function reopenLangGate() {
   if (_langSelected) {
     const btn = $('gate-back-btn');
     if (btn) {
-      const lbl = btn.querySelector('.gate-back-label');
-      if (lbl) lbl.textContent = GATE_BACK_LABELS[LANG] || 'Back';
+      /* Update aria-label with localised "Back" word so screen readers get the right language */
+      btn.setAttribute('aria-label', GATE_BACK_LABELS[LANG] || 'Back');
     }
     gate.classList.add('gate--has-back');
   }
@@ -555,7 +544,8 @@ function applyTranslations() {
   const l = LANG;
   // Nav — order must match the I18N nav array: [home, works, shop, about, contact]
   const navKeys = ['home','works','shop','about','contact'];
-  t('nav').forEach((label, i) => {
+  const navLabels = t('nav');
+  if (Array.isArray(navLabels)) navLabels.forEach((label, i) => {
     setText('nl-'  + navKeys[i], label);
     setText('nml-' + navKeys[i], label);
   });
@@ -623,7 +613,7 @@ function applyTranslations() {
 
   // Showcase
   const stEl = $('showcase-title');
-  if (stEl) { const v = t('showcaseTitle'); stEl.innerHTML = v ? v.replace('\n','<br>') : 'WHAT WE<br>CREATE'; }
+  if (stEl) { const v = t('showcaseTitle'); stEl.innerHTML = v ? v.replace('\n',' ') : 'WHAT WE CREATE'; }
 
   // CTA eyebrow
   setText('cta-eye', t('ctaEye') || 'Publishers & Partners');
@@ -634,16 +624,16 @@ function applyTranslations() {
   // About page
   setText('about-eye', t('aboutEye') || 'The Studio');
   const atEl = $('about-title');
-  if (atEl) { const v = t('aboutTitle'); atEl.innerHTML = v ? v.replace('\n','<br>') : 'ABOUT<br>US'; }
+  if (atEl) { const v = t('aboutTitle'); atEl.innerHTML = v ? v.replace('\n',' ') : 'ABOUT US'; }
   setText('about-desc', t('aboutDesc'));
   setText('team-eye',  t('teamEye') || 'The Team');
   const ttEl = $('team-title');
-  if (ttEl) { const v = t('teamTitle'); ttEl.innerHTML = v ? v.replace('\n','<br>') : 'WHO WE<br>ARE'; }
+  if (ttEl) { const v = t('teamTitle'); ttEl.innerHTML = v ? v.replace('\n',' ') : 'WHO WE ARE'; }
   setText('manifesto-label', t('manifestoLabel') || 'Studio Manifesto');
   setHTML('about-manifesto-quote', t('manifestoQuote') || '');
   setText('awards-eye',   t('awardsEye') || 'Awards & Distinctions');
   const awEl = $('awards-title');
-  if (awEl) { const v = t('awardsTitle'); awEl.innerHTML = v ? v.replace('\n','<br>') : 'RECOGNISED<br>WORK'; }
+  if (awEl) { const v = t('awardsTitle'); awEl.innerHTML = v ? v.replace('\n',' ') : 'RECOGNISED WORK'; }
 
   // Contact eyebrow
   setText('contact-eye', t('contactEye') || "Let's talk");
@@ -691,13 +681,21 @@ function initSite() {
 /* ══════════════════════════════════════════
    NAV
 ══════════════════════════════════════════ */
+/* Guard: scroll / observer listeners are registered only once — not on each initSite() call */
+let _navScrollBound = false;
 function initNav() {
-  window.addEventListener('scroll', () => {
-    $('nav').classList.toggle('scrolled', window.scrollY > 40);
-  }, { passive: true });
+  if (!_navScrollBound) {
+    _navScrollBound = true;
+    window.addEventListener('scroll', () => {
+      $('nav').classList.toggle('scrolled', window.scrollY > 40);
+    }, { passive: true });
+  }
 
   $('nav-burger')?.addEventListener('click', () => {
-    $('nav-burger').classList.toggle('open');
+    const burger = $('nav-burger');
+    burger.classList.toggle('open');
+    const isOpen = burger.classList.contains('open');
+    burger.setAttribute('aria-expanded', String(isOpen));
     $('nav-mobile')?.classList.toggle('open');
   });
 }
@@ -708,6 +706,7 @@ function showPage(name, itemId = null) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   $('nav-mobile')?.classList.remove('open');
   $('nav-burger')?.classList.remove('open');
+    $('nav-burger')?.setAttribute('aria-expanded', 'false');
 
   if (name === 'detail' && itemId) {
     buildDetail(itemId);
@@ -766,9 +765,15 @@ function buildMarquee() {
 /* ══════════════════════════════════════════
    CAROUSELS — 4 cards always visible, infinite
 ══════════════════════════════════════════ */
+/* Debounce: multiple synchronous calls in the same tick (e.g. from applyTranslations
+   + initSite + applyWorksPageLabels) collapse into a single actual rebuild. */
+let _buildCarouselsTimer = null;
 function buildCarousels() {
-  buildCarousel('films-carousel', FILMS, FILM_LABELS[LANG] || 'Interactive Film');
-  buildCarousel('games-carousel', GAMES, GAME_LABELS[LANG] || 'Video Game');
+  clearTimeout(_buildCarouselsTimer);
+  _buildCarouselsTimer = setTimeout(() => {
+    buildCarousel('films-carousel', FILMS, FILM_LABELS[LANG] || 'Interactive Film');
+    buildCarousel('games-carousel', GAMES, GAME_LABELS[LANG] || 'Video Game');
+  }, 0);
 }
 
 function buildCarousel(id, items, typeLabel) {
@@ -979,57 +984,55 @@ function buildOrgTree() {
 
 /* Builds the inner HTML for one Studio Profile member card */
 function memberCardHTML(member, isLeft, index) {
-  const words    = member.name.trim().split(/\s+/);
-  const initials = words.length > 1
-    ? words.map(w => w[0]).join('').slice(0, 2)
-    : member.name.slice(0, 2);
+  const initials = ((member.name[0] || '') + (member.nameLine2?.[0] || '')).toUpperCase() || '??';
+  const idx      = String((index ?? 0) + 1).padStart(2, '0');
 
-  const idx     = String((index ?? 0) + 1).padStart(2, '0');
-  const eyebrow = member.role.split(/\s*[·\-,]\s*/)[0].trim();
-
-  // Stats row — three chips beneath the quote
-  const statRole   = eyebrow;
-  const statStudio = 'GLG';
-  const statEst    = member.year || '2026';
-  // Labels adapt to current language
+  // Stat labels — contextual info, never repeating the role title
   const lbl = {
-    role:   { fr:'Rôle',    es:'Rol',    de:'Rolle',   ar:'الدور',   zh:'职位',  ja:'役職',  ru:'Роль',   pl:'Rola',   it:'Ruolo',  en:'Role'   }[LANG] || 'Role',
-    studio: { fr:'Studio',  es:'Studio', de:'Studio',  ar:'الأستوديو',zh:'工作室',ja:'スタジオ',ru:'Студия', pl:'Studio', it:'Studio', en:'Studio' }[LANG] || 'Studio',
-    est:    { fr:'Fondé en',es:'Fundado',de:'Gegründet',ar:'تأسيس',  zh:'成立',  ja:'設立',  ru:'Осн.',   pl:'Założone',it:'Fondato',en:'Est.'   }[LANG] || 'Est.',
+    est:     { fr:'Fondé en', en:'Est.',    es:'Desde',  de:'Seit',    ar:'منذ',     zh:'成立', ja:'設立',  ru:'С',      pl:'Od',   it:'Dal'    }[LANG] || 'Est.',
+    country: { fr:'Pays',    en:'Country', es:'País',   de:'Land',    ar:'الموقع',  zh:'国家', ja:'拠点',  ru:'Страна', pl:'Kraj', it:'Paese'  }[LANG] || 'Country',
+    studio:  { fr:'Studio',  en:'Studio',  es:'Studio', de:'Studio',  ar:'الأستوديو',zh:'工作室',ja:'スタジオ',ru:'Студия',pl:'Studio',it:'Studio'}[LANG] || 'Studio',
   };
 
+  // Photo panel — cinematic name overlay (first name large, last name hollow below)
   const photoBlock = `
     <div class="cm-photo">
       ${member.photo
-        ? `<img src="${member.photo}" alt="${member.name}" onerror="this.style.display='none'">`
-        : `<div class="cm-photo-init">${initials.toUpperCase()}</div>`
+        ? `<img src="${member.photo}" alt="${member.name} ${member.nameLine2 || ''}" onerror="this.style.display='none'">`
+        : `<div class="cm-photo-init">${initials}</div>`
       }
       <div class="cm-photo-grad"></div>
+      <div class="cm-photo-ident">
+        <div class="cm-photo-name">
+          ${member.name}${member.nameLine2 ? `<span class="cm-photo-name-hollow">${member.nameLine2}</span>` : ''}
+        </div>
+        <div class="cm-photo-meta">
+          <span class="cm-photo-roletag">GEEKLEARN GAMES</span>
+        </div>
+      </div>
     </div>`;
 
+  // Info panel — quote dominates, role shown once, stats provide fresh context
   const infoBlock = `
     <div class="cm-info">
-      <div class="cm-idx">${idx}</div>
-      <div class="cm-info-top">
-        <div class="cm-eye">${eyebrow}</div>
-        <div class="cm-name">${member.name}</div>
-        ${member.realName ? `<div class="cm-realname">${member.realName}</div>` : ''}
-        <div class="cm-role">${member.role}</div>
-        <div class="cm-divider"></div>
+      <div class="cm-watermark">${idx}</div>
+      <div class="cm-info-inner">
         <p class="cm-quote">${member.quote}</p>
+        <div class="cm-divider"></div>
+        <div class="cm-role">${member.role}</div>
       </div>
       <div class="cm-stats">
         <div class="cm-stat">
-          <div class="cm-stat-label">${lbl.role}</div>
-          <div class="cm-stat-value">${statRole}</div>
-        </div>
-        <div class="cm-stat">
-          <div class="cm-stat-label">${lbl.studio}</div>
-          <div class="cm-stat-value">${statStudio}</div>
-        </div>
-        <div class="cm-stat">
+          <div class="cm-stat-value">${member.year || '2026'}</div>
           <div class="cm-stat-label">${lbl.est}</div>
-          <div class="cm-stat-value">${statEst}</div>
+        </div>
+        <div class="cm-stat">
+          <div class="cm-stat-value">France</div>
+          <div class="cm-stat-label">${lbl.country}</div>
+        </div>
+        <div class="cm-stat">
+          <div class="cm-stat-value">GLG</div>
+          <div class="cm-stat-label">${lbl.studio}</div>
         </div>
       </div>
       <div class="cm-accent"></div>
@@ -1181,11 +1184,12 @@ function buildDetail(id) {
           </div>
 
           <!-- System requirements -->
+          ${item.specs ? `
           <div class="detail-sec-head" style="margin-top:48px">${t('specsHead')}</div>
           <div class="specs-table" style="margin-top:12px">
             ${specBlock(t('specMin'), item.specs.min)}
             ${specBlock(t('specRec'), item.specs.rec)}
-          </div>
+          </div>` : ''}
         </div>
 
         <!-- Sidebar -->
@@ -1395,25 +1399,33 @@ function buildPageFooters() {
 /* ══════════════════════════════════════════
    SCROLL PROGRESS
 ══════════════════════════════════════════ */
+let _scrollProgressBound = false;
 function initScrollProgress() {
-  window.addEventListener('scroll', () => {
-    const d = document.documentElement;
-    const pct = (window.scrollY / (d.scrollHeight - d.clientHeight)) * 100;
-    const el = $('sprogress');
-    if (el) el.style.width = pct + '%';
-  }, { passive: true });
+  if (!_scrollProgressBound) {
+    _scrollProgressBound = true;
+    window.addEventListener('scroll', () => {
+      const d = document.documentElement;
+      const pct = (window.scrollY / (d.scrollHeight - d.clientHeight)) * 100;
+      const el = $('sprogress');
+      if (el) el.style.width = pct + '%';
+    }, { passive: true });
+  }
 }
 
 /* ══════════════════════════════════════════
    REVEAL
 ══════════════════════════════════════════ */
+let _revealObs = null;
 function initReveal() {
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-    });
-  }, { threshold: 0.06, rootMargin: '0px 0px -28px 0px' });
-  $$('.reveal:not(.visible)').forEach(el => obs.observe(el));
+  if (!_revealObs) {
+    _revealObs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); _revealObs.unobserve(e.target); }
+      });
+    }, { threshold: 0.06, rootMargin: '0px 0px -28px 0px' });
+  }
+  // Observe any .reveal elements not yet visible (safe to call multiple times)
+  $$('.reveal:not(.visible)').forEach(el => _revealObs.observe(el));
 }
 
 /* ══════════════════════════════════════════
@@ -1448,6 +1460,24 @@ function initCounters() {
 function handleContactForm(e) {
   e.preventDefault();
   const form = e.target;
+
+  /* ── Security check (rate limit + honeypot, via protection.js) ── */
+  if (typeof window._glgCheckForm === 'function') {
+    const chk = window._glgCheckForm(form);
+    if (!chk.ok) {
+      if (chk.reason === 'rate_limit') {
+        const btn = $('form-submit-btn');
+        if (btn) {
+          const orig = btn.innerHTML;
+          btn.textContent = t('errRateLimit') || 'Too many requests — please wait a few minutes.';
+          btn.disabled = true;
+          setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 5000);
+        }
+      }
+      // Bot case: silently pretend success (don't educate bots about the check)
+      return;
+    }
+  }
 
   /* ── Clear previous inline errors ── */
   form.querySelectorAll('.form-err').forEach(el => el.remove());
@@ -1517,6 +1547,7 @@ document.addEventListener('keydown', e => {
     closeSearch();
     $('nav-mobile')?.classList.remove('open');
     $('nav-burger')?.classList.remove('open');
+    $('nav-burger')?.setAttribute('aria-expanded', 'false');
   }
 });
 
@@ -1607,9 +1638,9 @@ function applyWorksPageLabels() {
   const setTxt  = (id,v) => { const e=$(id); if(e) e.textContent=v; };
   const setHTML = (id,v) => { const e=$(id); if(e) e.innerHTML=v; };
   setTxt ('wcat-films-label', t('catFilmsLabel'));
-  setHTML('wcat-films-title', t('catFilmsTitle').replace('\n','<br>'));
+  setHTML('wcat-films-title', t('catFilmsTitle').replace('\n',' '));
   setTxt ('wcat-games-label', t('catGamesLabel'));
-  setHTML('wcat-games-title', t('catGamesTitle').replace('\n','<br>'));
+  setHTML('wcat-games-title', t('catGamesTitle').replace('\n',' '));
   // Showcase eyebrow
   const se = $('showcase-eye');
   if (se) se.textContent = t('showcaseEye') || 'Our Universe';
@@ -1625,6 +1656,7 @@ function openSearch() {
   // Close mobile menu if open
   $('nav-mobile')?.classList.remove('open');
   $('nav-burger')?.classList.remove('open');
+    $('nav-burger')?.setAttribute('aria-expanded', 'false');
   const modal = $('search-modal');
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';

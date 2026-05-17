@@ -8,6 +8,9 @@
   <meta name="apple-mobile-web-app-title" content="GLG" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
@@ -80,7 +83,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/main.css?v=6">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js"></script>
 </head>
@@ -184,7 +187,7 @@
       <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
   </button>
-  <button class="nav-burger" id="nav-burger" aria-label="Menu">
+  <button class="nav-burger" id="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-mobile">
     <span></span><span></span><span></span>
   </button>
   <!-- Language flag: shows current lang, click to reopen the language gate -->
@@ -501,15 +504,17 @@
     <div class="contact-form-col">
       <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:26px" id="form-head">Send us a message</p>
       <form id="contact-form" onsubmit="handleContactForm(event)" novalidate>
+        <!-- Honeypot: invisible to real users, bots fill it automatically -->
+        <input name="_hp" type="text" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
         <div class="form-row2">
-          <div class="form-group"><label class="form-label" id="lbl-first">First name *</label><input class="form-input" type="text" placeholder="John" required autocomplete="given-name"></div>
-          <div class="form-group"><label class="form-label" id="lbl-last">Last name *</label><input class="form-input" type="text" placeholder="Doe" required autocomplete="family-name"></div>
+          <div class="form-group"><label class="form-label" id="lbl-first" for="inp-first">First name *</label><input class="form-input" id="inp-first" type="text" placeholder="John" required autocomplete="given-name"></div>
+          <div class="form-group"><label class="form-label" id="lbl-last" for="inp-last">Last name *</label><input class="form-input" id="inp-last" type="text" placeholder="Doe" required autocomplete="family-name"></div>
         </div>
-        <div class="form-group"><label class="form-label" id="lbl-email">Email *</label><input class="form-input" type="email" placeholder="hello@studio.com" required autocomplete="email"></div>
-        <div class="form-group"><label class="form-label" id="lbl-company">Company / Studio</label><input class="form-input" id="inp-company" type="text" placeholder="Optional" autocomplete="organization"></div>
-        <div class="form-group"><label class="form-label" id="lbl-subject">Subject *</label><select class="form-select" id="contact-subject" required><option value="" disabled selected>—</option></select></div>
-        <div class="form-group"><label class="form-label" id="lbl-message">Message *</label><textarea class="form-textarea" id="inp-message" placeholder="Tell us about your project..." required></textarea></div>
-        <div class="form-group"><label class="form-label" id="lbl-link">Portfolio / Press kit</label><input class="form-input" type="text" placeholder="https://..."></div>
+        <div class="form-group"><label class="form-label" id="lbl-email" for="inp-email">Email *</label><input class="form-input" id="inp-email" type="email" placeholder="hello@studio.com" required autocomplete="email"></div>
+        <div class="form-group"><label class="form-label" id="lbl-company" for="inp-company">Company / Studio</label><input class="form-input" id="inp-company" type="text" placeholder="Optional" autocomplete="organization"></div>
+        <div class="form-group"><label class="form-label" id="lbl-subject" for="contact-subject">Subject *</label><select class="form-select" id="contact-subject" required><option value="" disabled selected>—</option></select></div>
+        <div class="form-group"><label class="form-label" id="lbl-message" for="inp-message">Message *</label><textarea class="form-textarea" id="inp-message" placeholder="Tell us about your project..." required></textarea></div>
+        <div class="form-group"><label class="form-label" id="lbl-link" for="inp-link">Portfolio / Press kit</label><input class="form-input" id="inp-link" type="text" placeholder="https://..."></div>
         <div style="margin-top:24px">
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:15px" id="form-submit-btn">
             <span id="form-submit-txt">Send message</span>

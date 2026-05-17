@@ -26,12 +26,9 @@
   --ease2:cubic-bezier(.76,0,.24,1);
 
   /* GLG Pattern — tune these */
-  --glg-size:       160px;
-  --glg-gap:        100px;  /* wide gap = breathing room between logos */
-  --glg-angle:      -22deg;
-  --glg-speed:      38s;
-  --glg-opacity:    .05;
-  --glg-direction:  normal;
+  --glg-size:       480px;   /* largeur d'une tuile — 3 logos/rangée à 1440px */
+  --glg-speed:      35s;     /* vitesse scroll gauche (plus grand = plus lent) */
+  --glg-opacity:    .07;
   --glg-brightness: 1;
 }
 
@@ -150,7 +147,9 @@ ul{list-style:none}
   filter:blur(var(--blur,1.5px)) grayscale(0) brightness(.88);
   opacity:calc(var(--opacity,.80) * .6);
 }
-/* Ambient colour wash — two-slot crossfade container, same pattern as rain flags */
+/* Ambient colour wash — gradient set directly on this container (no child slots).
+   The correct gradient is always painted synchronously before opacity goes to 1,
+   so the user never sees a stale/wrong-language colour on first hover. */
 #gate-wash{
   position:absolute;
   inset:0;
@@ -160,14 +159,8 @@ ul{list-style:none}
   /* Slow fade-out so the glow lingers after hover/tap ends */
   transition:opacity 1.4s ease;
 }
-/* Fast fade-in: wash is visible within ~200ms so even a quick tap sees colour */
-#gate-wash.gate-wash--active{opacity:1;transition:opacity .2s ease;}
-/* Each slot fills the container and crossfades independently */
-.gwash-slot{
-  position:absolute;
-  inset:0;
-  transition:opacity .75s ease;
-}
+/* Fast fade-in: wash is visible within ~250ms so even a quick tap sees colour */
+#gate-wash.gate-wash--active{opacity:1;transition:opacity .25s ease;}
 /* Two stacked imgs per flag — direct dissolve, never through black */
 .grfi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:opacity .65s ease}
 /* Fade in from top (0–8%), full opacity 8–87%, fade out at bottom (87–100%) */
@@ -244,7 +237,7 @@ ul{list-style:none}
 /* Outro: pure opacity dissolve — logo breathes then fades into the content beneath */
 #loader.fade{opacity:0;transition:opacity 1.1s cubic-bezier(.4,0,.2,1)}
 /* Logo breathes gently while waiting */
-.loader-logo{width:100px;height:auto;filter:brightness(0) invert(1);animation:loaderBreath 2.4s ease-in-out infinite}
+.loader-logo{width:130px;height:auto;filter:brightness(0) invert(1);animation:loaderBreath 2.4s ease-in-out infinite}
 @keyframes loaderBreath{0%,100%{opacity:.65;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
 #sprogress{position:fixed;top:0;left:0;height:1px;background:var(--white);z-index:1000;width:0;pointer-events:none}
 
@@ -400,10 +393,10 @@ ul{list-style:none}
 }
 .showcase-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
   margin-bottom: 52px;
   padding: 0 clamp(16px,5vw,72px);
 }
@@ -418,13 +411,15 @@ ul{list-style:none}
   align-items: center;
   gap: 8px;
 }
-.showcase-eyebrow::before { content:''; width:16px; height:1px; background:var(--grey) }
+.showcase-eyebrow{justify-content:center;}
+.showcase-eyebrow::before,.showcase-eyebrow::after { content:''; width:16px; height:1px; background:var(--grey) }
 .showcase-title {
   font-family: var(--f-disp);
-  font-size: clamp(2.4rem,6vw,5.2rem);
+  font-size: clamp(1.8rem,5vw,4.8rem);
   letter-spacing: .02em;
   text-transform: uppercase;
   line-height: .88;
+  white-space: nowrap;
 }
 
 /* ── Strip container — full width, stacked ── */
@@ -623,18 +618,19 @@ ul{list-style:none}
 }
 
 /* ─── GLG PATTERN ─────────────────────────────────────
-   Tile: 240×81 RGBA PNG (white glyph on transparent)
-   Aspect ratio: 240/81 = 2.963
+   Image : glg-pattern.png (16000×9000 RGBA, ratio 16:9 = 1.778)
+   Nouveau mark GLG gras, diagonal intégré, fond transparent.
 
-   HOW TO TUNE (edit these vars in :root at top):
-     --glg-size   : tile width in px        (try 160–260)
-     --glg-gap    : space between tiles     (try 40–100) ← fix colliding logos
-     --glg-angle  : grid rotation           (-25deg default)
-     --glg-speed  : drift duration in s     (bigger = slower)
-     --glg-opacity: tile transparency       (.04–.12)
+   Technique seamless loop :
+     Deux couches identiques décalées d'une largeur de tuile.
+     L'animation déplace les deux en même temps vers la gauche.
+     Quand la couche 1 sort à gauche, la couche 2 prend sa place
+     → boucle imperceptible, zéro coupure.
+
+   Tuner dans :root → --glg-size (px) et --glg-speed (s)
    ──────────────────────────────────────────────────── */
 
-/* Standalone decorative band (glg-band class) */
+/* Standalone decorative band */
 .glg-band {
   position: relative;
   overflow: hidden;
@@ -643,59 +639,42 @@ ul{list-style:none}
   border-bottom: 1px solid rgba(255,255,255,.14);
 }
 
-/* Pattern layer — works as a direct child div OR ::before pseudo */
+/* ── Shared base ─────────────────────────────────── */
+/* Le conteneur porte filter/blend/opacity ; le ::before porte le pattern
+   animé en transform → compositing GPU, 0 saccade, loop parfait.         */
 .glg-band-bg,
 .glg-pattern-bg {
   position: absolute;
-  /* Overshoot all edges so rotated grid covers everything */
-  top: -200%; left: -200%; right: -200%; bottom: -200%;
-  /* Tile image */
-  background-image: url('../assets/images/logo/glg-tile.png');
-  background-repeat: repeat;
-  /*
-    Tile cell size = (--glg-size + --glg-gap) wide
-    Height = width / 2.963  — preserves 240:81 ratio
-    This is the KEY formula that controls spacing between logos.
-    Increase --glg-gap to spread them apart.
-  */
-  background-size:
-    calc(var(--glg-size) + var(--glg-gap))
-    calc((var(--glg-size) + var(--glg-gap)) / 2.963);
-  background-position: 0 0;
-  /* Static tilt — rotation does NOT affect the drift direction */
-  transform: rotate(var(--glg-angle));
-  /* Drift: only background-position moves, transform stays fixed */
-  animation: glgDrift var(--glg-speed) linear infinite;
-  animation-direction: var(--glg-direction, normal);
-  opacity: var(--glg-opacity);
+  top: 0; left: 0; right: 0; bottom: 0;
   pointer-events: none;
-  will-change: background-position;
-  filter: brightness(var(--glg-brightness, 1));
-  /* Must be behind content */
   z-index: 0;
+  overflow: hidden;                                /* clip le ::before en mouvement */
+  filter: invert(1) brightness(var(--glg-brightness, 1));
+  mix-blend-mode: screen;
+  opacity: var(--glg-opacity);
 }
 
-/* The drift keyframes move background-position by exactly ONE tile cell */
+/* Pattern : répétition pleine largeur, animation GPU via translateX */
+.glg-band-bg::before,
+.glg-pattern-bg::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  /* 100% de la section + 1 tuile = jamais de vide quelle que soit la largeur */
+  width: calc(100% + 480px);
+  height: 100%;
+  background-image: url('../assets/images/logo/glg-pattern.png');
+  /* 480 / 1.778 ≈ 270px — ratio 16:9 exact */
+  background-size: 480px 270px;
+  background-repeat: repeat;
+  will-change: transform;
+  animation: glgDrift var(--glg-speed) linear infinite;
+}
+
+/* ── Seamless left scroll — translateX(-480px) = exactement 1 tuile → loop invisible ── */
 @keyframes glgDrift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    /* Move exactly one cell so the loop is seamless */
-    background-position:
-      calc(var(--glg-size) + var(--glg-gap))
-      calc((var(--glg-size) + var(--glg-gap)) / 2.963);
-  }
-}
-
-/*
-  For the standalone .glg-band (separator strip), override the rotation
-  so the pattern tiles fill the FULL RECTANGULAR band cleanly —
-  no diagonal clipping or parallelogram appearance.
-  The drift (background-position animation) still runs normally.
-*/
-.glg-band .glg-band-bg {
-  transform: none;
+  from { transform: translateX(0); }
+  to   { transform: translateX(-480px); }
 }
 
 /* Band label sits above the pattern */
@@ -725,11 +704,9 @@ ul{list-style:none}
 .glg-pat-subtle  { --glg-opacity: .035 }
 .glg-pat-visible { --glg-opacity: .09  }
 
-/* Pulse (for CTA band) */
+/* Pulse (for CTA band) — drift sur ::before, pulse opacity sur le parent */
 .glg-pat-pulse .glg-pattern-bg {
-  animation:
-    glgDrift var(--glg-speed) linear infinite,
-    glgPulse 5s ease-in-out infinite alternate;
+  animation: glgPulse 5s ease-in-out infinite alternate;
 }
 @keyframes glgPulse {
   0%   { opacity: calc(var(--glg-opacity) * .4) }
@@ -744,8 +721,8 @@ ul{list-style:none}
 
 /* ─── SECTION UTILITY ───────────────────────────────── */
 .section-eye{font-family:var(--f-mono);font-size:.55rem;letter-spacing:.38em;text-transform:uppercase;color:var(--grey);display:flex;align-items:center;gap:9px}
-.section-eye::before{content:'';width:18px;height:1px;background:var(--grey);flex-shrink:0}
-.section-h{font-family:var(--f-disp);font-size:clamp(2.8rem,7vw,6.5rem);letter-spacing:.02em;text-transform:uppercase;line-height:.88}
+.section-eye::before,.section-eye::after{content:'';width:18px;height:1px;background:var(--grey);flex-shrink:0}
+.section-h{font-family:var(--f-disp);font-size:clamp(2rem,6vw,6rem);letter-spacing:.02em;text-transform:uppercase;line-height:.88;white-space:nowrap;}
 
 /* ─── STUDIO BLOCK ──────────────────────────────────── */
 .studio-block{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);margin:0 clamp(16px,5vw,72px) clamp(56px,8vw,108px)}
@@ -788,11 +765,11 @@ ul{list-style:none}
   text-transform:uppercase;margin-bottom:7px;
   display:flex;align-items:center;justify-content:center;gap:7px;
 }
-.works-cat-label::before{content:'';width:16px;height:1px;background:var(--grey)}
+.works-cat-label::before,.works-cat-label::after{content:'';width:16px;height:1px;background:var(--grey)}
 .works-cat-title{
-  font-family:var(--f-disp);font-size:clamp(1.8rem,4.5vw,3.5rem);
+  font-family:var(--f-disp);font-size:clamp(1.4rem,3.5vw,3rem);
   letter-spacing:.02em;text-transform:uppercase;line-height:.88;
-  text-align:center;
+  text-align:center;white-space:nowrap;
 }
 
 /* ─── CAROUSEL — smaller cards ──────────────────────── */
@@ -842,8 +819,8 @@ ul{list-style:none}
 .c-card[data-g="y"]{--cglow:linear-gradient(180deg,rgba(255,220,50,.6)  0%,transparent 36%)}
 .c-card[data-g="c"]{--cglow:linear-gradient(180deg,rgba(50,220,255,.6)  0%,transparent 36%)}
 .c-card[data-g="w"]{--cglow:linear-gradient(180deg,rgba(255,255,255,.28) 0%,transparent 36%)}
-.c-card-overlay{position:absolute;bottom:0;left:0;right:0;z-index:3;background:linear-gradient(to top,rgba(0,0,0,.94) 0%,rgba(0,0,0,.5) 50%,transparent 100%);padding:36px 10px 10px;opacity:0;transform:translateY(5px);transition:opacity .34s,transform .34s var(--ease)}
-.c-card:hover .c-card-overlay{opacity:1;transform:none}
+.c-card-overlay{position:absolute;bottom:0;left:0;right:0;z-index:3;background:linear-gradient(to top,rgba(0,0,0,.94) 0%,rgba(0,0,0,.5) 50%,transparent 100%);padding:36px 10px 10px;opacity:0;transform:translateY(5px);transition:opacity .34s,transform .34s var(--ease);pointer-events:none}
+.c-card:hover .c-card-overlay{opacity:1;transform:none;pointer-events:auto}
 .c-card-type{font-family:var(--f-mono);font-size:.42rem;letter-spacing:.2em;color:var(--w50);text-transform:uppercase;margin-bottom:2px}
 .c-card-name{font-family:var(--f-disp);font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;line-height:1.05}
 .c-card-yr  {font-family:var(--f-mono);font-size:.42rem;letter-spacing:.12em;color:var(--w50);margin-top:2px}
@@ -934,7 +911,9 @@ ul{list-style:none}
 .trailer-close:hover{color:var(--white);border-color:var(--bhi);background:rgba(0,0,0,.92)}
 
 /* ─── CONTACT ───────────────────────────────────────── */
-.contact-hero{padding:clamp(48px,8vh,92px) clamp(16px,5vw,72px) clamp(32px,5vh,60px);border-bottom:1px solid var(--border)}
+.contact-hero{padding:clamp(48px,8vh,92px) clamp(16px,5vw,72px) clamp(32px,5vh,60px);border-bottom:1px solid var(--border);text-align:center;}
+.contact-hero .section-eye{justify-content:center;}
+#contact-desc{margin-left:auto;margin-right:auto;}
 .contact-layout{display:grid;grid-template-columns:1fr 1fr;max-width:1440px;margin:0 auto}
 .contact-form-col{padding:clamp(32px,5vw,60px) clamp(16px,5vw,72px);border-right:1px solid var(--border)}
 .contact-info-col{padding:clamp(32px,5vw,60px) clamp(16px,5vw,72px)}
@@ -1172,7 +1151,7 @@ footer{
 .reveal.visible{opacity:1;transform:none}
 .rd1{transition-delay:.07s}.rd2{transition-delay:.14s}.rd3{transition-delay:.21s}.rd4{transition-delay:.28s}
 @keyframes fadeUp{from{opacity:0;transform:translateY(17px)}to{opacity:1;transform:none}}
-@keyframes fadeIn{to{opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* ─── ABOUT PAGE ────────────────────────────────────── */
 .about-hero{
@@ -1189,18 +1168,21 @@ footer{
   text-transform:uppercase;color:var(--grey);margin-bottom:14px;
   display:flex;align-items:center;gap:12px;
 }
-.about-section-eye::before{
+.about-section-eye::before,.about-section-eye::after{
   content:'';display:block;width:28px;height:1px;background:var(--grey);flex-shrink:0;
 }
 .about-section-title{
-  font-family:var(--f-disp);font-size:clamp(3.5rem,8vw,8rem);line-height:.88;
+  font-family:var(--f-disp);font-size:clamp(2rem,6vw,6rem);line-height:.88;
   letter-spacing:.01em;text-transform:uppercase;margin-bottom:clamp(40px,6vw,80px);
+  white-space:nowrap;
 }
 /* ── About Us — centered hero & team section titles ── */
 .about-hero .section-eye{justify-content:center;}
 .about-hero #about-desc{margin-left:auto;margin-right:auto;}
 .about-team-section .about-section-eye{justify-content:center;}
 .about-team-section .about-section-title{text-align:center;}
+.about-awards-section .about-section-eye{justify-content:center;}
+.about-awards-section .about-section-title{text-align:center;}
 
 /* ── Org-tree — cinema split cards container ── */
 .org-tree{
@@ -1213,49 +1195,102 @@ footer{
 }
 
 /* ══════════════════════════════════════════════
-   STUDIO PROFILE — team member cards
-   Clean horizontal split: photo | info panel
-   No clip-path — reliable rendering on all browsers.
-   Photo absolutely fills its cell via inset:0.
-   Row height driven by info content (min 560px).
-   Even index → photo left / odd → photo right.
+   STUDIO PROFILE — Cinematic split cards
+   ─────────────────────────────────────────────
+   Layout: photo (60%) | info (40%)
+   • Identity (name + real name) overlaid at the
+     bottom of the photo panel — film-poster style
+   • Quote is the dominant element of info panel
+   • Large faded watermark adds depth behind text
+   • Seamless right-edge gradient blends panels
 ══════════════════════════════════════════════ */
 .cm-card{
   display:grid;
-  grid-template-columns:45% 55%;
-  min-height:clamp(520px,55vw,640px);
+  grid-template-columns:60% 40%;
+  min-height:min(88vh,800px);
   border-bottom:1px solid var(--border);
   position:relative;
 }
-.cm-card--right{grid-template-columns:55% 45%}
+.cm-card--right{grid-template-columns:40% 60%}
 
-/* ── Photo cell ── */
+/* ── Photo panel ── */
 .cm-photo{
   position:relative;
   overflow:hidden;
-  min-height:clamp(520px,55vw,640px); /* matches card so img always fills */
-  border-right:1px solid var(--border);
 }
-.cm-card--right .cm-photo{border-right:none;border-left:1px solid var(--border)}
+/* For right-layout, photo comes second but visually should stay on the right */
+.cm-card--right .cm-photo{order:1}
 
-/* Image fills cell absolutely — never drives row height */
 .cm-photo img{
   position:absolute;inset:0;
   width:100%;height:100%;
-  object-fit:cover;object-position:top center;
-  filter:grayscale(1) brightness(.75) contrast(1.12);
-  transition:filter 1s var(--ease),transform 1s var(--ease);
+  object-fit:cover;object-position:center 18%;
+  filter:grayscale(1) brightness(.70) contrast(1.18);
+  transition:filter 1.4s ease,transform 2s ease;
 }
 .cm-card:hover .cm-photo img{
-  filter:grayscale(1) brightness(.88) contrast(1.12);
-  transform:scale(1.035);
+  filter:grayscale(.4) brightness(.82) contrast(1.1);
+  transform:scale(1.04);
 }
-/* Subtle bottom vignette on photo */
+
+/* Right-edge gradient blends photo seamlessly into info panel + bottom darkening */
 .cm-photo-grad{
   position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 50%);
+  background:
+    linear-gradient(to right,  transparent 44%, #0f0f0f 100%),
+    linear-gradient(to top,    rgba(0,0,0,.96) 0%, transparent 42%);
 }
-/* Initials fallback — shown when no photo */
+.cm-card--right .cm-photo-grad{
+  background:
+    linear-gradient(to left,   transparent 44%, #0f0f0f 100%),
+    linear-gradient(to top,    rgba(0,0,0,.96) 0%, transparent 42%);
+}
+
+/* Identity overlay — bottom of photo, cinematic film-credit style */
+.cm-photo-ident{
+  position:absolute;
+  bottom:clamp(28px,4.5vh,60px);
+  left:clamp(32px,4vw,60px);
+  z-index:2;
+}
+.cm-card--right .cm-photo-ident{
+  left:auto;
+  right:clamp(32px,4vw,60px);
+  text-align:right;
+}
+.cm-photo-name{
+  font-family:var(--f-disp);
+  font-size:clamp(3rem,5.8vw,7.5rem);
+  line-height:.86;
+  letter-spacing:.01em;
+  text-transform:uppercase;
+  color:#fff;
+}
+.cm-photo-meta{
+  display:flex;align-items:center;gap:9px;
+  margin-top:clamp(8px,1.2vh,14px);
+  flex-wrap:wrap;
+}
+.cm-card--right .cm-photo-meta{justify-content:flex-end}
+.cm-photo-realname{
+  font-family:var(--f-serif);font-style:italic;
+  font-size:clamp(.76rem,.95vw,.92rem);
+  color:rgba(255,255,255,.55);
+  letter-spacing:.03em;
+}
+.cm-photo-sep{
+  color:rgba(255,255,255,.22);
+  font-family:var(--f-mono);font-size:.65rem;
+  line-height:1;
+}
+.cm-photo-roletag{
+  font-family:var(--f-mono);
+  font-size:clamp(.3rem,.4vw,.38rem);
+  letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(255,255,255,.32);
+}
+
+/* Initials fallback — shown when no photo path is set */
 .cm-photo-init{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -1264,96 +1299,91 @@ footer{
   letter-spacing:.06em;user-select:none;
 }
 
-/* ── Info cell ── */
+/* ── Info panel ── */
 .cm-info{
   background:var(--s1);
-  padding:clamp(48px,6vw,80px) clamp(44px,5.5vw,76px) clamp(32px,4vw,52px);
+  padding:clamp(52px,7vw,90px) clamp(38px,5vw,72px) clamp(36px,5vw,60px);
   display:flex;flex-direction:column;justify-content:space-between;
   position:relative;overflow:hidden;
 }
-/* Groups eye → quote so space-between pushes stats to bottom cleanly */
-.cm-info-top{display:flex;flex-direction:column}
 
-/* Small index tag — top right corner */
-.cm-idx{
-  position:absolute;top:clamp(20px,3vw,32px);right:clamp(20px,3vw,32px);
-  font-family:var(--f-mono);font-size:.42rem;letter-spacing:.4em;
-  color:rgba(255,255,255,.18);user-select:none;
-}
-
-/* Eyebrow — role category + line */
-.cm-eye{
-  font-family:var(--f-mono);font-size:.44rem;
-  letter-spacing:.46em;text-transform:uppercase;color:var(--grey);
-  display:flex;align-items:center;gap:12px;
-  margin-bottom:20px;
-}
-.cm-eye::before{content:'';width:28px;height:1px;background:var(--grey);flex-shrink:0}
-
-/* Member alias / studio name */
-.cm-name{
+/* Giant index watermark — atmospheric, behind all content */
+.cm-watermark{
+  position:absolute;
+  top:-.06em;right:-.04em;
   font-family:var(--f-disp);
-  font-size:clamp(3.5rem,7.8vw,9rem);
-  letter-spacing:.01em;line-height:.84;
-  color:var(--white);text-transform:uppercase;
+  font-size:clamp(10rem,22vw,30rem);
+  line-height:1;
+  color:rgba(255,255,255,.025);
+  pointer-events:none;user-select:none;
+  letter-spacing:-.02em;
 }
 
-/* Real name — italic serif, subtle */
-.cm-realname{
+/* Inner column — eyebrow → quote → divider → role */
+.cm-info-inner{
+  display:flex;flex-direction:column;
+  gap:clamp(20px,3vh,36px);
+  flex:1;
+  padding-bottom:clamp(28px,4.5vh,48px);
+  position:relative;z-index:1;
+}
+
+/* Hollow last-name style on the photo overlay */
+.cm-photo-name-hollow{
+  display:block;
+  -webkit-text-stroke:1.5px rgba(255,255,255,.38);
+  color:transparent;
+  letter-spacing:.01em;
+}
+
+/* Quote — the DOMINANT element of the info panel */
+.cm-quote{
   font-family:var(--f-serif);font-style:italic;
-  font-size:clamp(.8rem,1.1vw,.96rem);
-  color:var(--greyt);margin-top:16px;letter-spacing:.03em;
+  font-size:clamp(1.08rem,1.82vw,1.5rem);
+  color:var(--w80);line-height:1.74;
+  letter-spacing:.006em;
+  margin-top:auto; /* push quote towards the vertical centre without the eyebrow */
+}
+
+/* Thin accent rule */
+.cm-divider{
+  width:44px;height:1px;
+  background:rgba(255,255,255,.18);
+  flex-shrink:0;
 }
 
 /* Full role string */
 .cm-role{
   font-family:var(--f-mono);font-size:.43rem;
   letter-spacing:.3em;text-transform:uppercase;
-  color:var(--grey);margin-top:7px;
+  color:var(--greyt);
 }
 
-/* Thin rule between role and quote */
-.cm-divider{
-  width:40px;height:1px;
-  background:rgba(255,255,255,.15);
-  margin:28px 0 24px;flex-shrink:0;
-}
-
-/* Quote */
-.cm-quote{
-  font-family:var(--f-serif);font-style:italic;
-  font-size:clamp(.88rem,1.2vw,1.05rem);
-  color:var(--w80);line-height:1.78;max-width:44ch;
-}
-
-/* ── Stats row ──────────────────────────────────
-   Three chips at the bottom: Role | Studio | Est.
-   space-between on .cm-info pushes this to foot.
-────────────────────────────────────────────── */
+/* ── Stats strip — pinned to foot of info panel ── */
 .cm-stats{
   display:flex;align-items:stretch;
-  padding-top:24px;
+  padding-top:clamp(20px,3.2vh,32px);
   border-top:1px solid var(--border);
+  position:relative;z-index:1;
 }
 .cm-stat{
-  flex:1;display:flex;flex-direction:column;gap:7px;
+  flex:1;display:flex;flex-direction:column;gap:6px;
   padding-right:clamp(14px,2vw,24px);
 }
-.cm-stat + .cm-stat{
-  padding-right:clamp(14px,2vw,24px);
-  padding-left:clamp(14px,2vw,24px);
+.cm-stat+.cm-stat{
   border-left:1px solid var(--border);
+  padding-left:clamp(14px,2vw,24px);
 }
 .cm-stat:last-child{padding-right:0}
+.cm-stat-value{
+  font-family:var(--f-disp);
+  font-size:clamp(1.15rem,2.1vw,2.2rem);
+  letter-spacing:.04em;text-transform:uppercase;
+  color:var(--white);line-height:1;
+}
 .cm-stat-label{
   font-family:var(--f-mono);font-size:.38rem;
   letter-spacing:.42em;text-transform:uppercase;color:var(--grey);
-}
-.cm-stat-value{
-  font-family:var(--f-disp);
-  font-size:clamp(.95rem,1.6vw,1.3rem);
-  letter-spacing:.04em;text-transform:uppercase;
-  color:var(--white);line-height:1;
 }
 
 /* Bottom accent bar */
@@ -1468,23 +1498,31 @@ footer{
     grid-template-columns:1fr;
     min-height:auto;
   }
+  /* On mobile, photo comes first regardless of right/left variant */
   .cm-photo,.cm-card--right .cm-photo{
-    height:clamp(280px,55vw,420px);
-    border-right:none;border-left:none;
-    border-bottom:1px solid var(--border);
+    height:clamp(340px,62vw,520px);
+    order:0 !important;
     min-height:0;
   }
+  /* On mobile, gradient fades to bottom so it blends into info panel below */
   .cm-photo-grad,.cm-card--right .cm-photo-grad{
-    background:linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 55%);
+    background:
+      linear-gradient(to bottom, transparent 44%, #0f0f0f 100%),
+      linear-gradient(to top,    rgba(0,0,0,.85) 0%, transparent 48%);
   }
-  .cm-card--right .cm-photo{order:-1}
+  .cm-photo-ident,.cm-card--right .cm-photo-ident{
+    left:clamp(20px,5vw,36px);
+    right:auto;
+    text-align:left;
+  }
+  .cm-photo-meta,.cm-card--right .cm-photo-meta{justify-content:flex-start}
   .cm-stats{margin-top:24px;padding-top:20px}
 }
 @media(max-width:560px){
-  .cm-photo,.cm-card--right .cm-photo{height:240px}
-  .cm-info{padding:28px 20px 36px}
-  .cm-divider{margin:20px 0 16px}
-  .cm-name{font-size:clamp(2.8rem,12vw,4.5rem)}
+  .cm-photo,.cm-card--right .cm-photo{height:clamp(260px,72vw,380px)}
+  .cm-info{padding:28px 22px 36px}
+  .cm-photo-name{font-size:clamp(2.6rem,10vw,4rem)}
+  .cm-quote{font-size:clamp(.94rem,3.6vw,1.12rem)}
   .cm-stats{flex-wrap:wrap;gap:16px}
   .cm-stat+.cm-stat{border-left:none;padding-left:0}
   .awards-grid{grid-template-columns:1fr}
