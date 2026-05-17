@@ -436,15 +436,17 @@ function selectLang(code) {
     _langSelected = true; // back button is now eligible to show on future re-opens
 
     // Trigger the fade once the browser has committed the built DOM to screen.
-    // Strategy: rAF queues a render, then a 50 ms timeout gives WebKit/Safari
-    // enough time to fully composite the new layer before the opacity transition
-    // begins — avoids the Safari race condition where .fade fires before the
-    // painted content is visible, making the fade appear to do nothing.
+    // Strategy: double-rAF ensures at least two paint frames have run, then a
+    // 100 ms timeout gives WebKit/Safari enough time to fully composite the new
+    // layer before the opacity transition begins — avoids the Safari race
+    // condition where .fade fires before the painted content is visible.
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        loader.classList.add('fade');
-        setTimeout(() => { loader.style.display = 'none'; }, 1200);
-      }, 50);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          loader.classList.add('fade');
+          setTimeout(() => { loader.style.display = 'none'; }, 1200);
+        }, 100);
+      });
     });
   }, 2000);
 }
