@@ -216,16 +216,20 @@ function buildGate() {
     const defaultCode = LANG_GATE[0].code;
     _rainCurrentCode  = defaultCode;
 
-    const vpW   = window.innerWidth;
-    // Adaptive count — more on wide screens, fewer on mobile
-    // For a rich rain effect: many flags, varied sizes, slight overlaps are fine.
-    // Brief overlaps look natural for falling objects (same as real rain).
-    const COUNT = vpW < 600 ? 10 : vpW < 1024 ? 15 : 22;
+    const vpW    = window.innerWidth;
+    const isMobile = vpW < 600;
+
+    // Adaptive flag count — scaled for screen width AND performance tier.
+    // Mobile: fewer flags (less GPU pressure), tablet: moderate, desktop: rich.
+    const COUNT = vpW < 420 ? 6 : vpW < 600 ? 8 : vpW < 1024 ? 14 : 22;
 
     // ── Jittered-grid placement ─────────────────────────────────────
-    // Sizes shuffled independently of positions for natural variety.
+    // On mobile, flags are narrower so they read as distinct objects
+    // without overwhelming the small viewport.
     const sizes = Array.from({ length: COUNT }, () => {
-      const w    = Math.round(58 + Math.random() * 102);   // 58–160 px (larger range)
+      const maxW = isMobile ? 80 : 160;
+      const minW = isMobile ? 36 : 58;
+      const w    = Math.round(minW + Math.random() * (maxW - minW));
       const h    = Math.round(w * 0.667);
       const diag = Math.ceil(Math.sqrt(w * w + h * h));
       return { w, h, diag };
@@ -238,19 +242,26 @@ function buildGate() {
       cx: i * zoneW + zoneW * (0.15 + Math.random() * 0.7),
     }));
 
-    // 4. Build DOM elements.
+    // Build DOM elements.
     flags.forEach(f => {
       const leftPx  = f.cx - f.w / 2;
       const leftPct = (leftPx / vpW * 100).toFixed(2);
-      const fallDur = (30 + Math.random() * 38).toFixed(1);  // 30–68 s
+      // Mobile: slower fall (more graceful), desktop: varied
+      const fallMin = isMobile ? 38 : 30;
+      const fallMax = isMobile ? 55 : 38;
+      const fallDur = (fallMin + Math.random() * fallMax).toFixed(1);
       const delay   = -(Math.random() * parseFloat(fallDur)).toFixed(2);
-      const rotDur  = (9  + Math.random() * 22).toFixed(1);  // 9–31 s
-      const blur    = (f.w > 120                             // larger → less blur
-                         ? (0.6 + Math.random() * 1.6)
-                         : (1.4 + Math.random() * 2.8)).toFixed(1);
-      const op      = (f.w > 120
-                         ? 0.70 + Math.random() * 0.20        // 0.70–0.90
-                         : 0.60 + Math.random() * 0.22).toFixed(2);
+      const rotDur  = (isMobile ? 14 : 9) + Math.random() * 22;
+      // Mobile: uniform moderate blur; desktop: size-dependent
+      const blur    = isMobile
+        ? (1.2 + Math.random() * 1.6).toFixed(1)
+        : (f.w > 120 ? (0.6 + Math.random() * 1.6) : (1.4 + Math.random() * 2.8)).toFixed(1);
+      // Mobile: lower opacity so flags don't dominate the small screen
+      const op      = isMobile
+        ? (0.38 + Math.random() * 0.20).toFixed(2)
+        : (f.w > 120
+            ? (0.70 + Math.random() * 0.20)
+            : (0.60 + Math.random() * 0.22)).toFixed(2);
       const reverse = Math.random() > 0.5;
 
       const item = document.createElement('div');
@@ -349,14 +360,21 @@ function buildGate() {
       btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
       activateFlag(btn.dataset.code);
     });
-    // Touch: brief visual feedback before selectLang fires via onclick
+    // Touch: activate wash + rain on finger-down for instant feedback
     btn.addEventListener('touchstart', () => {
       btns.forEach(b => { if (b !== btn) b.classList.add('dimmed'); });
       activateFlag(btn.dataset.code);
     }, { passive: true });
   });
 
+  // Mouse leaves the grid → reset everything
   wrap.addEventListener('mouseleave', deactivateFlag);
+
+  // Touch ends without a click (drag / accidental tap) → fade wash back out
+  // Short delay so the wash is still visible during the tap animation
+  wrap.addEventListener('touchend', () => {
+    setTimeout(deactivateFlag, 320);
+  }, { passive: true });
 }
 
 function selectLang(code) {
@@ -417,12 +435,17 @@ function selectLang(code) {
     autoTranslateFallback(code);
     _langSelected = true; // back button is now eligible to show on future re-opens
 
-    // Two rAFs ensure the browser has painted the built DOM before the fade
-    // starts — frame 1 queues the render, frame 2 commits it to screen.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      loader.classList.add('fade');
-      setTimeout(() => { loader.style.display = 'none'; }, 1200);
-    }));
+    // Trigger the fade once the browser has committed the built DOM to screen.
+    // Strategy: rAF queues a render, then a 50 ms timeout gives WebKit/Safari
+    // enough time to fully composite the new layer before the opacity transition
+    // begins — avoids the Safari race condition where .fade fires before the
+    // painted content is visible, making the fade appear to do nothing.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        loader.classList.add('fade');
+        setTimeout(() => { loader.style.display = 'none'; }, 1200);
+      }, 50);
+    });
   }, 2000);
 }
 
