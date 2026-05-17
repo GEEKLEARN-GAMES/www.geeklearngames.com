@@ -683,7 +683,7 @@ function initSite() {
   initReveal();
   initCounters();
   applyWorksPageLabels();
-  initCarouselTouch();
+  // Touch swipe is now built into buildCarousel() — no separate init needed
 }
 
 /* ══════════════════════════════════════════
@@ -781,10 +781,6 @@ function buildCarousel(id, items, typeLabel) {
 
   /*
    * RTL-safety: force direction:ltr on the overflow container (.carousel-viewport).
-   * In an RTL document (Arabic etc.), an overflow:hidden parent aligns its child's
-   * RIGHT edge to the container right edge, so translateX(0) would expose the wrong
-   * end of the track. Pinning the viewport to LTR guarantees the track's LEFT edge
-   * always anchors left, making translateX / teleport logic direction-agnostic.
    */
   if (el.parentElement) el.parentElement.style.direction = 'ltr';
 
@@ -797,9 +793,8 @@ function buildCarousel(id, items, typeLabel) {
 
   /* ── Build enough copies so the track is always wider than the viewport ── */
   const vw    = window.innerWidth || 1280;
-  const cardW = Math.min(200, Math.max(130, vw * 0.16)) + 10; // matches CSS clamp
-  const setW  = items.length * cardW;                         // width of ONE full set
-  /* Need at least 2 full sets visible; round up to an even number for symmetry */
+  const cardW = Math.min(200, Math.max(130, vw * 0.16)) + 10;
+  const setW  = items.length * cardW;
   let setsNeeded = Math.max(4, Math.ceil((vw * 2.5) / setW + 1));
   if (setsNeeded % 2 !== 0) setsNeeded++;
 
@@ -809,29 +804,24 @@ function buildCarousel(id, items, typeLabel) {
   }
   el.innerHTML = html;
 
-  /*
-   * Measure the ACTUAL rendered width of one set.
-   * If the page is hidden (display:none), scrollWidth returns 0 — fall back to
-   * the JS estimate (setW).  The carousel is rebuilt with the exact measurement
-   * the moment showPage('works') fires (see below).
-   */
   const measuredW  = el.scrollWidth;
   const actualSetW = measuredW > 0 ? measuredW / setsNeeded : setW;
 
-  /*
-   * Starting positions:
-   *   Left  (films):  pos = 0        → moves to –actualSetW then teleports to 0
-   *   Right (games):  pos = –actualSetW → moves to 0 then teleports to –actualSetW
-   * The two visible windows are always showing identical content → seamless jump.
-   */
   let pos = (dir === 1) ? -actualSetW : 0;
   el.style.transform = `translateX(${pos}px)`;
 
+  /*
+   * HOVER BUG FIX — mobile/touch:
+   * On touch screens, :hover gets "stuck" on the last-touched element and never
+   * clears until something else is touched.  This froze the carousel indefinitely.
+   * Fix: only use :hover pause on real pointer devices (mouse + fine pointer).
+   * Touch devices always scroll — swipe handling is managed below.
+   */
+  const hasPreciseHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+
   function tick() {
-    /* Pause on hover (works for nested cards too via :hover propagation) */
-    if (!el.matches(':hover')) {
+    if (!hasPreciseHover || !el.matches(':hover')) {
       pos += dir * speed;
-      /* Seamless teleport when one full set has scrolled past */
       if (dir < 0 && pos <= -actualSetW) pos += actualSetW;
       if (dir > 0 && pos >= 0)           pos -= actualSetW;
       el.style.transform = `translateX(${pos}px)`;
@@ -840,6 +830,106 @@ function buildCarousel(id, items, typeLabel) {
   }
 
   _carouselRAF[id] = requestAnimationFrame(tick);
+
+  /*
+   * TOUCH SWIPE — integrated here so we have direct access to pos/tick/actualSetW.
+   * Replaces the broken initCarouselTouch() which targeted non-existent CSS classes
+   * and tried to restart a CSS animation that was never running.
+   *
+   * Guards:
+   *  - el._touchBound: listeners are added only once; el._cs carries mutable state
+   *    that the persistent listeners read on every call (survives carousel rebuilds).
+   */
+  if (!el._cs) el._cs = {};
+  el._cs.pos      = pos;
+  el._cs.setW     = actualSetW;
+  el._cs.dir      = dir;
+  el._cs.getTick  = () => tick; // getter so momentum handler always uses latest tick
+
+  if (!el._touchBound) {
+    el._touchBound = true;
+
+    let dragging   = false;
+    let startX     = 0;
+    let startPos   = 0;
+    let velX       = 0;
+    let lastX      = 0;
+    let lastT      = 0;
+    let momRAF     = null;
+
+    el.addEventListener('touchstart', e => {
+      /* Cancel any in-progress momentum */
+      if (momRAF) { cancelAnimationFrame(momRAF); momRAF = null; }
+      /* Pause the auto-scroll loop while finger is on screen */
+      if (_carouselRAF[id]) { cancelAnimationFrame(_carouselRAF[id]); _carouselRAF[id] = null; }
+
+      startX   = e.touches[0].clientX;
+      startPos = el._cs.pos;  // capture live position
+      lastX    = startX;
+      lastT    = Date.now();
+      velX     = 0;
+      dragging = true;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const now = Date.now();
+      const cx  = e.touches[0].clientX;
+      const dt  = now - lastT;
+      if (dt > 0) velX = (cx - lastX) / dt; // px/ms rolling sample
+      lastX = cx;
+      lastT = now;
+
+      const cs  = el._cs;
+      let np = startPos + (cx - startX);
+      /* Seamless loop wrap */
+      while (np > 0)        np -= cs.setW;
+      while (np < -cs.setW) np += cs.setW;
+      cs.pos = np;
+      pos    = np; // keep closure in sync for when tick resumes
+      el.style.transform = `translateX(${np}px)`;
+    }, { passive: true });
+
+    el.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+
+      const cs      = el._cs;
+      const velPF   = velX * 16.67;  // px/ms → px/frame @60fps
+      const THRESH  = 0.35;
+      const FRICTION = 0.90;          // ~0.45 s deceleration arc
+
+      if (Math.abs(velPF) > THRESH) {
+        /* ── Momentum phase ── */
+        let v = velPF;
+        function momentum() {
+          v  *= FRICTION;
+          let np = cs.pos + v;
+          while (np > 0)        np -= cs.setW;
+          while (np < -cs.setW) np += cs.setW;
+          cs.pos = np;
+          pos    = np;
+          el.style.transform = `translateX(${np}px)`;
+
+          if (Math.abs(v) > THRESH) {
+            momRAF = requestAnimationFrame(momentum);
+          } else {
+            /* Momentum ended — hand back to the auto-scroll loop */
+            momRAF = null;
+            _carouselRAF[id] = requestAnimationFrame(el._cs.getTick());
+          }
+        }
+        momRAF = requestAnimationFrame(momentum);
+      } else {
+        /* No meaningful velocity — resume auto-scroll immediately */
+        _carouselRAF[id] = requestAnimationFrame(el._cs.getTick());
+      }
+    }, { passive: true });
+  }
+
+  /* Sync state object every rebuild so persistent touch handler sees fresh values */
+  el._cs.pos  = pos;
+  el._cs.setW = actualSetW;
 }
 
 function cardHTML(item, typeLabel) {
@@ -1601,16 +1691,13 @@ function escRe(s) {
 }
 
 /* ══════════════════════════════════════════
-   CAROUSEL TOUCH — mobile swipe (≤ 640px)
-
-   Drag:    finger takes live control.
-   Flick:   if finger lifts with velocity,
-            momentum decelerates via rAF
-            before animation resumes.
-   Release: animation resumes from the exact
-            pixel position — no jump, no snap.
+   CAROUSEL TOUCH — superseded.
+   Touch handling is now integrated directly
+   in buildCarousel() where pos / tick / setW
+   are in scope.  This stub is kept so any
+   lingering call sites don't throw.
 ══════════════════════════════════════════ */
-function initCarouselTouch() {
+function initCarouselTouch() { /* no-op — see buildCarousel() */
   [
     { selector: '.carousel-track.films-t', dir: 'left'  },
     { selector: '.carousel-track.games-t', dir: 'right' }
