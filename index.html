@@ -12,6 +12,48 @@
   <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
 
+  <!-- ══ SEO / OPEN GRAPH ══ -->
+  <!-- og:site_name tells Google, Facebook, Discord etc. the human name of the site -->
+  <meta property="og:site_name"   content="GEEKLEARN GAMES">
+  <meta property="og:title"       content="GEEKLEARN GAMES — Games that Teach, Move, Haunt Your Mind">
+  <meta property="og:description" content="Independent game studio creating interactive experiences. Eight titles — interactive films and video games.">
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://www.geeklearngames.com">
+  <meta property="og:image"       content="https://www.geeklearngames.com/assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png">
+  <meta name="twitter:card"       content="summary_large_image">
+  <meta name="twitter:site"       content="@geeklearngames">
+  <meta name="twitter:title"      content="GEEKLEARN GAMES">
+  <meta name="twitter:description" content="Games that teach, move, haunt your mind.">
+
+  <!-- ══ STRUCTURED DATA (JSON-LD) ══ -->
+  <!-- WebSite schema: tells Google the canonical name to display in search results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "GEEKLEARN GAMES",
+    "alternateName": "GLG",
+    "url": "https://www.geeklearngames.com",
+    "description": "Independent game studio creating interactive experiences that teach, move, and haunt your mind.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "GEEKLEARN GAMES",
+      "url": "https://www.geeklearngames.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.geeklearngames.com/assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png"
+      },
+      "sameAs": [
+        "https://x.com/geeklearngames",
+        "https://www.instagram.com/geeklearn_games/",
+        "https://www.youtube.com/@GEEKLEARN-GAMES",
+        "https://store.steampowered.com/dev/GEEKLEARN-GAMES",
+        "https://discord.gg/M7YJsC9BwH"
+      ]
+    }
+  }
+  </script>
+
   <!-- ══ SECURITY HEADERS (via meta — complement with HTTP headers on deployment) ══ -->
   <!-- Content Security Policy: restrict resource origins, block injected scripts -->
   <meta http-equiv="Content-Security-Policy"
