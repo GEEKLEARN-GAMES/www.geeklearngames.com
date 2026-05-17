@@ -12,17 +12,80 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 let LANG = 'en';
 const t = k => I18N[LANG]?.[k] ?? I18N.en[k] ?? k;
 
+/* True once the user has completed the first language selection and the site
+   has fully loaded. Used to show the back button on gate re-opens. */
+let _langSelected = false;
+
+/* One-word "back" label per language — no new I18N key needed */
+const GATE_BACK_LABELS = {
+  fr:'Retour', en:'Back', es:'Volver', de:'Zurück',
+  ar:'رجوع',   zh:'返回',  ja:'戻る',  ru:'Назад', pl:'Wróć', it:'Indietro',
+};
+
 /* rAF handles for carousel loops — keyed by carousel element id */
 const _carouselRAF = {};
 
+/* ── Currency locale map ── */
+const LANG_LOCALE = {
+  fr:'fr-FR', en:'en-US', es:'es-ES', de:'de-DE',
+  ar:'ar-SA', zh:'zh-CN', ja:'ja-JP', ru:'ru-RU', pl:'pl-PL', it:'it-IT',
+};
+
+/* ── Live exchange rates (EUR base) — populated by initFxRates() ── */
+let _fxRates = { EUR:1, USD:1.09, CNY:7.87, JPY:161, PLN:4.32, SAR:4.09, RUB:99.5 };
+
+/* Fetch rates from ECB via frankfurter.app — caches 6h in localStorage */
+async function initFxRates() {
+  const CACHE_KEY = 'glg_fx_v1';
+  const TTL = 6 * 3600 * 1000; // 6 hours
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { ts, rates } = JSON.parse(cached);
+      if (Date.now() - ts < TTL) { _fxRates = { EUR:1, ...rates }; return; }
+    }
+  } catch(e) {}
+  try {
+    const res  = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CNY,JPY,PLN,SAR,RUB');
+    if (!res.ok) return;
+    const data = await res.json();
+    _fxRates = { EUR:1, ...data.rates };
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), rates: data.rates }));
+    refreshDisplayedPrices(); // update DOM after rates arrive
+  } catch(e) { /* keep fallback rates */ }
+}
+
+/* Convert EUR base price to the current language's currency and format it */
+function formatPrice(eurAmount, lang) {
+  const cur    = LANG_CURRENCY[lang] || 'EUR';
+  const rate   = _fxRates[cur] || 1;
+  const amount = eurAmount * rate;
+  const locale = LANG_LOCALE[lang] || 'en-US';
+  const noDecimals = ['JPY'].includes(cur);
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency', currency: cur,
+      minimumFractionDigits: noDecimals ? 0 : 2,
+      maximumFractionDigits: noDecimals ? 0 : 2,
+    }).format(amount);
+  } catch(e) {
+    return amount.toFixed(noDecimals ? 0 : 2) + ' ' + cur;
+  }
+}
+
+/* Update every .price-display element already in the DOM without full rebuild */
+function refreshDisplayedPrices() {
+  document.querySelectorAll('.price-display[data-base-price]').forEach(el => {
+    const base = parseFloat(el.dataset.basePrice);
+    if (!isNaN(base) && base > 0) el.textContent = formatPrice(base, LANG);
+  });
+}
+
 /* ── Localised price helper ── */
 function getPrice(item) {
-  if (item.isFree) return t('free') || 'FREE';
-  if (item.prices) {
-    const cur = LANG_CURRENCY[LANG] || 'eur';
-    return item.prices[cur] || item.price;
-  }
-  return item.price;
+  if (item.isFree || item.basePrice === 0) return t('free') || 'FREE';
+  if (item.basePrice != null) return formatPrice(item.basePrice, LANG);
+  return item.price; // legacy fallback
 }
 
 /* ── Localised item content helper ── */
@@ -322,40 +385,44 @@ function selectLang(code) {
   const gate = $('lang-gate');
   const loader = $('loader');
 
-  // Make loader opaque INSTANTLY (no transition) before touching the gate.
-  // This ensures the page behind is never visible during the gate fade-out.
-  loader.style.transition = 'none';
-  loader.style.opacity    = '1';
-  loader.style.pointerEvents = 'all';
-  loader.offsetHeight; // force reflow so the above applies before the next paint
-  loader.style.transition = ''; // restore transition (used later for fade-out)
-  loader.classList.add('show');
+  // ── Show loader instantly, fully covering the gate ──────────────────────
+  // KEY: after the forced reflow we CLEAR the inline opacity so that CSS
+  // classes (.show / .fade) have exclusive control.  Leaving an inline
+  // opacity:1 would silently block the CSS fade-out — the class would set
+  // opacity:0 but the inline value always wins, so the loader never fades.
+  loader.classList.remove('fade');         // clean state from any previous load
+  loader.style.display      = 'flex';     // override display:none from previous load
+  loader.style.transition   = 'none';     // instant — no animation on appear
+  loader.style.opacity      = '1';        // snap to opaque
+  loader.offsetHeight;                    // flush reflow → browser commits the above
+  loader.style.transition   = '';         // restore (CSS class transition takes over)
+  loader.style.opacity      = '';         // ← clear inline: CSS classes now own opacity
+  loader.classList.add('show');           // .show = opacity:1 via CSS (no inline conflict)
 
   // Now it is safe to fade the gate — the loader is already covering the page
   gate.classList.add('out');
 
-  // Animate percentage counter
-  let pct = 0;
-  const pctEl = $('loader-pct');
-  const timer = setInterval(() => {
-    pct += Math.floor(Math.random() * 14) + 4;
-    if (pct >= 100) { pct = 100; clearInterval(timer); }
-    if (pctEl) pctEl.textContent = pct + '%';
-  }, 90);
-
   setTimeout(() => {
     gate.style.display = 'none';
+    gate.classList.remove('gate--has-back'); // clean up back-button state
     document.documentElement.style.overflow = ''; // re-enable scrolling (iOS Safari fix)
     document.body.style.overflow = '';
-    loader.classList.add('fade');
-    setTimeout(() => {
-      loader.style.display = 'none';
-      window.scrollTo({ top: 0, behavior: 'instant' }); // always land at the top
-      applyTranslations();
-      initSite();
-      // Auto-translate any text not covered by I18N using browser API if available
-      autoTranslateFallback(code);
-    }, 760); // ≥ loader .fade transition duration (720ms) so animation completes first
+
+    // ── Build the entire page WHILE the loader is still fully opaque ──────────
+    // This guarantees the fade reveals a complete, rendered page instead of
+    // fading to a blank/half-built layout that then pops into existence.
+    applyTranslations();
+    initSite();          // includes window.scrollTo({top:0}) internally
+    initFxRates();
+    autoTranslateFallback(code);
+    _langSelected = true; // back button is now eligible to show on future re-opens
+
+    // Two rAFs ensure the browser has painted the built DOM before the fade
+    // starts — frame 1 queues the render, frame 2 commits it to screen.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      loader.classList.add('fade');
+      setTimeout(() => { loader.style.display = 'none'; }, 1200);
+    }));
   }, 2000);
 }
 
@@ -388,8 +455,43 @@ function reopenLangGate() {
     b.classList.remove('dimmed', 'selected');
   });
 
+  // Show the back button only if a language was already chosen (not on first visit)
+  if (_langSelected) {
+    const btn = $('gate-back-btn');
+    if (btn) {
+      const lbl = btn.querySelector('.gate-back-label');
+      if (lbl) lbl.textContent = GATE_BACK_LABELS[LANG] || 'Back';
+    }
+    gate.classList.add('gate--has-back');
+  }
+
   // Reset rain to the default flag (first language)
   setGateRainFlag(LANG_GATE[0].code);
+}
+
+/* ══════════════════════════════════════════
+   CLOSE GATE — KEEP CURRENT LANGUAGE
+   Called by the back button that appears when
+   the gate is re-opened after a language was
+   already selected.  Just dismisses the gate
+   without changing LANG or rebuilding anything.
+══════════════════════════════════════════ */
+function closeGateBack() {
+  const gate = $('lang-gate');
+  if (!gate) return;
+
+  // Hide back button immediately so it doesn't linger during fade-out
+  gate.classList.remove('gate--has-back');
+
+  // Fade the gate out (same .out class used by selectLang)
+  gate.classList.add('out');
+
+  // After transition completes: actually hide the gate and unlock scroll
+  setTimeout(() => {
+    gate.style.display = 'none';
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  }, 720); // matches the .7s gate transition
 }
 
 /* ══════════════════════════════════════════
@@ -728,7 +830,7 @@ function cardHTML(item, typeLabel) {
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
-        <div class="c-card-yr">${item.year} · ${getPrice(item)}</div>
+        <div class="c-card-yr">${item.year} · <span class="price-display" data-base-price="${item.basePrice ?? ''}">${getPrice(item)}</span></div>
       </div>
     </div>
   `;
@@ -982,7 +1084,7 @@ function buildDetail(id) {
               <div class="irow"><span class="ik">${t('infoYear')}</span><span class="iv">${item.year}</span></div>
               <div class="irow"><span class="ik">${t('infoStudio')}</span><span class="iv">GEEKLEARN GAMES</span></div>
               <div class="irow"><span class="ik">${t('infoStatus')}</span><span class="iv">${localStatus}</span></div>
-              <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv" style="font-size:1.05rem;font-weight:700">${getPrice(item)}</span></div>
+              <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv price-display" style="font-size:1.05rem;font-weight:700" data-base-price="${item.basePrice ?? ''}">${getPrice(item)}</span></div>
             </div>
           </div>
           <div class="sbox">

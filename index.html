@@ -62,7 +62,7 @@
                  style-src  'self' 'unsafe-inline' https://fonts.googleapis.com;
                  font-src   'self' https://fonts.gstatic.com;
                  img-src    'self' data: blob:;
-                 connect-src 'none';
+                 connect-src https://api.frankfurter.app;
                  object-src  'none';
                  base-uri    'self';
                  form-action 'self';">
@@ -88,6 +88,13 @@
 
 <!-- ══════════ LANGUAGE GATE ══════════ -->
 <div id="lang-gate">
+
+  <!-- Back button — hidden on first visit, shown only when gate is re-opened after a language was already selected -->
+  <button id="gate-back-btn" class="gate-back-btn" onclick="closeGateBack()" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
 
   <!-- Viewfinder corner brackets -->
   <span class="gate-corner gate-tl" aria-hidden="true"></span>
@@ -124,9 +131,7 @@
 
 <!-- ══════════ LOADER ══════════ -->
 <div id="loader">
-  <img class="loader-logo" src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GEEKLEARN GAMES_LOADER_LOGO_INTRO">
-  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
-  <div class="loader-pct" id="loader-pct">0%</div>
+  <img class="loader-logo" src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GEEKLEARN GAMES">
 </div>
 <div id="sprogress"></div>
 

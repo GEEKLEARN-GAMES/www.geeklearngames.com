@@ -62,6 +62,13 @@ ul{list-style:none}
 #lang-gate::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
 #lang-gate.out{opacity:0;transform:scale(1.04);pointer-events:none}
 
+/* ── Gate back button (shown only when re-opened after initial selection) ── */
+.gate-back-btn{position:absolute;top:clamp(14px,2.6vh,26px);left:clamp(14px,2.6vw,28px);z-index:10;display:flex;align-items:center;background:none;border:none;color:rgba(255,255,255,.38);padding:6px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s var(--ease),color .28s;-webkit-tap-highlight-color:transparent}
+.gate-back-btn svg{display:block;width:26px;height:26px;transition:transform .28s var(--ease)}
+.gate-back-btn:hover{color:rgba(255,255,255,.82)}
+.gate-back-btn:hover svg{transform:translateX(-5px)}
+#lang-gate.gate--has-back .gate-back-btn{opacity:1;pointer-events:all}
+
 /* ── Viewfinder corner brackets ── */
 .gate-corner{position:absolute;width:clamp(18px,2.8vw,30px);height:clamp(18px,2.8vw,30px);opacity:0;animation:gFadeUp .8s .04s var(--ease) forwards}
 .gate-tl{top:clamp(14px,2.4vh,28px);left:clamp(14px,2.4vw,28px);border-top:1px solid rgba(255,255,255,.2);border-left:1px solid rgba(255,255,255,.2)}
@@ -198,15 +205,13 @@ ul{list-style:none}
 }
 
 /* ─── LOADER ────────────────────────────────────────── */
-#loader{position:fixed;inset:0;z-index:8888;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;opacity:0;pointer-events:none;transition:opacity .4s}
+#loader{position:fixed;inset:0;z-index:8888;background:var(--black);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
 #loader.show{opacity:1;pointer-events:all}
-/* Outro: loader lifts slightly and fades — feels like the curtain pulling back */
-#loader.fade{opacity:0;transform:scale(1.045) translateY(-10px);transition:opacity .72s var(--ease),transform .72s var(--ease)}
-.loader-logo{width:110px;height:auto;opacity:.9;filter:brightness(0) invert(1)}
-.loader-bar-wrap{width:110px;height:1px;background:var(--s3)}
-.loader-bar{height:1px;background:var(--white);width:0;animation:lbar 1.9s var(--ease2) forwards}
-@keyframes lbar{to{width:100%}}
-.loader-pct{font-family:var(--f-mono);font-size:.52rem;letter-spacing:.24em;color:var(--grey)}
+/* Outro: pure opacity dissolve — logo breathes then fades into the content beneath */
+#loader.fade{opacity:0;transition:opacity 1.1s cubic-bezier(.4,0,.2,1)}
+/* Logo breathes gently while waiting */
+.loader-logo{width:100px;height:auto;filter:brightness(0) invert(1);animation:loaderBreath 2.4s ease-in-out infinite}
+@keyframes loaderBreath{0%,100%{opacity:.65;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
 #sprogress{position:fixed;top:0;left:0;height:1px;background:var(--white);z-index:1000;width:0;pointer-events:none}
 
 /* ─── NAVIGATION ────────────────────────────────────── */
@@ -298,8 +303,8 @@ ul{list-style:none}
 
 /* ─── PAGES ─────────────────────────────────────────── */
 .page{display:none;min-height:100vh}
-.page.active{display:block;animation:pageIn .45s var(--ease)}
-@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.page.active{display:block;animation:pageIn .55s cubic-bezier(.4,0,.2,1) both}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
 #page-home,#page-detail{padding-top:0}
 
 /* ─── BUTTONS ───────────────────────────────────────── */
@@ -1481,3 +1486,18 @@ footer{
   .nav-search-btn{display:none}
 }
 @media(min-width:1800px){body{font-size:18px}}
+
+/* ─── ACCESSIBILITY — reduced motion ───────────────── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+  /* Keep loader fade readable — just make it instant */
+  #loader,#loader.fade{transition:none!important}
+  /* Page appear with no animation */
+  .page.active{animation:none!important;opacity:1!important}
+  /* Gate open/close instant */
+  #lang-gate{transition:none!important}
+}
