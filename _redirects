@@ -1,0 +1,3 @@
+# Redirect non-www → www (canonical)
+https://geeklearngames.com/* https://www.geeklearngames.com/:splat 301!
+http://geeklearngames.com/*  https://www.geeklearngames.com/:splat 301!
