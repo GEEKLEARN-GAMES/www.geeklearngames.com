@@ -1604,20 +1604,22 @@ function buildPuzzleStrips() {
     'Interactive Films & Video Games',
     'Our Studio Manifesto',
   ];
+  const themes = t('stripThemes') || ['', '', ''];
   const strips = [
-    { img: '', quote: quotes[0], tag: tags[0], num: '01' },
-    { img: '', quote: quotes[1], tag: tags[1], num: '02' },
-    { img: '', quote: quotes[2], tag: tags[2], num: '03' },
+    { img: '', quote: quotes[0], tag: tags[0], num: '01', theme: themes[0] },
+    { img: '', quote: quotes[1], tag: tags[1], num: '02', theme: themes[1] },
+    { img: '', quote: quotes[2], tag: tags[2], num: '03', theme: themes[2] },
   ];
 
-  container.innerHTML = strips.map(s => `
-    <div class="puz-strip-row">
+  container.innerHTML = strips.map((s, i) => `
+    <div class="puz-strip-row reveal${i > 0 ? ' rd' + i : ''}">
       <!-- The clipped image strip -->
       <div class="puz-strip">
         ${s.img
           ? `<img class="puz-strip-img" src="${s.img}" alt="" loading="lazy">`
           : `<div class="puz-strip-img" style="background:linear-gradient(135deg,#0e0e0e 0%,#1a1a1a 100%)"></div>`
         }
+        ${s.theme ? `<div class="puz-cat" aria-hidden="true">${s.theme}</div>` : ''}
         <!-- Gradient so quote text stays readable -->
         <div class="puz-strip-grad"></div>
       </div>
@@ -1625,7 +1627,6 @@ function buildPuzzleStrips() {
       <div class="puz-strip-index">${s.num}</div>
       <!-- Quote: sits below the strip bottom, overlapping the diagonal cut -->
       <div class="puz-quote">
-        <span class="puz-quote-num">${s.num}</span>
         <p class="puz-quote-text">${s.quote}</p>
         <span class="puz-quote-tag">${s.tag}</span>
       </div>
