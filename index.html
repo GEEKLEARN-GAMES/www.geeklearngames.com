@@ -86,7 +86,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=11">
+  <link rel="stylesheet" href="css/main.css?v=13">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js"></script>
 </head>
@@ -514,50 +514,122 @@
      PAGE: CONTACT
 ═══════════════════════ -->
 <main class="page" id="page-contact">
+
+  <!-- ── HERO ── -->
   <div class="contact-hero glg-pattern glg-line-after">
     <div class="glg-pattern-bg glg-pat-subtle"></div>
-    <p class="section-eye reveal" id="contact-eye">Let's talk</p>
-    <h1 class="section-h reveal"
-        style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
-        id="contact-title-h">CONTACT</h1>
-    <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
-       class="reveal" id="contact-desc">
-      Publishers, collaborators, press, or players — every message gets a response within 48 hours.
-    </p>
-  </div>
-  <div class="contact-layout">
-    <div class="contact-form-col">
-      <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:26px" id="form-head">Send us a message</p>
-      <form id="contact-form" onsubmit="handleContactForm(event)" novalidate>
-        <!-- Honeypot: invisible to real users, bots fill it automatically -->
-        <input name="_hp" type="text" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
-        <div class="form-row2">
-          <div class="form-group"><label class="form-label" id="lbl-first" for="inp-first">First name *</label><input class="form-input" id="inp-first" type="text" placeholder="John" required autocomplete="given-name"></div>
-          <div class="form-group"><label class="form-label" id="lbl-last" for="inp-last">Last name *</label><input class="form-input" id="inp-last" type="text" placeholder="Doe" required autocomplete="family-name"></div>
+    <div class="contact-hero-inner">
+      <p class="contact-eye-lbl reveal" id="contact-eye">Let's talk</p>
+      <h1 class="contact-hero-h reveal" id="contact-title-h">CONTACT</h1>
+      <p class="contact-hero-desc reveal" id="contact-desc">
+        Publishers, collaborators, press, or players — every message gets a response within 48 hours.
+      </p>
+      <div class="contact-promises reveal">
+        <div class="contact-promise">
+          <span class="contact-promise-n">48h</span>
+          <span class="contact-promise-l">Response guaranteed</span>
         </div>
-        <div class="form-group"><label class="form-label" id="lbl-email" for="inp-email">Email *</label><input class="form-input" id="inp-email" type="email" placeholder="hello@studio.com" required autocomplete="email"></div>
-        <div class="form-group"><label class="form-label" id="lbl-company" for="inp-company">Company / Studio</label><input class="form-input" id="inp-company" type="text" placeholder="Optional" autocomplete="organization"></div>
-        <div class="form-group"><label class="form-label" id="lbl-subject" for="contact-subject">Subject *</label><select class="form-select" id="contact-subject" required><option value="" disabled selected>—</option></select></div>
-        <div class="form-group"><label class="form-label" id="lbl-message" for="inp-message">Message *</label><textarea class="form-textarea" id="inp-message" placeholder="Tell us about your project..." required></textarea></div>
-        <div class="form-group"><label class="form-label" id="lbl-link" for="inp-link">Portfolio / Press kit</label><input class="form-input" id="inp-link" type="text" placeholder="https://..."></div>
-        <div style="margin-top:24px">
-          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:15px" id="form-submit-btn">
+        <div class="contact-promise-div"></div>
+        <div class="contact-promise">
+          <span class="contact-promise-n">100%</span>
+          <span class="contact-promise-l">Messages read</span>
+        </div>
+        <div class="contact-promise-div"></div>
+        <div class="contact-promise">
+          <span class="contact-promise-n">5+</span>
+          <span class="contact-promise-l">Titles in production</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYOUT ── -->
+  <div class="contact-layout">
+
+    <!-- FORM -->
+    <div class="contact-form-col">
+      <p class="contact-form-eyebrow" id="form-head">Send us a message</p>
+      <form id="contact-form" onsubmit="handleContactForm(event)" novalidate>
+        <!-- Honeypot: invisible to real users -->
+        <input name="_hp" type="text" autocomplete="off" tabindex="-1" aria-hidden="true"
+               style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
+        <div class="form-row2">
+          <div class="form-group">
+            <label class="form-label" id="lbl-first" for="inp-first">First name *</label>
+            <input class="form-input" id="inp-first" type="text" placeholder="John" required autocomplete="given-name">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-last" for="inp-last">Last name *</label>
+            <input class="form-input" id="inp-last" type="text" placeholder="Doe" required autocomplete="family-name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-email" for="inp-email">Email *</label>
+          <input class="form-input" id="inp-email" type="email" placeholder="hello@studio.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-company" for="inp-company">Company / Studio</label>
+          <input class="form-input" id="inp-company" type="text" placeholder="Optional" autocomplete="organization">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-subject" for="contact-subject">Subject *</label>
+          <select class="form-select" id="contact-subject" required><option value="" disabled selected>—</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-message" for="inp-message">Message *</label>
+          <textarea class="form-textarea" id="inp-message" placeholder="Tell us about your project..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-link" for="inp-link">Portfolio / Press kit</label>
+          <input class="form-input" id="inp-link" type="text" placeholder="https://...">
+        </div>
+        <div class="contact-submit-wrap">
+          <button type="submit" class="btn btn-primary contact-submit-btn" id="form-submit-btn">
             <span id="form-submit-txt">Send message</span>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-5-6 11V8H2z" fill="currentColor"/></svg>
           </button>
-          <p style="font-size:.7rem;color:var(--grey);margin-top:11px;line-height:1.65" id="form-legal">By submitting you agree to your data being used solely to process your inquiry.</p>
+          <p class="contact-legal" id="form-legal">By submitting you agree to your data being used solely to process your inquiry.</p>
         </div>
       </form>
     </div>
+
+    <!-- INFO -->
     <div class="contact-info-col">
-      <p style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);margin-bottom:16px" id="contact-info-title">Direct contact</p>
-      <!-- Single email displayed prominently -->
-      <a href="mailto:geeklearngames.studio@gmail.com" class="c-main-email">geeklearngames.studio@gmail.com</a>
-      <!-- Topic rows — no repeated email -->
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-gen">General</div><div class="c-info-sub" id="ci-sub-gen">All inquiries</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div><div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div><div class="c-info-sub" id="ci-sub-press">Press kit on request</div></div>
-      <div class="c-info-block"><div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div><div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div></div>
+
+      <!-- Direct contact card -->
+      <div class="contact-direct-card">
+        <p class="contact-direct-label" id="contact-info-title">Direct contact</p>
+        <a href="mailto:geeklearngames.studio@gmail.com" class="c-main-email">geeklearngames.studio@gmail.com</a>
+        <div class="contact-direct-promise">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M8 4.5v3.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span>We reply within 48h — every message is read</span>
+        </div>
+      </div>
+
+      <!-- Contact topics grid -->
+      <div class="contact-topics">
+        <div class="c-info-block">
+          <div class="c-info-lbl" id="ci-lbl-gen">General</div>
+          <div class="c-info-sub" id="ci-sub-gen">All inquiries</div>
+        </div>
+        <div class="c-info-block">
+          <div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div>
+          <div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div>
+        </div>
+        <div class="c-info-block">
+          <div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div>
+          <div class="c-info-sub" id="ci-sub-press">Press kit on request</div>
+        </div>
+        <div class="c-info-block">
+          <div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div>
+          <div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div>
+        </div>
+      </div>
+
+      <!-- Social links -->
       <div class="socials-row">
         <button class="soc-btn" onclick="window.open('https://x.com/geeklearngames')" title="X / Twitter" aria-label="X Twitter">
           <img src="assets/images/LINKS - LOGOS/X_logo_2023_(white).png" alt="X" class="soc-icon">
@@ -575,8 +647,10 @@
           <img src="assets/images/LINKS - LOGOS/STEAM - LOGO - TRANSPARENT.png" alt="Steam" class="soc-icon">
         </button>
       </div>
+
     </div>
   </div>
+
   <div class="page-footer-slot"></div>
 </main>
 
@@ -607,6 +681,6 @@
   document.querySelectorAll('#yr,.yr2').forEach(el => el.textContent = _yr);
 </script>
 <script src="js/data.js?v=2"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>
