@@ -158,30 +158,7 @@ const GATE_GLOW = {
   it: 'linear-gradient(90deg, rgba(0,146,70,.18) 0%, rgba(255,255,255,.04) 50%, rgba(206,43,55,.18) 100%)',
 };
 
-// Rain flag crossfade — swaps which image slot is shown (a/b per flag element).
-function setGateRainFlag(code) {
-  if (code === _rainCurrentCode) return;
-  _rainCurrentCode = code;
-  const rain   = $('gate-rain');
-  const inners = rain ? rain.querySelectorAll('.gate-rain-inner') : [];
-  if (!inners.length) return;
-  const nextSlot = _rainActiveSlot === 'a' ? 'b' : 'a';
-  const curSlot  = _rainActiveSlot;
-  const src      = `assets/images/FLAGS/${code}.svg`;
-  inners.forEach(inner => {
-    const next = inner.querySelector(`.grfi-${nextSlot}`);
-    const cur  = inner.querySelector(`.grfi-${curSlot}`);
-    if (!next || !cur) return;
-    next.src = src;
-    // Two rAFs: frame 1 registers new src, frame 2 triggers the CSS opacity
-    // transition — direct dissolve with no black gap between flags.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      next.style.opacity = '1';
-      cur.style.opacity  = '0';
-    }));
-  });
-  _rainActiveSlot = nextSlot;
-}
+function setGateRainFlag(code) { /* flag rain removed — ambient handled by gate-wash */ }
 
 // Wash — gradient is set directly on #gate-wash (no child slots).
 // The container's own opacity (CSS transition) handles the fade in/out.
@@ -206,102 +183,14 @@ function buildGate() {
   const wrap = $('gate-langs');
   if (!wrap) return;
 
-  // ── Flag rain background (built once) ──────────────────────────
-  if (!$('gate-rain')) {
+  // ── Ambient colour wash (created once) ──────────────────────────
+  if (!$('gate-wash')) {
     const gate = $('lang-gate');
-    const rain = document.createElement('div');
-    rain.id = 'gate-rain';
-    rain.className = 'gate-rain';
-    rain.setAttribute('aria-hidden', 'true');
-
-    const defaultCode = LANG_GATE[0].code;
-    _rainCurrentCode  = defaultCode;
-
-    const vpW    = window.innerWidth;
-    const isMobile = vpW < 600;
-
-    // Adaptive flag count — scaled for screen width AND performance tier.
-    // Mobile: fewer flags (less GPU pressure), tablet: moderate, desktop: rich.
-    const COUNT = vpW < 420 ? 6 : vpW < 600 ? 8 : vpW < 1024 ? 14 : 22;
-
-    // ── Jittered-grid placement ─────────────────────────────────────
-    // On mobile, flags are narrower so they read as distinct objects
-    // without overwhelming the small viewport.
-    const sizes = Array.from({ length: COUNT }, () => {
-      const maxW = isMobile ? 80 : 160;
-      const minW = isMobile ? 36 : 58;
-      const w    = Math.round(minW + Math.random() * (maxW - minW));
-      const h    = Math.round(w * 0.667);
-      const diag = Math.ceil(Math.sqrt(w * w + h * h));
-      return { w, h, diag };
-    }).sort(() => Math.random() - 0.5);
-
-    // One flag per zone with random jitter inside the zone.
-    const zoneW = vpW / COUNT;
-    const flags = sizes.map((sz, i) => ({
-      ...sz,
-      cx: i * zoneW + zoneW * (0.15 + Math.random() * 0.7),
-    }));
-
-    // Build DOM elements.
-    flags.forEach(f => {
-      const leftPx  = f.cx - f.w / 2;
-      const leftPct = (leftPx / vpW * 100).toFixed(2);
-      // Mobile: slower fall (more graceful), desktop: varied
-      const fallMin = isMobile ? 38 : 30;
-      const fallMax = isMobile ? 55 : 38;
-      const fallDur = (fallMin + Math.random() * fallMax).toFixed(1);
-      const delay   = -(Math.random() * parseFloat(fallDur)).toFixed(2);
-      const rotDur  = (isMobile ? 14 : 9) + Math.random() * 22;
-      // Mobile: uniform moderate blur; desktop: size-dependent
-      const blur    = isMobile
-        ? (1.2 + Math.random() * 1.6).toFixed(1)
-        : (f.w > 120 ? (0.6 + Math.random() * 1.6) : (1.4 + Math.random() * 2.8)).toFixed(1);
-      // Mobile: lower opacity so flags don't dominate the small screen
-      const op      = isMobile
-        ? (0.38 + Math.random() * 0.20).toFixed(2)
-        : (f.w > 120
-            ? (0.70 + Math.random() * 0.20)
-            : (0.60 + Math.random() * 0.22)).toFixed(2);
-      const reverse = Math.random() > 0.5;
-
-      const item = document.createElement('div');
-      item.className = 'gate-rain-item';
-      item.style.cssText =
-        `left:${leftPct}%;top:-${f.h + 20}px;` +
-        `animation-delay:${delay}s;--fall-dur:${fallDur}s;`;
-
-      const inner = document.createElement('div');
-      inner.className = 'gate-rain-inner';
-      inner.style.cssText =
-        `width:${f.w}px;height:${f.h}px;` +
-        `--blur:${blur}px;--opacity:${op};--rot-dur:${rotDur}s;`;
-      if (reverse) inner.style.animationDirection = 'reverse';
-
-      // Two stacked imgs — slot 'a' visible on load, 'b' prepped for crossfade
-      ['a', 'b'].forEach((slot, si) => {
-        const img = document.createElement('img');
-        img.className = `grfi grfi-${slot}`;
-        img.src = `assets/images/FLAGS/${defaultCode}.svg`;
-        img.alt = '';
-        img.style.opacity = si === 0 ? '1' : '0';
-        inner.appendChild(img);
-      });
-
-      item.appendChild(inner);
-      rain.appendChild(item);
-    });
-
-    if (gate) gate.insertBefore(rain, gate.firstChild);
-
-    // ── Ambient colour wash (created once — single container, no slot children) ──
-    // Gradient is set directly on the container before it becomes visible,
-    // so the correct flag colour is always shown — no bleed from a previous hover.
-    if (gate && !$('gate-wash')) {
+    if (gate) {
       const wash = document.createElement('div');
       wash.id = 'gate-wash';
       wash.setAttribute('aria-hidden', 'true');
-      gate.insertBefore(wash, rain.nextSibling);
+      gate.insertBefore(wash, gate.firstChild);
       _washCurrentCode = null;
     }
   }
@@ -323,23 +212,17 @@ function buildGate() {
     </button>
   `).join('');
 
-  // ── Hover: dim others + crossfade rain + crossfade wash ─────────
+  // ── Hover: dim others + crossfade wash ──────────────────────────
   // mouseleave on the GRID CONTAINER — moving between buttons never fires
   // an intermediate reset (was the EN→FR→DE triple-fire crossfade bug).
   const btns = wrap.querySelectorAll('.gate-lang');
-  const rain  = $('gate-rain');
-  const wash  = $('gate-wash');
 
   function activateFlag(code) {
-    if (rain) rain.classList.add('gate-rain--hover');
-    setGateRainFlag(code);
     setGateWash(code); // gradient is set synchronously, THEN container fades in via CSS
   }
   function deactivateFlag() {
     btns.forEach(b => b.classList.remove('dimmed'));
-    if (rain) rain.classList.remove('gate-rain--hover');
-    setGateWash(null);                    // container fades out (1.4 s CSS transition)
-    setGateRainFlag(LANG_GATE[0].code);  // rain returns to first flag; wash stays at its colour then fades
+    setGateWash(null); // container fades out (1.4 s CSS transition)
   }
 
   btns.forEach(btn => {
@@ -479,8 +362,6 @@ function reopenLangGate() {
     gate.classList.add('gate--has-back');
   }
 
-  // Reset rain to the default flag (first language)
-  setGateRainFlag(LANG_GATE[0].code);
 }
 
 /* ══════════════════════════════════════════
@@ -1078,177 +959,268 @@ function buildAwards() {
 }
 
 /* ══════════════════════════════════════════
-   DETAIL PAGE — with centered hero, screenshot
-   carousel, system requirements
+   DETAIL PAGE — GLG SIGNATURE v2
+   Cinematic hero · Story · Features · Screenshots · Buy
 ══════════════════════════════════════════ */
+
+/* ── Spec block helper ── */
+function dpSpecBlock(label, spec) {
+  return `
+    <div class="dp-spec-col">
+      <div class="dp-spec-head">${label}</div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specOs')}</span><span class="dp-spec-v">${spec.os}</span></div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specCpu')}</span><span class="dp-spec-v">${spec.cpu}</span></div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specGpu')}</span><span class="dp-spec-v">${spec.gpu}</span></div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specRam')}</span><span class="dp-spec-v">${spec.ram}</span></div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specStorage')}</span><span class="dp-spec-v">${spec.storage}</span></div>
+      <div class="dp-spec-row"><span class="dp-spec-k">${t('specDx')}</span><span class="dp-spec-v">${spec.dx}</span></div>
+    </div>`;
+}
+
+/* ── Screenshot carousel ── */
+const dpSsStates = {};
+function dpSsNav(id, dir) {
+  const s = dpSsStates[id];
+  if (!s) return;
+  s.index = (s.index + dir + s.total) % s.total;
+  dpSsUpdate(id);
+}
+function dpSsGoTo(id, idx) {
+  if (!dpSsStates[id]) return;
+  dpSsStates[id].index = idx;
+  dpSsUpdate(id);
+}
+function dpSsUpdate(id) {
+  const s = dpSsStates[id];
+  const track = $(`dp-ss-track-${id}`);
+  if (track) track.style.transform = `translateX(-${s.index * 100}%)`;
+  const counter = $(`dp-ss-counter-${id}`);
+  if (counter) counter.textContent = `${s.index + 1} / ${s.total}`;
+  $$(`#dp-ss-thumbs-${id} .dp-ss-thumb`).forEach((th, i) => {
+    th.classList.toggle('active', i === s.index);
+  });
+}
+
+/* ── Sticky bar ── */
+let _dpStickyObs = null;
+function initDpSticky() {
+  const bar  = document.querySelector('#page-detail .dp-sticky') || $('dp-sticky');
+  const hero = document.querySelector('#page-detail .dp-hero');
+  if (!bar || !hero) return;
+  if (_dpStickyObs) _dpStickyObs.disconnect();
+  _dpStickyObs = new IntersectionObserver(([e]) => {
+    bar.classList.toggle('active', !e.isIntersecting);
+    bar.setAttribute('aria-hidden', e.isIntersecting ? 'true' : 'false');
+  }, { threshold: 0.1 });
+  _dpStickyObs.observe(hero);
+}
+
 function buildDetail(id) {
   const item = ALL_WORKS.find(i => i.id === id);
   if (!item) return;
 
-  const container = $('page-detail');
-
-  // Specs helper
-  const specBlock = (label, spec) => `
-    <div class="spec-block">
-      <div class="spec-os-head">${label}</div>
-      <div class="spec-row"><span class="spec-k">${t('specOs')}</span><span class="spec-v">${spec.os}</span></div>
-      <div class="spec-row"><span class="spec-k">${t('specCpu')}</span><span class="spec-v">${spec.cpu}</span></div>
-      <div class="spec-row"><span class="spec-k">${t('specGpu')}</span><span class="spec-v">${spec.gpu}</span></div>
-      <div class="spec-row"><span class="spec-k">${t('specRam')}</span><span class="spec-v">${spec.ram}</span></div>
-      <div class="spec-row"><span class="spec-k">${t('specStorage')}</span><span class="spec-v">${spec.storage}</span></div>
-      <div class="spec-row"><span class="spec-k">${t('specDx')}</span><span class="spec-v">${spec.dx}</span></div>
-    </div>
-  `;
-
-  // Screenshots dots
-  const ssCount = item.screenshots.length;
-
+  const container        = $('page-detail');
   const localTagline     = getItemField(item, 'tagline');
   const localDescription = getItemField(item, 'description');
   const localFeatures    = getItemField(item, 'features');
   const localCat         = getCatLabel(item);
   const localStatus      = getStatusLabel(item);
   const localPrice       = getPrice(item);
-  const genres           = item.genres || [];
+
+  // Build marquee content (repeated twice for seamless loop)
+  const mqItems = [
+    `<span class="dp-mq-item">${t('infoType')} <b>${localCat}</b></span><span class="dp-mq-dot">✦</span>`,
+    `<span class="dp-mq-item">${t('infoYear')} <b>${item.year}</b></span><span class="dp-mq-dot">✦</span>`,
+    `<span class="dp-mq-item">${t('infoStudio')} <b>GEEKLEARN GAMES</b></span><span class="dp-mq-dot">✦</span>`,
+    `<span class="dp-mq-item">${t('infoStatus')} <b>${localStatus}</b></span><span class="dp-mq-dot">✦</span>`,
+    `<span class="dp-mq-item">${t('infoPrice')} <b class="price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</b></span><span class="dp-mq-dot">✦</span>`,
+  ].join('');
+  const mqTrack = mqItems + mqItems; // duplicate for seamless loop
 
   container.innerHTML = `
-    <!-- HERO -->
-    <div class="detail-hero">
-      <div class="detail-hero-bg" style="background-image:url('${item.cover}')"></div>
-      <div class="detail-hero-grad"></div>
-      <div class="detail-hero-tint" style="background:${item.tint}"></div>
-      <button class="detail-back" onclick="showPage('works')">${t('detailBack')}</button>
 
-      <div class="detail-hero-content">
+    <!-- ──────── HERO ──────── -->
+    <div class="dp-hero">
+      <div class="dp-hero-bg" style="background-image:url('${item.cover}')"></div>
+      <div class="dp-hero-vignette"></div>
+      <div class="dp-hero-tint" style="background:${item.tint}"></div>
+
+      <button class="dp-back" onclick="showPage('works')" aria-label="${t('detailBack')}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        ${t('detailBack')}
+      </button>
+
+      <div class="dp-hero-body">
+        <span class="dp-hero-studio">GEEKLEARN GAMES</span>
+        <span class="dp-hero-meta">${localCat} · ${item.year}</span>
+        <div class="dp-hero-badge">
+          <span class="dp-hero-badge-dot"></span>
+          ${localStatus}
+        </div>
         ${item.logo
-          ? `<img class="detail-game-logo" src="${item.logo}" alt="${item.title}">`
-          : `<h1 class="detail-game-title">${item.title}</h1>`
+          ? `<img class="dp-hero-logo" src="${item.logo}" alt="${item.title}">`
+          : `<h1 class="dp-hero-title">${item.title}</h1>`
         }
-        <div class="detail-cat-label">${localCat} · ${item.year}</div>
-        <p class="detail-tagline">${localTagline}</p>
-        ${genres.length ? `<div class="genre-tags">${genres.map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
-        <div class="detail-btns">
+        <p class="dp-hero-tagline">${localTagline}</p>
+        <div class="dp-hero-cta">
           <button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">
             ${t('buyNow')} — ${localPrice}
           </button>
           <button class="btn btn-outline btn-lg" onclick="openTrailerModal('${item.id}')">
-            ${t('trailerBtn')}
+            ▶ ${t('trailerBtn')}
+          </button>
+        </div>
+      </div>
+
+      <div class="dp-hero-scroll" aria-hidden="true">
+        <span class="dp-hero-scroll-label">Scroll</span>
+        <div class="dp-hero-scroll-line"></div>
+      </div>
+    </div>
+
+    <!-- ──────── STICKY BAR ──────── -->
+    <div class="dp-sticky" id="dp-sticky" aria-hidden="true">
+      <div class="dp-sticky-inner">
+        <span class="dp-sticky-title">${item.title}</span>
+        <span class="dp-sticky-sep">·</span>
+        <span class="dp-sticky-cat">${localCat}</span>
+        <span class="dp-sticky-price price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</span>
+        <button class="dp-sticky-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} →</button>
+      </div>
+    </div>
+
+    <!-- ──────── MARQUEE INFO STRIP ──────── -->
+    <div class="dp-marquee-strip" aria-hidden="true">
+      <div class="dp-marquee-track">${mqTrack}</div>
+    </div>
+
+    <!-- ──────── STORY ──────── -->
+    <div class="dp-story reveal">
+      <p class="dp-story-pull">&ldquo;${localTagline}&rdquo;</p>
+      <div class="dp-story-body">
+        <div>
+          <div class="dp-sec-label">${t('aboutHead')}</div>
+          <p class="dp-story-p">${localDescription[0] || ''}</p>
+        </div>
+        <div>
+          <p class="dp-story-p" style="margin-top:clamp(36px,4vw,52px)">${localDescription[1] || ''}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────── KEY FEATURES ──────── -->
+    <div class="dp-features">
+      <div class="dp-sec-label reveal">${t('featuresHead')}</div>
+      <div class="dp-features-list">
+        ${localFeatures.map((f, i) => `
+          <div class="dp-feat-item reveal" style="transition-delay:${i * 0.04}s">
+            <span class="dp-feat-num">${String(i + 1).padStart(2, '0')}</span>
+            <span class="dp-feat-text">${f}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- ──────── SCREENSHOTS ──────── -->
+    <div class="dp-ss reveal">
+      <div class="dp-sec-label">${t('ssHead')}</div>
+      <div class="dp-ss-main">
+        <div class="dp-ss-viewport">
+          <div class="dp-ss-track" id="dp-ss-track-${item.id}">
+            ${item.screenshots.map((ss, idx) => `
+              <div class="dp-ss-slide">
+                <img src="${ss}" alt="Screenshot ${idx + 1}" loading="lazy"
+                     onerror="this.parentElement.style.background='var(--s2)'">
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="dp-ss-nav">
+          <button class="dp-ss-prev" onclick="dpSsNav('${item.id}',-1)" aria-label="Previous screenshot">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <span class="dp-ss-counter" id="dp-ss-counter-${item.id}">1 / ${item.screenshots.length}</span>
+          <button class="dp-ss-next" onclick="dpSsNav('${item.id}',1)" aria-label="Next screenshot">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="dp-ss-thumbs" id="dp-ss-thumbs-${item.id}">
+        ${item.screenshots.map((ss, i) => `
+          <button class="dp-ss-thumb ${i === 0 ? 'active' : ''}" onclick="dpSsGoTo('${item.id}',${i})" aria-label="Screenshot ${i + 1}">
+            <img src="${ss}" alt="" loading="lazy">
+          </button>`).join('')}
+      </div>
+    </div>
+
+    <!-- ──────── GET THE GAME ──────── -->
+    <div class="dp-buy reveal">
+      <div class="dp-buy-inner">
+        <div class="dp-buy-cover">
+          <img class="dp-buy-cover-img" src="${item.cover}" alt="${item.title}">
+        </div>
+        <div class="dp-buy-plats">
+          <div class="dp-sec-label">${t('platHead')}</div>
+          <div class="dp-plat-list">
+            ${item.platforms.map(p => `
+              <button class="dp-plat-btn" onclick="openBuyModal('${item.id}')">
+                <div class="dp-plat-ico" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
+                <div>
+                  <div class="dp-plat-name">${PLATS[p].name}</div>
+                  <div class="dp-plat-cta-lbl">${PLATS[p].cta}</div>
+                </div>
+                <svg class="dp-plat-arr" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>`).join('')}
+          </div>
+        </div>
+        <div class="dp-price-card">
+          ${item.logo
+            ? `<img class="dp-price-logo" src="${item.logo}" alt="${item.title}">`
+            : `<div class="dp-price-title">${item.title}</div>`
+          }
+          <div class="dp-price-num price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</div>
+          <div class="dp-price-status">${localStatus}</div>
+          <button class="dp-buy-btn" onclick="openBuyModal('${item.id}')">
+            ${t('buyNow')}
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- BODY -->
-    <div class="detail-body">
-      <div class="detail-grid">
-        <div>
-          <!-- About -->
-          <div class="detail-sec-head">${t('aboutHead')}</div>
-          <div class="detail-desc">
-            ${localDescription.map(p => `<p>${p}</p>`).join('')}
-          </div>
-
-          <!-- Features -->
-          <div class="detail-sec-head" style="margin-top:40px">${t('featuresHead')}</div>
-          <ul style="list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:4px">
-            ${localFeatures.map(f => `
-              <li style="display:flex;align-items:flex-start;gap:11px;font-size:.86rem;color:var(--greyt);line-height:1.5">
-                <span style="color:var(--grey);flex-shrink:0;font-family:var(--f-mono);font-size:.72rem;margin-top:2px">—</span>
-                ${f}
-              </li>`).join('')}
-          </ul>
-
-          <!-- Screenshots carousel -->
-          <div class="detail-sec-head" style="margin-top:48px">${t('ssHead')}</div>
-          <div class="ss-wrap" id="ss-wrap-${item.id}">
-            <div class="ss-viewport">
-              <div class="ss-track" id="ss-track-${item.id}">
-                ${item.screenshots.map((ss, idx) => `
-                  <div class="ss-slide">
-                    <img src="${ss}" alt="Screenshot ${idx + 1}" loading="lazy"
-                         onerror="this.style.display='none'">
-                  </div>`).join('')}
-              </div>
-            </div>
-            <button class="ss-arrow ss-arrow-prev" onclick="ssNav('${item.id}',-1)">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-            <button class="ss-arrow ss-arrow-next" onclick="ssNav('${item.id}',1)">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-            <div class="ss-dots" id="ss-dots-${item.id}">
-              ${item.screenshots.map((_, i) =>
-                `<div class="ss-dot ${i === 0 ? 'active' : ''}" onclick="ssGoTo('${item.id}',${i})"></div>`
-              ).join('')}
-            </div>
-          </div>
-
-          <!-- System requirements -->
-          ${item.specs ? `
-          <div class="detail-sec-head" style="margin-top:48px">${t('specsHead')}</div>
-          <div class="specs-table" style="margin-top:12px">
-            ${specBlock(t('specMin'), item.specs.min)}
-            ${specBlock(t('specRec'), item.specs.rec)}
-          </div>` : ''}
-        </div>
-
-        <!-- Sidebar -->
-        <aside class="detail-sidebar">
-          <div class="sbox">
-            <div class="sbox-head">${t('infoHead')}</div>
-            <div class="sbox-body">
-              <div class="irow"><span class="ik">${t('infoType')}</span><span class="iv">${localCat}</span></div>
-              ${item.type === 'game' ? `<div class="irow"><span class="ik">${t('infoGenre')}</span><span class="iv">${localCat}</span></div>` : ''}
-              ${item.duration ? `<div class="irow"><span class="ik">${t('infoDuration')}</span><span class="iv">${item.duration}</span></div>` : ''}
-              <div class="irow"><span class="ik">${t('infoYear')}</span><span class="iv">${item.year}</span></div>
-              <div class="irow"><span class="ik">${t('infoStudio')}</span><span class="iv">GEEKLEARN GAMES</span></div>
-              <div class="irow"><span class="ik">${t('infoStatus')}</span><span class="iv">${localStatus}</span></div>
-              <div class="irow" style="border:none"><span class="ik">${t('infoPrice')}</span><span class="iv price-display" style="font-size:1.05rem;font-weight:700" data-base-price="${item.basePrice ?? ''}">${getPrice(item)}</span></div>
-            </div>
-          </div>
-          <div class="sbox">
-            <div class="sbox-head">${t('platHead')}</div>
-            <div class="sbox-body">
-              ${item.platforms.map(p => `
-                <div class="plat-entry">
-                  <div class="plat-ico" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
-                  <span>${PLATS[p].name}</span>
-                </div>`).join('')}
-              <button class="sidebar-buy" onclick="openBuyModal('${item.id}')">
-                ${t('buyNow')}
-              </button>
-            </div>
-          </div>
-        </aside>
+    <!-- ──────── SYSTEM REQUIREMENTS ──────── -->
+    ${item.specs ? `
+    <div class="dp-specs reveal">
+      <div class="dp-sec-label">${t('specsHead')}</div>
+      <div class="dp-specs-table">
+        ${dpSpecBlock(t('specMin'), item.specs.min)}
+        ${dpSpecBlock(t('specRec'), item.specs.rec)}
       </div>
-    </div>
+    </div>` : ''}
 
     ${footerHTML()}
   `;
 
-  // Init screenshot state
-  ssStates[item.id] = { index: 0, total: item.screenshots.length };
-}
+  // Propagate tint color throughout the detail page
+  container.style.setProperty('--dp-tint', item.tint);
 
-/* ── Screenshot carousel ── */
-const ssStates = {};
-function ssNav(id, dir) {
-  const state = ssStates[id];
-  if (!state) return;
-  state.index = (state.index + dir + state.total) % state.total;
-  ssUpdate(id);
-}
-function ssGoTo(id, idx) {
-  if (!ssStates[id]) return;
-  ssStates[id].index = idx;
-  ssUpdate(id);
-}
-function ssUpdate(id) {
-  const state = ssStates[id];
-  const track = $(`ss-track-${id}`);
-  if (track) track.style.transform = `translateX(-${state.index * 100}%)`;
-  $$(`#ss-dots-${id} .ss-dot`).forEach((dot, i) => {
-    dot.classList.toggle('active', i === state.index);
+  // Init screenshot carousel state
+  dpSsStates[item.id] = { index: 0, total: item.screenshots.length };
+
+  // Init sticky bar (observe hero)
+  initDpSticky();
+
+  // Init scroll reveals on newly injected elements
+  initReveal();
+
+  // Trigger hero BG slow-zoom entrance
+  requestAnimationFrame(() => {
+    const hero = container.querySelector('.dp-hero');
+    if (hero) requestAnimationFrame(() => hero.classList.add('dp-entered'));
   });
 }
 
