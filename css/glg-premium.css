@@ -147,11 +147,11 @@
   content: '';
   display: block;
   width: clamp(40px,6vw,80px);
-  height: 2px;
+  height: 3px;
   background: linear-gradient(90deg, var(--a), var(--a2));
-  margin: 18px auto 0;
-  border-radius: 1px;
-  box-shadow: 0 0 12px var(--a-glow);
+  margin: 16px auto 0;
+  border-radius: 2px;
+  box-shadow: 0 0 16px var(--a-glow), 0 0 32px rgba(230,57,70,.15);
 }
 
 /* Scroll indicator line — accent */
@@ -354,7 +354,7 @@
   width: clamp(36px,5vw,64px);
   height: 2px;
   background: linear-gradient(90deg, var(--a), var(--a2));
-  margin-top: 16px;
+  margin: 14px auto 0;
   border-radius: 1px;
 }
 
@@ -389,7 +389,7 @@
   width: clamp(36px,5vw,64px);
   height: 2px;
   background: linear-gradient(90deg, var(--a), var(--a2));
-  margin-top: 16px;
+  margin: 14px auto 0;
   border-radius: 1px;
 }
 
