@@ -12,6 +12,7 @@
 :root {
   --a:           #E63946;               /* GLG red   */
   --accent:      #E63946;               /* alias for main.css compat */
+  --accent-rgb:  230,57,70;             /* rgb channels for rgba() usage */
   --a2:          #FF6B35;               /* fire orange (secondary) */
   --a-dim:       rgba(230,57,70,.14);   /* tinted fill */
   --a-glow:      rgba(230,57,70,.22);   /* glow halo   */

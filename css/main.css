@@ -1217,12 +1217,14 @@ ul{list-style:none}
   position:relative;
 }
 .contact-hero-inner{max-width:1100px}
+
 .contact-eye-lbl{
   display:inline-flex;align-items:center;gap:11px;
   font-family:var(--f-mono);font-size:.52rem;letter-spacing:.38em;text-transform:uppercase;
   color:var(--grey);margin-bottom:clamp(14px,2vh,22px);
 }
 .contact-eye-lbl::before{content:'';width:22px;height:1px;background:var(--grey);flex-shrink:0}
+
 .contact-hero-h{
   font-family:var(--f-disp);
   font-size:clamp(4.5rem,14vw,13rem);
@@ -2016,4 +2018,1040 @@ footer{
   .puz-strip-row.reveal .puz-strip{transition:none!important}
   .puz-strip-row.reveal .puz-strip-index,
   .puz-strip-row.reveal .puz-quote{transition:none!important;opacity:1!important;transform:none!important}
+}
+
+/* ════════════════════════════════════════════════════════════
+   ★  GLG — CINEMATIC ANIMATION SYSTEM v2  (2026)
+   ════════════════════════════════════════════════════════════
+   GPU-only (transform + opacity) · prefers-reduced-motion safe
+   Pointer:fine guards on cursor / parallax / tilt
+   Cross-browser: Chrome · Firefox · Safari · Edge · Samsung
+════════════════════════════════════════════════════════════ */
+
+
+/* ── Enhanced reveal variants ─────────────────────────── */
+/* Slide from left */
+.reveal-left{
+  opacity:0;transform:translateX(-30px);
+  transition:opacity .82s var(--ease),transform .82s var(--ease);
+}
+.reveal-left.visible{opacity:1;transform:none}
+
+/* Slide from right */
+.reveal-right{
+  opacity:0;transform:translateX(30px);
+  transition:opacity .82s var(--ease),transform .82s var(--ease);
+}
+.reveal-right.visible{opacity:1;transform:none}
+
+/* Scale + rise */
+.reveal-scale{
+  opacity:0;transform:scale(.92) translateY(16px);
+  transition:opacity .82s var(--ease),transform .82s var(--ease);
+}
+.reveal-scale.visible{opacity:1;transform:scale(1) translateY(0)}
+
+/* Clip: content rises from behind a bottom mask */
+.reveal-clip{overflow:hidden}
+.reveal-clip>*{
+  display:block;
+  transform:translateY(110%);
+  transition:transform 1.05s cubic-bezier(.16,1,.3,1);
+}
+.reveal-clip.visible>*{transform:translateY(0)}
+
+/* Dark wipe: overlay panel lifts away */
+.reveal-wipe{position:relative;overflow:hidden}
+.reveal-wipe::after{
+  content:'';position:absolute;inset:0;
+  background:var(--bg);
+  transform:scaleY(1);transform-origin:bottom;
+  transition:transform 1.1s cubic-bezier(.76,0,.24,1);
+  z-index:2;pointer-events:none;
+}
+.reveal-wipe.visible::after{transform:scaleY(0)}
+
+/* Line draw */
+.reveal-line{transform:scaleX(0);transform-origin:left;transition:transform 1s cubic-bezier(.16,1,.3,1)}
+.reveal-line.visible{transform:scaleX(1)}
+.reveal-line-r{transform:scaleX(0);transform-origin:right;transition:transform 1s cubic-bezier(.16,1,.3,1)}
+.reveal-line-r.visible{transform:scaleX(1)}
+
+/* ── New @keyframes ───────────────────────────────────── */
+@keyframes floatY{
+  0%,100%{transform:translateY(0)}
+  50%    {transform:translateY(-9px)}
+}
+@keyframes glowPulse{
+  0%,100%{opacity:.48}
+  50%    {opacity:1}
+}
+@keyframes accentDraw{
+  from{transform:scaleX(0);transform-origin:left}
+  to  {transform:scaleX(1);transform-origin:left}
+}
+@keyframes searchSlideIn{
+  from{opacity:0;transform:translateY(-14px) scale(.98)}
+  to  {opacity:1;transform:none}
+}
+@keyframes navIn{
+  from{opacity:0;transform:translateY(-8px)}
+  to  {opacity:1;transform:none}
+}
+
+/* ── Improved page transition (overrides earlier def.) ── */
+@keyframes pageIn{
+  from{opacity:0;transform:translateY(9px)}
+  to  {opacity:1;transform:none}
+}
+.page.active{display:block;animation:pageIn .62s cubic-bezier(.16,1,.3,1) both}
+
+/* ── Nav entrance ─────────────────────────────────────── */
+#nav{animation:navIn .55s .05s var(--ease) both}
+
+/* ── Scroll progress: glow ────────────────────────────── */
+#sprogress{
+  height:2px;
+  box-shadow:0 0 6px rgba(255,255,255,.26),0 0 14px rgba(255,255,255,.1);
+}
+
+/* ── Marquee: pause on hover ──────────────────────────── */
+.marquee-bar:hover .marquee-track{animation-play-state:paused}
+.dp-marquee-strip:hover .dp-marquee-track{animation-play-state:paused}
+
+/* ── Hero: subtle scanline film texture ───────────────── */
+.hero::before{
+  content:'';position:absolute;inset:0;
+  z-index:4;pointer-events:none;
+  opacity:.015;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,1) 2px,
+    rgba(255,255,255,1) 3px
+  );
+}
+
+/* ── Hero eyebrow dashes: draw in on load ─────────────── */
+.hero-eyebrow-dash{
+  width:0;
+  animation:accentDraw .55s .82s var(--ease) forwards;
+}
+
+/* ── Detail hero scroll indicator: float ─────────────── */
+.dp-hero-scroll{animation:floatY 3.4s ease-in-out infinite}
+
+/* ── Search modal: entrance animation ────────────────── */
+#search-modal.open .search-modal-inner{
+  animation:searchSlideIn .42s var(--ease) both;
+}
+
+/* ── Footer links: indent + line reveal ──────────────── */
+.footer-links button,.footer-links a{
+  position:relative;
+  padding-left:0;
+  transition:color .2s,padding-left .28s var(--ease);
+}
+.footer-links button::before,.footer-links a::before{
+  content:'';
+  position:absolute;
+  left:0;top:50%;
+  transform:translateX(-14px) translateY(-50%);
+  width:8px;height:1px;
+  background:rgba(255,255,255,.5);
+  opacity:0;
+  transition:transform .28s var(--ease),opacity .22s;
+  pointer-events:none;
+}
+.footer-links button:hover,.footer-links a:hover{padding-left:14px}
+.footer-links button:hover::before,.footer-links a:hover::before{
+  transform:translateX(0) translateY(-50%);
+  opacity:1;
+}
+
+/* ── Feature items: tint bar sweeps in on hover ────────── */
+.dp-feat-item{position:relative;overflow:hidden}
+.dp-feat-item::before{
+  content:'';
+  position:absolute;
+  left:0;top:0;bottom:0;width:2px;
+  background:var(--dp-tint,rgba(255,255,255,.3));
+  transform:scaleY(0);transform-origin:top;
+  transition:transform .38s var(--ease);
+  pointer-events:none;
+}
+.dp-feat-item:hover::before{transform:scaleY(1)}
+
+/* ── Platform buttons: tint wash ─────────────────────── */
+.dp-plat-btn{position:relative}
+.dp-plat-btn::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(
+    90deg,
+    var(--dp-tint,rgba(255,255,255,.06)) 0%,
+    transparent 55%
+  );
+  opacity:0;transition:opacity .32s;pointer-events:none;
+}
+.dp-plat-btn:hover::before{opacity:.7}
+
+/* ── Detail story: staggered reveal ──────────────────── */
+.dp-story.reveal .dp-story-pull{
+  opacity:0;transform:translateY(22px);
+  transition:opacity .95s var(--ease),transform .95s var(--ease);
+}
+.dp-story.reveal.visible .dp-story-pull{opacity:.92;transform:none}
+.dp-story.reveal .dp-story-body{
+  opacity:0;transform:translateY(16px);
+  transition:opacity .88s .22s var(--ease),transform .88s .22s var(--ease);
+}
+.dp-story.reveal.visible .dp-story-body{opacity:1;transform:none}
+
+/* ── Award cards: enhanced lift ───────────────────────── */
+.award-card{
+  transition:border-color .32s var(--ease),
+             transform .42s var(--ease),
+             box-shadow .42s var(--ease);
+}
+.award-card:hover{
+  border-color:rgba(255,255,255,.2);
+  transform:translateY(-5px);
+  box-shadow:0 22px 54px rgba(0,0,0,.72);
+}
+
+/* ── Manifesto quote: gentle float ───────────────────── */
+.about-manifesto-quote{animation:floatY 7.5s ease-in-out infinite}
+
+/* ── GLG band label: glow pulse ──────────────────────── */
+.glg-band-label{animation:glowPulse 4.5s ease-in-out infinite}
+
+/* ── Accessible focus ring ───────────────────────────── */
+:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:3px}
+
+/* ── Carousel card: smoother image transition ────────── */
+.c-card-pw img{transition:transform .72s var(--ease),filter .5s var(--ease)}
+
+/* ── Nav link underline: smoother draw ───────────────── */
+.nav-link::after{transition:left .35s var(--ease),right .35s var(--ease)}
+
+/* ─────────────────────────────────────────────────────
+   prefers-reduced-motion — extension for v2 rules
+   (original block earlier in CSS covers legacy rules)
+────────────────────────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  /* New reveal variants: instant */
+  .reveal-left,.reveal-right,.reveal-scale{
+    opacity:1!important;transform:none!important;
+  }
+  .reveal-clip>*{transform:none!important}
+  .reveal-wipe::after{display:none!important}
+  .reveal-line,.reveal-line-r{transform:scaleX(1)!important}
+  /* New looping animations: off */
+  .about-manifesto-quote,.dp-hero-scroll,.glg-band-label{animation:none!important}
+  /* Nav: instant */
+  #nav{animation:none!important;opacity:1}
+  /* Page transition: instant */
+  .page.active{animation:none!important;opacity:1;transform:none}
+  /* Hero scanline: off */
+  .hero::before{display:none!important}
+  /* Eyebrow dash: instant full width */
+  .hero-eyebrow-dash{animation:none!important;width:30px}
+  /* Detail story: instant visible */
+  .dp-story.reveal .dp-story-pull,
+  .dp-story.reveal .dp-story-body{opacity:1!important;transform:none!important}
+}
+
+/* ════════════════════════════════════════════════════════
+   GLG ENHANCEMENT BLOCK v3
+   Custom cursor · Stats band · Visual polish
+   ════════════════════════════════════════════════════════ */
+
+/* ── Custom GLG cursor (fine pointer / desktop only) ──── */
+@media (hover:hover) and (pointer:fine){
+  *{cursor:none!important}
+  #glg-cur-dot,#glg-cur-ring{
+    position:fixed;top:0;left:0;border-radius:50%;
+    pointer-events:none;z-index:99999;opacity:0;
+    will-change:transform;
+    transition:opacity .3s ease,width .18s var(--ease),height .18s var(--ease),
+               background .18s,border-color .18s,box-shadow .18s;
+  }
+  #glg-cur-dot.glg-cur-on,#glg-cur-ring.glg-cur-on{opacity:1}
+  #glg-cur-dot{
+    width:6px;height:6px;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+  }
+  #glg-cur-ring{
+    width:28px;height:28px;
+    border:1.5px solid rgba(255,220,80,.55);
+    background:transparent;
+  }
+  /* Hover state — over interactive elements */
+  body.glg-cur-hover #glg-cur-dot{
+    width:8px;height:8px;
+    background:#fff;
+    box-shadow:0 0 14px rgba(255,255,255,.7);
+  }
+  body.glg-cur-hover #glg-cur-ring{
+    width:44px;height:44px;
+    border-color:rgba(255,255,255,.35);
+  }
+  /* Click state */
+  body.glg-cur-click #glg-cur-dot{
+    width:14px;height:14px;
+    background:var(--accent);
+    box-shadow:0 0 22px var(--accent);
+  }
+  body.glg-cur-click #glg-cur-ring{
+    width:18px;height:18px;
+    border-color:var(--accent);
+    opacity:.45;
+  }
+}
+
+/* ── Stats band ─────────────────────────────────────────── */
+.glg-stats-band{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:0;
+  background:#000;
+  border-top:1px solid rgba(255,255,255,.07);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  overflow:hidden;
+}
+.glg-stat-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(1.4rem,4vw,2.8rem) clamp(.8rem,2vw,1.8rem);
+  position:relative;gap:.35rem;
+}
+.glg-stat-item+.glg-stat-item::before{
+  content:'';position:absolute;left:0;top:22%;bottom:22%;
+  width:1px;background:rgba(255,255,255,.09);
+}
+.glg-stat-num{
+  font-family:var(--f-disp);
+  font-size:clamp(2.6rem,6vw,5.2rem);
+  line-height:1;
+  color:var(--accent);
+  letter-spacing:.02em;
+}
+.glg-stat-label{
+  font-family:var(--f-mono);
+  font-size:clamp(.58rem,.85vw,.76rem);
+  text-transform:uppercase;
+  letter-spacing:.13em;
+  color:rgba(255,255,255,.42);
+  text-align:center;
+}
+@media(max-width:600px){
+  .glg-stats-band{grid-template-columns:repeat(2,1fr)}
+  .glg-stat-item:nth-child(3){border-top:1px solid rgba(255,255,255,.09)}
+  .glg-stat-item:nth-child(4){border-top:1px solid rgba(255,255,255,.09)}
+  .glg-stat-item:nth-child(3)::before,.glg-stat-item:nth-child(4)::before{display:none}
+}
+
+/* ── Button primary glow ────────────────────────────────── */
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  opacity:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 130%,rgba(255,220,80,.22) 0%,transparent 65%);
+  transition:opacity .35s;
+}
+.btn-primary:hover::after{opacity:1}
+.btn-primary:hover{
+  box-shadow:0 0 28px rgba(255,210,60,.3),0 3px 12px rgba(0,0,0,.45);
+}
+
+/* ── Card genre glow on hover ───────────────────────────── */
+.c-card[data-g="Horror"]:hover    {box-shadow:0 0 32px rgba(200,30,30,.4),0 8px 28px rgba(0,0,0,.55)}
+.c-card[data-g="Adventure"]:hover {box-shadow:0 0 32px rgba(30,110,220,.4),0 8px 28px rgba(0,0,0,.55)}
+.c-card[data-g="Puzzle"]:hover    {box-shadow:0 0 32px rgba(60,200,120,.4),0 8px 28px rgba(0,0,0,.55)}
+.c-card[data-g="Narrative"]:hover {box-shadow:0 0 32px rgba(170,60,240,.4),0 8px 28px rgba(0,0,0,.55)}
+.c-card[data-g="RPG"]:hover       {box-shadow:0 0 32px rgba(230,140,20,.4),0 8px 28px rgba(0,0,0,.55)}
+.c-card[data-g="Thriller"]:hover  {box-shadow:0 0 32px rgba(210,50,50,.4), 0 8px 28px rgba(0,0,0,.55)}
+
+/* ── Hero canvas particle layer ─────────────────────────── */
+#glg-hero-canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:2;
+  opacity:.5;
+}
+
+/* ── Nav glass — stronger when scrolled ─────────────────── */
+#nav.scrolled{
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  background:rgba(0,0,0,.8);
+  box-shadow:0 1px 0 rgba(255,255,255,.05),0 4px 32px rgba(0,0,0,.55);
+}
+
+/* ── Loader shimmer line ────────────────────────────────── */
+#loader::after{
+  content:'';position:absolute;bottom:0;left:0;
+  height:2px;width:0;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:glgLoaderShimmer 1.9s ease-in-out infinite;
+}
+@keyframes glgLoaderShimmer{
+  0%  {left:0;width:0;opacity:0}
+  18% {opacity:1}
+  60% {width:65%}
+  82% {width:100%;opacity:.9}
+  100%{left:100%;width:0;opacity:0}
+}
+
+/* ── Puzzle strip placeholder atmospheres ───────────────── */
+.puz-strip-row:nth-child(1) .puz-strip-img{background:linear-gradient(135deg,#1a0608 0%,#420d10 45%,#0c0a1c 100%) !important}
+.puz-strip-row:nth-child(2) .puz-strip-img{background:linear-gradient(135deg,#091520 0%,#0d2d42 50%,#050d17 100%) !important}
+.puz-strip-row:nth-child(3) .puz-strip-img{background:linear-gradient(135deg,#0b1e0a 0%,#183520 50%,#0a110a 100%) !important}
+.puz-strip-row:nth-child(4) .puz-strip-img{background:linear-gradient(135deg,#180d1c 0%,#30103e 50%,#0d0a1e 100%) !important}
+
+/* ── Studio theme name — slightly larger ────────────────── */
+.studio-theme-name{
+  font-size:clamp(2rem,4.2vw,3.4rem);
+  letter-spacing:.06em;
+}
+
+/* ── Marquee track brightness ───────────────────────────── */
+.marquee-track{filter:brightness(1.12)}
+
+/* ── Form focus glow ────────────────────────────────────── */
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus{
+  border-color:rgba(255,210,60,.45)!important;
+  box-shadow:0 0 0 3px rgba(255,210,60,.07)!important;
+  outline:none;
+}
+
+/* ── Social icon hover — accent tint ───────────────────── */
+.soc-btn:hover .soc-icon{
+  filter:brightness(0) saturate(100%) invert(88%) sepia(44%) saturate(600%) hue-rotate(4deg) brightness(105%);
+  opacity:1;
+}
+
+/* ── About manifesto — forced dark ground ───────────────── */
+.about-manifesto{background:#000!important}
+
+/* ── Footer column visual separators ───────────────────── */
+@media(min-width:768px){
+  .footer-col+.footer-col{
+    border-left:1px solid rgba(255,255,255,.055);
+    padding-left:clamp(1rem,3vw,2.4rem);
+  }
+}
+
+/* ── prefers-reduced-motion — new elements ──────────────── */
+@media(prefers-reduced-motion:reduce){
+  #glg-cur-dot,#glg-cur-ring{transition:none!important}
+  #loader::after{animation:none!important}
+  #glg-hero-canvas{display:none!important}
+  .glg-stats-band .glg-stat-num{transition:none!important}
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLG OVERHAUL v4 — AAA STUDIO VISUAL UPGRADE
+   Complete redesign: accent system · hero · cards · pages
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Global accent system ───────────────────────────── */
+:root{
+  --accent:#ffd050;
+  --accent-rgb:255,208,80;
+  --accent-dim:rgba(255,208,80,.13);
+  --s4:#222;
+  --transition-base:.28s cubic-bezier(.16,1,.3,1);
+}
+
+/* ─── 2. Hero — cinematic overhaul ─────────────────────── */
+/* Override the pure-black placeholder SVG with a rich, cinematic gradient */
+.hero-bg{
+  background:
+    radial-gradient(ellipse at 68% 32%, rgba(120,38,12,1) 0%, rgba(60,15,5,.6) 35%, transparent 60%),
+    radial-gradient(ellipse at 18% 72%, rgba(12,20,80,.9) 0%, rgba(5,10,40,.5) 40%, transparent 65%),
+    radial-gradient(ellipse at 80% 85%, rgba(55,8,8,.85) 0%, rgba(25,4,4,.45) 40%, transparent 60%),
+    radial-gradient(ellipse at 40% 60%, rgba(8,5,20,.7) 0%, transparent 50%),
+    linear-gradient(160deg, #1a0a0c 0%, #07050f 30%, #040310 55%, #0c0405 100%) !important;
+  filter:none !important;
+}
+
+/* Cinematic gradient overlay — top warmth, heavy bottom fade */
+.hero-overlay{
+  background:linear-gradient(
+    170deg,
+    rgba(0,0,0,.42) 0%,
+    rgba(0,0,0,.04) 28%,
+    rgba(0,0,0,.36) 62%,
+    rgba(0,0,0,.92) 100%
+  ) !important;
+}
+
+/* Warm accent bleed at bottom of hero */
+.hero::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:40%;
+  background:linear-gradient(to top,rgba(var(--accent-rgb),.055) 0%,transparent 100%);
+  pointer-events:none;z-index:3;
+}
+
+/* Tighten content position slightly */
+.hero-content{
+  padding-bottom:clamp(72px,12vh,140px) !important;
+}
+
+/* Gold eyebrow dashes */
+.hero-eyebrow-dash{
+  background:var(--accent) !important;
+  box-shadow:0 0 10px rgba(var(--accent-rgb),.55);
+  width:22px !important;
+}
+.hero-eyebrow-text{color:rgba(var(--accent-rgb),.75) !important;letter-spacing:.38em}
+
+/* Hollow text gets a hint of accent color */
+.hero-slogan .hollow{
+  -webkit-text-stroke-color:rgba(var(--accent-rgb),.28) !important;
+  color:transparent;
+}
+
+/* Hero description — slightly brighter */
+.hero-desc{color:rgba(255,255,255,.75) !important;max-width:520px}
+
+/* Scroll indicator — accent line */
+.hero-scroll-line{
+  background:linear-gradient(transparent,var(--accent)) !important;
+  opacity:.6;
+}
+
+/* ─── 3. Primary button — gold & premium ───────────────── */
+.btn-primary{
+  background:var(--accent) !important;
+  color:#000 !important;
+  border-color:var(--accent) !important;
+  font-weight:600;
+  letter-spacing:.2em;
+  transition:all .22s var(--ease) !important;
+}
+.btn-primary:hover{
+  background:#fff !important;
+  color:#000 !important;
+  border-color:#fff !important;
+  box-shadow:0 0 32px rgba(255,255,255,.22),0 4px 16px rgba(0,0,0,.5) !important;
+  transform:translateY(-2px) !important;
+}
+.btn-primary::after{display:none} /* remove old shimmer — not needed with gold */
+
+/* Outline button refined */
+.btn-outline{
+  border-color:rgba(255,255,255,.3) !important;
+  transition:all .22s var(--ease) !important;
+}
+.btn-outline:hover{
+  border-color:rgba(255,255,255,.7) !important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.2),0 4px 16px rgba(0,0,0,.4) !important;
+  transform:translateY(-2px) !important;
+}
+
+/* Ghost button */
+.btn-ghost{
+  color:var(--w80);
+  border:1px solid rgba(255,255,255,.14) !important;
+  transition:all .22s var(--ease) !important;
+}
+.btn-ghost:hover{
+  background:rgba(255,255,255,.06) !important;
+  border-color:rgba(255,255,255,.3) !important;
+  transform:translateY(-1px) !important;
+}
+
+/* ─── 4. Stats band — gold numbers ─────────────────────── */
+.glg-stats-band{
+  background:linear-gradient(180deg,#0c0c0c 0%,#060606 100%) !important;
+  border-top-color:rgba(var(--accent-rgb),.14) !important;
+  border-bottom-color:rgba(var(--accent-rgb),.08) !important;
+  position:relative;
+}
+.glg-stats-band::before{
+  content:'';position:absolute;
+  top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.5),transparent);
+}
+.glg-stat-num{
+  color:var(--accent) !important;
+  text-shadow:0 0 28px rgba(var(--accent-rgb),.28);
+}
+.glg-stat-label{color:rgba(255,255,255,.38) !important;letter-spacing:.16em}
+.glg-stat-item+.glg-stat-item::before{
+  background:rgba(var(--accent-rgb),.12) !important;
+}
+
+/* ─── 5. Marquee — gold dots ────────────────────────────── */
+.marquee-dot{
+  background:var(--accent) !important;
+  box-shadow:0 0 5px rgba(var(--accent-rgb),.6);
+  opacity:.8 !important;
+}
+.marquee-item{color:rgba(255,255,255,.42) !important;font-size:.52rem;letter-spacing:.18em}
+
+/* ─── 6. Section eyebrows — gold dashes ────────────────── */
+.section-eye{color:rgba(var(--accent-rgb),.75) !important;letter-spacing:.42em}
+.section-eye::before,.section-eye::after{background:var(--accent) !important;opacity:.7}
+
+/* ─── 7. Studio block — accent bars ────────────────────── */
+.studio-theme-bar{
+  background:var(--accent) !important;
+  box-shadow:0 0 8px rgba(var(--accent-rgb),.4);
+}
+.studio-themes-eyebrow span{
+  color:rgba(var(--accent-rgb),.55) !important;
+  letter-spacing:.28em;font-size:.45rem;
+}
+.studio-quote{line-height:1.18}
+
+/* ─── 8. Puzzle strips — stronger atmosphere ────────────── */
+.puz-strip-row:nth-child(1) .puz-strip-img{
+  background:linear-gradient(145deg,#220000 0%,#6b0f0f 35%,#400808 65%,#0d0003 100%) !important;
+}
+.puz-strip-row:nth-child(2) .puz-strip-img{
+  background:linear-gradient(145deg,#00040e 0%,#072646 38%,#0d2040 65%,#040b1c 100%) !important;
+}
+.puz-strip-row:nth-child(3) .puz-strip-img{
+  background:linear-gradient(145deg,#030e00 0%,#0f3006 38%,#153410 65%,#071402 100%) !important;
+}
+.puz-strip-row:nth-child(4) .puz-strip-img{
+  background:linear-gradient(145deg,#0d0015 0%,#2a0840 38%,#1e0632 65%,#080010 100%) !important;
+}
+
+/* Puzzle strip quote text brighter */
+.puz-quote-text{
+  color:rgba(255,255,255,.92) !important;
+  text-shadow:0 2px 20px rgba(0,0,0,.8);
+}
+.puz-quote-tag{color:rgba(var(--accent-rgb),.65) !important;letter-spacing:.25em}
+
+/* ─── 9. GLG band — better label ───────────────────────── */
+.glg-band-label{
+  color:rgba(255,255,255,.18) !important;
+  letter-spacing:.5em;
+  font-size:.42rem !important;
+}
+
+/* ─── 10. Works page hero ──────────────────────────────── */
+.works-hero{
+  background:linear-gradient(180deg,#0a0a0a 0%,var(--bg) 100%) !important;
+  padding-top:clamp(80px,12vh,140px) !important;
+}
+.works-hero .section-h{
+  background:linear-gradient(180deg,#fff 60%,rgba(255,255,255,.6) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.works-cat-section{background:var(--bg)}
+.works-cat-label{color:rgba(var(--accent-rgb),.7) !important}
+.works-cat-label::before,.works-cat-label::after{background:var(--accent) !important;opacity:.6}
+.works-cat-title{letter-spacing:.01em}
+
+/* ─── 11. Carousel cards — tint gradient overlays ─────── */
+/* Richer base card */
+.c-card{
+  border-radius:4px;
+  overflow:hidden;
+}
+.c-card-pw{
+  background:#080808;
+  border-radius:4px 4px 0 0;
+  position:relative; /* ensure ::after positions correctly */
+}
+
+/* ::after sits ON TOP of the placeholder image, creating atmospheric glow */
+.c-card-pw::after{
+  content:'';
+  position:absolute;inset:0;
+  z-index:2;
+  pointer-events:none;
+  transition:opacity .4s;
+}
+
+/* Per-glow colour overlays via ::after (above the dark SVG) */
+.c-card[data-g="o"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(255,106,0,.52) 0%,rgba(200,50,0,.24) 42%,transparent 68%);
+}
+.c-card[data-g="b"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(58,123,213,.52) 0%,rgba(20,60,180,.24) 42%,transparent 68%);
+}
+.c-card[data-g="g"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(86,171,47,.52) 0%,rgba(30,120,20,.24) 42%,transparent 68%);
+}
+.c-card[data-g="y"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(245,230,66,.52) 0%,rgba(190,160,0,.24) 42%,transparent 68%);
+}
+.c-card[data-g="p"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(139,68,255,.52) 0%,rgba(80,20,220,.24) 42%,transparent 68%);
+}
+.c-card[data-g="r"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(255,58,58,.52) 0%,rgba(200,20,20,.24) 42%,transparent 68%);
+}
+.c-card[data-g="c"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(0,212,255,.52) 0%,rgba(0,120,200,.24) 42%,transparent 68%);
+}
+/* Enhance glow on hover */
+.c-card:hover .c-card-pw::after{opacity:1.4;filter:brightness(1.2)}
+
+/* Card title watermark (aria-hidden) — shown beneath overlay */
+.c-card-title-bg{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;
+  font-family:var(--f-disp);
+  font-size:clamp(.9rem,1.8vw,1.5rem);
+  text-align:center;text-transform:uppercase;
+  letter-spacing:.06em;line-height:1.08;
+  color:rgba(255,255,255,.055);
+  z-index:1; /* above image, below ::after glow */
+  pointer-events:none;
+  word-break:break-word;
+  hyphens:auto;
+}
+
+/* Card overlay — always visible so title shows without hover */
+.c-card-overlay{
+  opacity:1 !important;
+  transform:none !important;
+  pointer-events:auto !important;
+  background:linear-gradient(to top,
+    rgba(0,0,0,.96) 0%,
+    rgba(0,0,0,.7) 42%,
+    transparent 100%
+  ) !important;
+}
+.c-card:hover .c-card-overlay{
+  background:linear-gradient(to top,
+    rgba(0,0,0,.98) 0%,
+    rgba(0,0,0,.85) 55%,
+    rgba(0,0,0,.22) 100%
+  ) !important;
+}
+
+/* Card typography */
+.c-card-type{color:var(--accent) !important;opacity:1 !important;font-size:.4rem}
+.c-card-name{color:#fff !important;font-size:.88rem !important;line-height:1.08;text-shadow:0 1px 8px rgba(0,0,0,.9)}
+.c-card-yr{color:rgba(255,255,255,.48) !important;opacity:1 !important}
+
+/* Badge — accent tinted for coming-soon */
+.c-badge{
+  border-radius:2px;
+  font-size:.38rem;
+  letter-spacing:.14em;
+  padding:3px 8px;
+  backdrop-filter:blur(10px);
+}
+.c-badge.coming-soon{
+  background:rgba(0,0,0,.68) !important;
+  border-color:rgba(var(--accent-rgb),.4) !important;
+  color:var(--accent) !important;
+}
+
+/* ─── 12. Contact page hero ─────────────────────────────── */
+.contact-hero{
+  background:linear-gradient(150deg,#0c0804 0%,#080808 45%,#080808 100%);
+  border-bottom-color:rgba(var(--accent-rgb),.08) !important;
+}
+.contact-hero-h{
+  background:linear-gradient(180deg,#fff 55%,rgba(255,255,255,.65) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+/* Promise numbers gold */
+.contact-promise-n{color:var(--accent) !important;text-shadow:0 0 20px rgba(var(--accent-rgb),.25)}
+.contact-eye-lbl{color:rgba(var(--accent-rgb),.65) !important}
+.contact-eye-lbl::before{background:var(--accent) !important}
+
+/* ─── 13. About page hero ───────────────────────────────── */
+.about-hero{
+  background:linear-gradient(180deg,#080808 0%,var(--bg) 100%);
+}
+.about-hero .section-h{
+  background:linear-gradient(180deg,#fff 55%,rgba(255,255,255,.65) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.about-section-eye::before,.about-section-eye::after{background:var(--accent) !important;opacity:.7}
+.about-section-eye{color:rgba(var(--accent-rgb),.72) !important}
+
+/* ─── 14. Footer ────────────────────────────────────────── */
+footer{background:#000 !important}
+.footer-col-title{color:rgba(var(--accent-rgb),.55) !important;letter-spacing:.3em}
+.footer-links button:hover,.footer-links a:hover{color:var(--accent) !important}
+.footer-brand-desc{color:rgba(255,255,255,.38) !important}
+
+/* Footer bottom bar */
+.footer-bottom{border-top-color:rgba(var(--accent-rgb),.07) !important}
+
+/* ─── 15. Scroll progress bar ──────────────────────────── */
+#sprogress{
+  background:var(--accent) !important;
+  box-shadow:0 0 10px rgba(var(--accent-rgb),.5) !important;
+  height:2px !important;
+}
+
+/* ─── 16. Nav — polished ────────────────────────────────── */
+#nav.scrolled{
+  border-bottom:1px solid rgba(var(--accent-rgb),.07) !important;
+}
+/* Active nav link gets accent underline */
+[data-nav].active{
+  color:var(--accent) !important;
+  opacity:1 !important;
+}
+
+/* ─── 17. Search modal polish ──────────────────────────── */
+.search-result-title{color:var(--accent) !important}
+
+/* ─── 18. Detail page improvements ─────────────────────── */
+.dp-hero-tint{opacity:.4 !important}
+.dp-plat-btn{transition:all .22s var(--ease) !important}
+.dp-plat-btn:hover{transform:translateY(-3px) !important;box-shadow:0 8px 24px rgba(0,0,0,.6) !important}
+
+/* ─── 19. Shop page WIP ─────────────────────────────────── */
+.shop-wip-title{
+  background:linear-gradient(180deg,#fff 50%,rgba(255,255,255,.5) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.shop-wip-period{color:var(--accent) !important;-webkit-text-fill-color:var(--accent)}
+
+/* ─── 20. Form field polish ─────────────────────────────── */
+.form-label{
+  color:rgba(var(--accent-rgb),.65) !important;
+  letter-spacing:.1em;
+}
+.form-field input,.form-field textarea,.form-field select{
+  transition:border-color .22s,box-shadow .22s !important;
+}
+
+/* ─── 21. Team / about org cards ────────────────────────── */
+.cm-accent{background:var(--accent) !important}
+
+/* ─── 22. Awards section ────────────────────────────────── */
+.awards-eye,.awards-title{text-align:center}
+
+/* ─── 23. Mobile responsive polish ─────────────────────── */
+@media(max-width:768px){
+  /* Hero text left-aligned on small screens for readability */
+  .hero-content{text-align:left !important;align-items:flex-start !important}
+  .hero-eyebrow{justify-content:flex-start !important}
+  .hero-btns{justify-content:flex-start !important}
+
+  /* Smaller hero title on small phones */
+  .hero-slogan{font-size:clamp(2.6rem,11vw,4.2rem) !important}
+
+  /* Studio block single column */
+  .studio-block{grid-template-columns:1fr !important}
+  .studio-half:first-child{border-right:none !important;border-bottom:1px solid var(--border)}
+
+  /* Contact layout single column */
+  .contact-layout{grid-template-columns:1fr !important}
+  .contact-form-col{border-right:none !important;border-bottom:1px solid var(--border)}
+
+  /* Contact title smaller */
+  .contact-hero-h{font-size:clamp(3rem,13vw,5rem) !important}
+
+  /* Works titles */
+  .works-cat-title{font-size:clamp(1.6rem,7vw,2.6rem) !important;white-space:normal !important}
+
+  /* Stats band 2x2 grid */
+  .glg-stats-band{grid-template-columns:repeat(2,1fr) !important}
+
+  /* Buttons full width on mobile for CTA */
+  .hero-btns .btn{flex:1;justify-content:center;min-width:0}
+  .hero-btns{width:100%;max-width:320px}
+
+  /* Footer grid single column */
+  .footer-inner{grid-template-columns:1fr !important;gap:32px !important}
+  .footer-col+.footer-col{border-left:none !important;border-top:1px solid rgba(255,255,255,.06);padding-left:0 !important;padding-top:24px}
+}
+
+@media(max-width:480px){
+  .hero-slogan{font-size:clamp(2.2rem,12vw,3.6rem) !important;line-height:.92}
+  .glg-stat-num{font-size:clamp(2rem,8vw,3rem) !important}
+  .contact-promises{flex-direction:column;align-items:stretch}
+  .contact-promise-div{width:100%;height:1px}
+}
+
+/* ─── 24. Tablet (769-1024px) ──────────────────────────── */
+@media(min-width:769px) and (max-width:1024px){
+  .studio-block{grid-template-columns:1fr !important}
+  .studio-half:first-child{border-right:none !important;border-bottom:1px solid var(--border)}
+  .contact-layout{grid-template-columns:1fr !important}
+  .contact-form-col{border-right:none !important;border-bottom:1px solid var(--border)}
+  .footer-inner{grid-template-columns:1fr 1fr !important;gap:28px}
+  .footer-col+.footer-col{border-left:none !important;padding-left:0 !important}
+}
+
+/* ─── 25. Large screens (1440px+) ──────────────────────── */
+@media(min-width:1440px){
+  .hero-slogan{font-size:clamp(5rem,8vw,9rem) !important}
+  .glg-stat-num{font-size:clamp(3.8rem,5vw,6rem) !important}
+}
+
+/* ─── 26. Reduced motion ────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  .hero::after{display:none}
+  .btn-primary:hover,.btn-outline:hover,.btn-ghost:hover{transform:none !important}
+  .dp-plat-btn:hover{transform:none !important}
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLG OVERHAUL v4b — PAGE HEADER DEPTH + FINAL POLISH
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Page headers: gradient depth overlay over GLG pattern ─ */
+/* Works hero */
+.works-hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(var(--accent-rgb),.055) 0%,transparent 55%),
+    linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 60%,rgba(0,0,0,.18) 100%);
+}
+.works-hero>*{position:relative;z-index:1}
+
+/* About hero gradient depth */
+.about-hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 30% 50%,rgba(var(--accent-rgb),.04) 0%,transparent 50%),
+    linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 65%);
+}
+.about-hero>*{position:relative;z-index:1}
+
+/* Contact hero: left-side dark, warm tint on right */
+.contact-hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(125deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.12) 50%,transparent 100%),
+    radial-gradient(ellipse at 85% 40%,rgba(var(--accent-rgb),.04) 0%,transparent 55%);
+}
+.contact-hero>*{position:relative;z-index:1}
+
+/* ─── Contact "CONTACT" heading: gradient text ──────────────── */
+.contact-hero-h{
+  background:linear-gradient(180deg,#fff 50%,rgba(255,255,255,.62) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+/* ─── Nav active link — gold + underline ────────────────────── */
+[data-nav].active{
+  color:var(--accent) !important;
+}
+/* Active link underline dot */
+[data-nav].active::after{
+  content:'';display:block;
+  width:4px;height:4px;border-radius:50%;
+  background:var(--accent);
+  margin:3px auto 0;
+  box-shadow:0 0 6px rgba(var(--accent-rgb),.6);
+}
+
+/* ─── Improved .section-eye for contact page ────────────────── */
+.contact-eye-lbl{
+  color:rgba(var(--accent-rgb),.7) !important;
+}
+
+/* ─── Footer: col titles gold + nav button hover ────────────── */
+.footer-col-title{letter-spacing:.32em;font-size:.48rem}
+.footer-links button:hover,.footer-links a:hover{
+  color:var(--accent) !important;
+  padding-left:6px;
+  transition:all .2s var(--ease);
+}
+
+/* ─── Works page: empty area fill before carousel ───────────── */
+.works-cat-section{
+  background:linear-gradient(180deg,#060606 0%,var(--bg) 100%);
+}
+
+/* ─── Better contrast for body text in studio block ─────────── */
+.studio-body{color:rgba(255,255,255,.62) !important;line-height:2}
+.studio-body p{margin-bottom:16px}
+
+/* ─── CTA section accent top line ───────────────────────────── */
+/* The CTA band already has GLG pattern — add a radial glow from center */
+
+/* ─── Carousel fade edges — use accent color ────────────────── */
+.carousel-viewport::before{
+  background:linear-gradient(to right,
+    var(--bg) 0%,rgba(var(--accent-rgb),.02) 12%,transparent 24%
+  ) !important;
+}
+.carousel-viewport::after{
+  background:linear-gradient(to left,
+    var(--bg) 0%,rgba(var(--accent-rgb),.02) 12%,transparent 24%
+  ) !important;
+}
+
+/* ─── Video games carousel cards: same treatment ────────────── */
+.c-card[data-g="w"] .c-card-pw::after{
+  background:radial-gradient(ellipse at 50% 115%,rgba(200,200,220,.3) 0%,rgba(140,140,180,.14) 42%,transparent 68%);
+}
+
+/* ─── Loader polish: gold sheen on the GLG logo ─────────────── */
+#loader-logo{
+  filter:drop-shadow(0 0 18px rgba(var(--accent-rgb),.25));
+}
+
+/* ─── About manifesto section: rich dark bg ─────────────────── */
+.about-manifesto{
+  background:linear-gradient(135deg,#050302 0%,#020202 50%,#030205 100%) !important;
+  border-top:1px solid rgba(var(--accent-rgb),.08);
+  border-bottom:1px solid rgba(var(--accent-rgb),.08);
+}
+.about-manifesto-quote{
+  color:rgba(255,255,255,.85) !important;
+}
+
+/* ─── Team card bottom accent bar gold ──────────────────────── */
+.cm-accent{background:var(--accent) !important}
+
+/* ─── Awards section eyebrow ────────────────────────────────── */
+.awards-section .about-section-eye{color:rgba(var(--accent-rgb),.7) !important}
+
+/* ─── Detail page: platform button ring uses tint color ──────── */
+.dp-plat-btn:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+/* ─── Search modal: result hover gold arrow ─────────────────── */
+.search-result:hover .search-result-arrow{color:var(--accent) !important}
+.search-result-title{color:var(--accent) !important}
+
+/* ─── Language gate: gold separator line ────────────────────── */
+.gate-sep-line{background:rgba(var(--accent-rgb),.25) !important}
+.gate-sep-label{color:rgba(var(--accent-rgb),.65) !important}
+
+/* ─── Shop WIP: gold accent on "OOPS." period already set;
+       enhance the eyebrow dashes ─────────────────────────────── */
+.shop-wip-dash{background:var(--accent) !important;box-shadow:0 0 8px rgba(var(--accent-rgb),.4)}
+
+/* ─── All section-eye in pages: consistent gold tone ────────── */
+.works-hero .section-eye,
+.about-hero .section-eye{
+  color:rgba(var(--accent-rgb),.72) !important;
+}
+.works-hero .section-eye::before,.works-hero .section-eye::after,
+.about-hero .section-eye::before,.about-hero .section-eye::after{
+  background:var(--accent) !important;opacity:.65;
+}
+
+/* ─── Mobile: hide cursor on touch devices ─────────────────── */
+@media(hover:none),(pointer:coarse){
+  #glg-cur-dot,#glg-cur-ring{display:none !important}
+}
+
+/* ─── prefers-reduced-motion additions ──────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  .hero::after,.works-hero::before,.about-hero::before,.contact-hero::before{
+    display:none !important;
+  }
 }
