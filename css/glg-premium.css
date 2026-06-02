@@ -1,646 +1,420 @@
-/* ═══════════════════════════════════════════════════
-   GEEKLEARN GAMES — glg-premium.css
-   Premium visual layer — augments main.css
-   AAA studio quality: colour, depth, texture, polish
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   GEEKLEARN GAMES — glg-premium.css  v5
+   Pure BLACK & WHITE — AAA studio visual layer
+   No colour. Only contrast, depth, texture, motion.
+   Loads after main.css — overrides where needed.
+═══════════════════════════════════════════════════════ */
 
-/* ─────────────────────────────────────────────────────
-   0. ACCENT COLOUR SYSTEM
-   One powerful brand red + warm secondary.
-   Applied throughout via var(--a) / var(--a2).
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   0. RESET COLOUR SYSTEM → pure white/grey only
+   Overrides any gold or red that main.css may define.
+──────────────────────────────────────────────────────── */
 :root {
-  --a:           #E63946;               /* GLG red   */
-  --accent:      #E63946;               /* alias for main.css compat */
-  --accent-rgb:  230,57,70;             /* rgb channels for rgba() usage */
-  --a2:          #FF6B35;               /* fire orange (secondary) */
-  --a-dim:       rgba(230,57,70,.14);   /* tinted fill */
-  --a-glow:      rgba(230,57,70,.22);   /* glow halo   */
-  --a-glow-w:    rgba(230,57,70,.40);   /* strong glow */
-  --a2-dim:      rgba(255,107,53,.12);
+  --accent:     #ffffff;
+  --accent-rgb: 255,255,255;
 
-  /* Override bg to a warmer, very-slightly-tinted black */
-  --bg:  #07070a;
-  --s1:  #0e0e12;
-  --s2:  #131317;
-  --s3:  #1b1b22;
+  /* Tighten surface scale */
+  --bg:    #080808;
+  --s1:    #0e0e0e;
+  --s2:    #131313;
+  --s3:    #1a1a1a;
   --border: rgba(255,255,255,.07);
   --bmd:    rgba(255,255,255,.13);
   --bhi:    rgba(255,255,255,.24);
 
-  /* Text selection */
-  --sel-bg: rgba(230,57,70,.32);
+  /* Selection */
+  --sel-bg: rgba(255,255,255,.16);
 }
 
-/* Global selection colour */
-::selection { background: var(--sel-bg); color: #fff; }
-::-moz-selection { background: var(--sel-bg); color: #fff; }
+::selection      { background: var(--sel-bg); color: #000; }
+::-moz-selection { background: var(--sel-bg); color: #000; }
 
-/* ─────────────────────────────────────────────────────
-   1. SCROLL PROGRESS BAR — accent red
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   1. SCROLL PROGRESS BAR
+──────────────────────────────────────────────────────── */
 #sprogress {
-  background: linear-gradient(90deg, var(--a), var(--a2));
-  height: 2px;
-  box-shadow: 0 0 10px var(--a-glow);
+  background: rgba(255,255,255,.72);
+  height: 1px;
 }
 
-/* ─────────────────────────────────────────────────────
-   2. NAVIGATION — refined glass, accent on CTA
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   2. NAVIGATION — refined glass
+──────────────────────────────────────────────────────── */
 #nav.scrolled {
-  background: rgba(7,7,10,.94);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border-bottom-color: rgba(255,255,255,.06);
-  box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 8px 40px rgba(0,0,0,.5);
+  background: rgba(8,8,8,.96);
+  backdrop-filter: blur(22px) saturate(130%);
+  -webkit-backdrop-filter: blur(22px) saturate(130%);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 4px 32px rgba(0,0,0,.5);
 }
 
-/* Contact = accent CTA button in nav */
+/* Contact nav button — subtle white border only */
 .nav-cta {
-  color: var(--white) !important;
-  border: 1px solid rgba(230,57,70,.5) !important;
-  padding: 6px 18px;
-  transition: background .22s, border-color .22s, color .22s !important;
+  border: 1px solid rgba(255,255,255,.3) !important;
+  transition: border-color .22s, background .22s !important;
 }
 .nav-cta:hover {
-  background: var(--a-dim) !important;
-  border-color: var(--a) !important;
-  color: #fff !important;
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.55) !important;
 }
 .nav-cta.active {
-  background: var(--a-dim) !important;
-  border-color: rgba(230,57,70,.6) !important;
+  background: rgba(255,255,255,.05) !important;
 }
 
-/* Nav links — accent underline draw */
-.nav-link::after {
-  background: var(--a) !important;
-}
+/* Underline draw stays white */
+.nav-link::after { background: rgba(255,255,255,.7) !important; }
 
-/* ─────────────────────────────────────────────────────
-   3. HERO — cinematic CSS background, no image needed
-   Replaces the placeholder hero.svg entirely.
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   3. HERO — cinematic depth, pure B&W
+──────────────────────────────────────────────────────── */
+/* Replace placeholder SVG with a real CSS atmosphere */
 .hero-bg {
-  /* Override SVG background — pure CSS cinematic atmosphere */
   background:
-    radial-gradient(ellipse 110% 65% at 50% 106%,
-      rgba(220,40,55,.28) 0%,
-      rgba(160,20,30,.10) 45%,
+    radial-gradient(ellipse 90% 50% at 50% 110%,
+      rgba(255,255,255,.07) 0%,
+      rgba(255,255,255,.02) 45%,
       transparent 65%),
-    radial-gradient(ellipse 60% 50% at 18% 80%,
-      rgba(255,90,35,.09) 0%, transparent 52%),
-    radial-gradient(ellipse 55% 45% at 82% 72%,
-      rgba(100,20,180,.07) 0%, transparent 52%),
-    linear-gradient(175deg, #050510 0%, #07070c 50%, #030308 100%) !important;
+    linear-gradient(180deg, #040408 0%, #07070c 60%, #030306 100%) !important;
   filter: none !important;
   animation: heroDrift 28s ease-in-out infinite alternate !important;
 }
 
-/* Breathing accent glow behind hero text */
+/* Breathing under-glow: very subtle white light */
 .hero-bg::after {
   content: '';
   position: absolute;
-  bottom: -15%;
+  bottom: -8%;
   left: 50%;
   transform: translateX(-50%);
-  width: 72%;
-  height: 65%;
-  background: radial-gradient(ellipse, var(--a-glow) 0%, transparent 65%);
-  animation: heroGlowPulse 6s ease-in-out infinite alternate;
+  width: 70%;
+  height: 55%;
+  background: radial-gradient(ellipse,
+    rgba(255,255,255,.07) 0%,
+    transparent 65%);
+  animation: heroGlowPulse 9s ease-in-out infinite alternate;
   pointer-events: none;
   border-radius: 50%;
 }
 @keyframes heroGlowPulse {
-  from { opacity: .55; transform: translateX(-50%) scale(.95); }
-  to   { opacity: 1;   transform: translateX(-50%) scale(1.08); }
+  from { opacity: .5;  transform: translateX(-50%) scale(.92); }
+  to   { opacity: 1;   transform: translateX(-50%) scale(1.06); }
 }
 
-/* Grain texture brighter on hero */
-.hero-grain {
-  opacity: .38 !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='.09'/%3E%3C/svg%3E") !important;
-}
+/* Film grain — stronger for texture */
+.hero-grain { opacity: .32 !important; }
 
-/* Bottom vignette stronger so text pops */
+/* Vignette stays dark at bottom */
 .hero-overlay {
   background: linear-gradient(
     to bottom,
-    rgba(0,0,0,.15) 0%,
-    transparent 22%,
-    rgba(7,7,10,.52) 72%,
-    rgba(7,7,10,.97) 100%
+    rgba(0,0,0,.1)  0%,
+    transparent     22%,
+    rgba(8,8,8,.5)  70%,
+    rgba(8,8,8,.97) 100%
   ) !important;
 }
 
-/* Hollow text stroke — more visible with faint tint */
+/* Hollow text — thin white stroke */
 .hero-slogan .hollow {
   -webkit-text-stroke: 1.5px rgba(255,255,255,.22) !important;
 }
 
-/* Accent underline beneath hero slogan */
-.hero-slogan {
-  position: relative;
-}
+/* Clean horizontal rule below slogan */
+.hero-slogan { position: relative; }
 .hero-slogan::after {
   content: '';
   display: block;
-  width: clamp(40px,6vw,80px);
-  height: 3px;
-  background: linear-gradient(90deg, var(--a), var(--a2));
-  margin: 16px auto 0;
-  border-radius: 2px;
-  box-shadow: 0 0 16px var(--a-glow), 0 0 32px rgba(230,57,70,.15);
+  width: clamp(36px,5vw,60px);
+  height: 1px;
+  background: rgba(255,255,255,.3);
+  margin: 18px auto 0;
+  border-radius: 1px;
 }
 
-/* Scroll indicator line — accent */
+/* Scroll indicator */
 .hero-scroll-line {
-  background: linear-gradient(transparent, rgba(230,57,70,.5)) !important;
+  background: linear-gradient(transparent, rgba(255,255,255,.32)) !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   4. MARQUEE — accent separator dots
-───────────────────────────────────────────────────── */
-.marquee-dot {
-  background: var(--a) !important;
-  box-shadow: 0 0 6px var(--a-glow);
-}
-.marquee-item {
-  color: rgba(255,255,255,.45) !important;
-  letter-spacing: .15em !important;
-}
+/* ───────────────────────────────────────────────────────
+   4. MARQUEE
+──────────────────────────────────────────────────────── */
+.marquee-dot  { background: rgba(255,255,255,.35) !important; box-shadow: none !important; }
+.marquee-item { color: rgba(255,255,255,.38) !important; }
 
-/* ─────────────────────────────────────────────────────
-   5. BUTTONS — accent on primary hover
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   5. BUTTONS — clean B&W
+──────────────────────────────────────────────────────── */
+.btn { letter-spacing: .26em !important; }
+
 .btn-primary {
-  background: #fff;
-  color: #000;
-  border-color: #fff;
-  font-weight: 600;
-  letter-spacing: .26em;
-  transition: background .25s, color .25s, border-color .25s, box-shadow .25s !important;
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
 }
 .btn-primary:hover {
-  background: var(--a) !important;
-  border-color: var(--a) !important;
+  background: transparent !important;
   color: #fff !important;
-  box-shadow: 0 0 22px var(--a-glow), 0 4px 16px rgba(0,0,0,.4) !important;
+  border-color: rgba(255,255,255,.45) !important;
+  box-shadow: none !important;
 }
-.btn-outline {
-  border-color: rgba(255,255,255,.22) !important;
-  letter-spacing: .26em !important;
-}
+.btn-outline  { border-color: rgba(255,255,255,.28) !important; }
 .btn-outline:hover {
-  border-color: rgba(255,255,255,.5) !important;
-  background: rgba(255,255,255,.06) !important;
-}
-.btn-ghost {
-  letter-spacing: .22em !important;
+  border-color: rgba(255,255,255,.55) !important;
+  background: rgba(255,255,255,.04) !important;
 }
 .btn-ghost:hover {
-  color: var(--a) !important;
-  border-color: rgba(230,57,70,.3) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,.28) !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   6. PUZZLE STRIPS — cinematic depth + accent edge
-───────────────────────────────────────────────────── */
-/* Image slightly brighter so it's actually visible */
+/* ───────────────────────────────────────────────────────
+   6. PUZZLE STRIPS — slightly more visible
+──────────────────────────────────────────────────────── */
 .puz-strip-img {
-  filter: brightness(.52) saturate(.68) !important;
+  filter: brightness(.5) saturate(.4) !important;
 }
 .puz-strip-row:hover .puz-strip-img {
-  filter: brightness(.75) saturate(.92) !important;
+  filter: brightness(.72) saturate(.6) !important;
 }
-
-/* Coloured accent bar on bottom edge per strip */
-.puz-strip-row:nth-child(1) .puz-strip::before,
-.puz-strip-row:nth-child(2) .puz-strip::before,
-.puz-strip-row:nth-child(3) .puz-strip::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0; right: 0;
-  height: 2px;
-  z-index: 5;
-}
-.puz-strip-row:nth-child(1) .puz-strip::before {
-  background: linear-gradient(90deg, transparent, var(--a), transparent);
-}
-.puz-strip-row:nth-child(2) .puz-strip::before {
-  background: linear-gradient(90deg, transparent, var(--a2), transparent);
-}
-.puz-strip-row:nth-child(3) .puz-strip::before {
-  background: linear-gradient(90deg, transparent, #8B5CF6, transparent);
-}
-
-/* Large genre category label — slightly more visible */
-.puz-cat {
-  opacity: .075 !important;
-}
-.puz-strip-row:hover .puz-cat {
-  opacity: .14 !important;
-}
-
-/* Quote text — more contrast */
 .puz-quote-text {
   opacity: 1 !important;
-  color: rgba(255,255,255,.92) !important;
+  color: rgba(255,255,255,.9) !important;
+}
+/* Subtle white accent line on strip edge */
+.puz-strip::after {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1) !important;
+  transition: box-shadow .4s !important;
+}
+.puz-strip-row:hover .puz-strip::after {
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.32) !important;
 }
 
-/* Strip index number  */
-.puz-strip-index {
-  font-size: clamp(6rem, 14vw, 16rem) !important;
-  opacity: .045 !important;
-  color: #fff !important;
-}
-.puz-strip-row:hover .puz-strip-index {
-  opacity: .09 !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   7. GLG BAND — accent label
-───────────────────────────────────────────────────── */
-.glg-band-label {
-  color: rgba(255,255,255,.28) !important;
-  letter-spacing: .52em !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   8. STUDIO BLOCK — accent on quote + theme bars
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   7. STUDIO BLOCK
+──────────────────────────────────────────────────────── */
 .studio-quote {
-  font-size: clamp(1.6rem, 3.8vw, 3rem) !important;
+  font-size: clamp(1.6rem,3.8vw,3rem) !important;
   line-height: 1.18 !important;
-  letter-spacing: -.01em !important;
 }
-.studio-quote em {
-  color: var(--a);
-  font-style: italic;
-}
-.studio-theme-bar {
-  background: var(--a) !important;
-  opacity: .7;
-}
+/* Remove any colour from quote em */
+.studio-quote em { color: inherit !important; }
+
+.studio-theme-bar { background: rgba(255,255,255,.78) !important; }
 .studio-theme-item:hover .studio-theme-bar {
-  opacity: 1 !important;
-  box-shadow: 0 0 10px var(--a-glow);
-}
-.studio-theme-name {
-  transition: color .22s;
-}
-.studio-theme-item:hover .studio-theme-name {
-  color: #fff !important;
-  text-shadow: 0 0 20px rgba(255,255,255,.12);
+  background: #fff !important;
+  box-shadow: none !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   9. STATS BAND — accent numbers
-───────────────────────────────────────────────────── */
-.glg-stat-num {
-  color: var(--white) !important;
-}
-.glg-stat-num::after {
-  color: var(--a) !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   10. GAME CARDS (Carousel) — accent glow on hover
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   8. GAME CARDS — pure B&W hover
+──────────────────────────────────────────────────────── */
 .c-card {
   transition:
     transform .38s cubic-bezier(.16,1,.3,1),
-    box-shadow .38s cubic-bezier(.16,1,.3,1),
-    border-color .3s !important;
+    box-shadow .38s cubic-bezier(.16,1,.3,1) !important;
 }
 .c-card:hover {
-  transform: translateY(-6px) !important;
-  border-color: rgba(230,57,70,.28) !important;
+  transform: translateY(-5px) !important;
   box-shadow:
-    0 0 0 1px rgba(230,57,70,.15),
-    0 16px 50px rgba(0,0,0,.65),
-    0 0 30px rgba(230,57,70,.06) !important;
+    0 0 0 1px rgba(255,255,255,.12),
+    0 18px 52px rgba(0,0,0,.7) !important;
+}
+/* Remove all coloured per-glow overrides */
+.c-card::before { background: transparent !important; }
+
+.c-card-type  { color: rgba(255,255,255,.42) !important; opacity: 1 !important; }
+.c-card-name  { color: #fff !important; }
+.c-card-yr    { color: rgba(255,255,255,.36) !important; opacity: 1 !important; }
+
+.c-badge { color: rgba(255,255,255,.65) !important; border-color: rgba(255,255,255,.16) !important; }
+.c-badge.coming-soon {
+  background: rgba(0,0,0,.72) !important;
+  color: rgba(255,255,255,.7) !important;
+  border-color: rgba(255,255,255,.18) !important;
 }
 
-/* Title animates to white on hover */
-.c-card-title {
-  transition: color .25s !important;
-}
-.c-card:hover .c-card-title {
-  color: #fff !important;
-}
+/* Remove per-game colour glows from c-card-pw::after */
+.c-card[data-g] .c-card-pw::after { background: none !important; }
 
-/* Category tag colour */
-.c-card-cat {
-  color: var(--a) !important;
-  border-color: rgba(230,57,70,.25) !important;
-}
-
-/* "Coming soon" badge */
-.c-card-soon {
-  color: var(--a) !important;
-  border-color: rgba(230,57,70,.3) !important;
-  background: rgba(230,57,70,.06) !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   11. WORKS PAGE HERO — accent underline
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   9. WORKS PAGE HERO
+──────────────────────────────────────────────────────── */
 .works-hero .section-h::after {
   content: '';
   display: block;
-  width: clamp(36px,5vw,64px);
-  height: 2px;
-  background: linear-gradient(90deg, var(--a), var(--a2));
+  width: clamp(32px,4.5vw,56px);
+  height: 1px;
+  background: rgba(255,255,255,.3);
   margin: 14px auto 0;
   border-radius: 1px;
 }
 
-/* ─────────────────────────────────────────────────────
-   12. CTA BAND — dramatic accent
-───────────────────────────────────────────────────── */
-.glg-cta-band {
-  position: relative;
-  overflow: hidden;
-}
+/* ───────────────────────────────────────────────────────
+   10. CTA BAND
+──────────────────────────────────────────────────────── */
+.glg-cta-band { position: relative; overflow: hidden; }
 .glg-cta-band::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  height: 100%;
-  background: radial-gradient(ellipse, rgba(230,57,70,.12) 0%, transparent 65%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 55%; height: 90%;
+  background: radial-gradient(ellipse, rgba(255,255,255,.03) 0%, transparent 68%);
   pointer-events: none;
 }
-#cta-title {
-  font-size: clamp(2.8rem,8vw,8rem) !important;
-}
 
-/* ─────────────────────────────────────────────────────
-   13. ABOUT PAGE — accent treatment
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   11. ABOUT PAGE
+──────────────────────────────────────────────────────── */
 .about-hero .section-h::after {
   content: '';
   display: block;
-  width: clamp(36px,5vw,64px);
-  height: 2px;
-  background: linear-gradient(90deg, var(--a), var(--a2));
+  width: clamp(32px,4.5vw,56px);
+  height: 1px;
+  background: rgba(255,255,255,.3);
   margin: 14px auto 0;
   border-radius: 1px;
 }
-
-/* Team / crew cards */
 .cm-card {
   transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s !important;
 }
 .cm-card:hover {
-  transform: translateY(-5px) !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 20px rgba(230,57,70,.06) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,.6) !important;
 }
 
-/* Manifesto quote */
-.about-manifesto-quote {
-  color: var(--white) !important;
-  opacity: .88;
-}
-.about-manifesto-quote::before,
-.about-manifesto-quote::after {
-  color: var(--a) !important;
-  opacity: .55;
-}
-
-/* ─────────────────────────────────────────────────────
-   14. CONTACT PAGE — accent hero + form refinements
-───────────────────────────────────────────────────── */
-.contact-hero {
-  position: relative;
-  overflow: hidden;
-}
+/* ───────────────────────────────────────────────────────
+   12. CONTACT PAGE
+──────────────────────────────────────────────────────── */
+.contact-hero { position: relative; overflow: hidden; }
 .contact-hero::before {
   content: '';
   position: absolute;
-  bottom: -30%;
-  left: 50%;
+  bottom: -25%; left: 50%;
   transform: translateX(-50%);
-  width: 80%;
-  height: 100%;
-  background: radial-gradient(ellipse, rgba(230,57,70,.10) 0%, transparent 60%);
+  width: 80%; height: 80%;
+  background: radial-gradient(ellipse, rgba(255,255,255,.03) 0%, transparent 60%);
   pointer-events: none;
 }
 .contact-hero-h {
   font-size: clamp(5rem,15vw,14rem) !important;
 }
+/* B&W promise numbers */
 .contact-promise-n {
-  color: var(--a) !important;
+  color: #fff !important;
+  text-shadow: none !important;
 }
 .contact-direct-card::before {
-  background: linear-gradient(90deg, transparent, var(--a-glow-w), transparent) !important;
-  opacity: .6;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent) !important;
 }
-.contact-submit-btn:hover,
-.btn-primary.contact-submit-btn:hover {
-  background: var(--a) !important;
-  border-color: var(--a) !important;
-  box-shadow: 0 0 22px var(--a-glow) !important;
+.contact-submit-btn {
+  width: 100% !important;
+  justify-content: center;
+  padding: 16px 24px !important;
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
 }
-
-/* ─────────────────────────────────────────────────────
-   15. DETAIL PAGE — stronger accent use
-───────────────────────────────────────────────────── */
-/* Hero back button accent */
-.dp-back:hover {
-  color: var(--a) !important;
-}
-
-/* Badge pulse tint */
-.dp-hero-badge-dot {
-  background: var(--a) !important;
-  box-shadow: 0 0 10px var(--a-glow) !important;
-}
-
-/* Feature numbers in accent tint */
-.dp-feat-num {
-  opacity: .6 !important;
-}
-
-/* Platform button hover */
-.dp-plat-btn:hover {
-  border-color: rgba(230,57,70,.3) !important;
-}
-
-/* Buy button */
-.dp-buy-btn {
-  background: var(--a) !important;
-  border: 1px solid var(--a) !important;
+.contact-submit-btn:hover {
+  background: transparent !important;
   color: #fff !important;
-  transition: background .22s, box-shadow .22s !important;
+  border-color: rgba(255,255,255,.45) !important;
+  box-shadow: none !important;
+}
+
+/* ───────────────────────────────────────────────────────
+   13. DETAIL PAGE
+──────────────────────────────────────────────────────── */
+.dp-buy-btn {
+  background: #fff !important;
+  border-color: #fff !important;
+  color: #000 !important;
 }
 .dp-buy-btn:hover {
-  background: #c1202b !important;
-  box-shadow: 0 0 20px var(--a-glow) !important;
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(255,255,255,.88) !important;
 }
-
 .dp-sticky-buy {
-  border-color: var(--a) !important;
-  color: var(--a) !important;
-}
-.dp-sticky-buy:hover {
-  background: var(--a) !important;
+  border-color: rgba(255,255,255,.35) !important;
   color: #fff !important;
 }
-
-/* ─────────────────────────────────────────────────────
-   16. FOOTER — accent top-edge gradient
-───────────────────────────────────────────────────── */
-footer {
-  position: relative;
+.dp-sticky-buy:hover {
+  background: rgba(255,255,255,.07) !important;
 }
+
+/* ───────────────────────────────────────────────────────
+   14. FOOTER
+──────────────────────────────────────────────────────── */
+footer { position: relative; }
 footer::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--a) 30%, var(--a2) 60%, transparent 100%);
-  opacity: .35;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
   pointer-events: none;
 }
-
-/* Footer nav links — accent hover */
 .footer-links button:hover,
-.footer-links a:hover {
-  color: var(--a) !important;
-}
+.footer-links a:hover { color: #fff !important; }
 
-/* ─────────────────────────────────────────────────────
-   17. LANGUAGE GATE — accent underline on hover
-───────────────────────────────────────────────────── */
-.gate-lang::after {
-  background: var(--a) !important;
-  height: 3px !important;
-}
-.gate-lang:hover {
-  box-shadow: 0 0 0 1px rgba(230,57,70,.35) !important;
-}
+/* ───────────────────────────────────────────────────────
+   15. LANGUAGE GATE
+──────────────────────────────────────────────────────── */
+.gate-lang::after   { background: rgba(255,255,255,.85) !important; height: 2px !important; }
+.gate-lang:hover    { box-shadow: 0 0 0 1px rgba(255,255,255,.22) !important; }
 
-/* Gate logo subtle glow */
-.gate-logo-wrap {
-  filter:
-    drop-shadow(0 0 14px rgba(0,0,0,.98))
-    drop-shadow(0 0 48px rgba(0,0,0,.72)) !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   18. LOADER — accent pulse
-───────────────────────────────────────────────────── */
-.loader-logo {
-  filter: brightness(0) invert(1) !important;
-  drop-shadow(0 0 20px rgba(230,57,70,.2));
-}
-
-/* ─────────────────────────────────────────────────────
-   19. SECTION GRAIN TEXTURE OVERLAY
-   Adds depth to flat dark surfaces.
-───────────────────────────────────────────────────── */
-.glg-pattern::after,
-.glg-cta-band::after,
-.studio-block::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='.09'/%3E%3C/svg%3E");
-  opacity: .025;
-  z-index: 0;
-}
-
-/* ─────────────────────────────────────────────────────
-   20. SECTION HEADINGS — accent underline utility
-───────────────────────────────────────────────────── */
-.section-eye::before,
-.section-eye::after {
-  background: var(--a) !important;
-  opacity: .55;
-}
-
-/* ─────────────────────────────────────────────────────
-   21. MODAL — accent title
-───────────────────────────────────────────────────── */
-.modal-title {
-  color: #fff;
-}
-.modal-eye {
-  color: var(--a) !important;
-}
-
-/* ─────────────────────────────────────────────────────
-   22. SEARCH MODAL — accent highlight
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   16. SEARCH MODAL
+──────────────────────────────────────────────────────── */
 .match-hl {
-  color: var(--a) !important;
-  border-bottom-color: rgba(230,57,70,.4) !important;
+  color: #fff !important;
+  border-bottom-color: rgba(255,255,255,.4) !important;
 }
 .search-result:hover {
-  background: rgba(230,57,70,.04) !important;
-  border-color: rgba(230,57,70,.2) !important;
+  background: rgba(255,255,255,.04) !important;
+  border-color: rgba(255,255,255,.14) !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   23. PAGE TRANSITION — smoother with slight Y drift
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   17. PAGE TRANSITION
+──────────────────────────────────────────────────────── */
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }
 }
 .page.active {
-  animation: pageIn .55s cubic-bezier(.16,1,.3,1) both !important;
+  animation: pageIn .52s cubic-bezier(.16,1,.3,1) both !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   24. FOCUS RING — accent
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   18. FOCUS
+──────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid rgba(230,57,70,.55) !important;
+  outline: 2px solid rgba(255,255,255,.38) !important;
   outline-offset: 3px !important;
 }
 
-/* ─────────────────────────────────────────────────────
-   25. PREFERS REDUCED MOTION — respect all overrides
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   19. PREFERS-REDUCED-MOTION
+──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .hero-bg::after         { animation: none !important; }
-  .hero-bg                { animation: none !important; }
-  @keyframes heroGlowPulse { from {} to {} }
+  .hero-bg,
+  .hero-bg::after { animation: none !important; opacity: 1; }
 }
 
-/* ─────────────────────────────────────────────────────
-   26. RESPONSIVE ADJUSTMENTS
-───────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────
+   20. RESPONSIVE
+──────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .contact-hero-h {
-    font-size: clamp(4rem, 14vw, 10rem) !important;
-  }
-  #cta-title {
-    font-size: clamp(2.4rem, 10vw, 6rem) !important;
-  }
-  .hero-slogan::after {
-    margin-top: 12px;
-  }
+  .contact-hero-h { font-size: clamp(4rem,14vw,10rem) !important; }
+  .hero-slogan::after,
+  .works-hero .section-h::after,
+  .about-hero  .section-h::after { width: 32px; margin-top: 12px; }
 }
 @media (max-width: 640px) {
-  .hero-slogan::after {
-    width: 40px;
-    margin-top: 10px;
-  }
+  .hero-slogan::after,
   .works-hero .section-h::after,
-  .about-hero .section-h::after {
-    width: 32px;
-    margin-top: 10px;
-  }
-  .contact-hero-h {
-    font-size: clamp(3.5rem, 18vw, 8rem) !important;
-  }
+  .about-hero  .section-h::after { width: 24px; margin-top: 10px; }
+  .contact-hero-h { font-size: clamp(3.5rem,18vw,8rem) !important; }
 }
