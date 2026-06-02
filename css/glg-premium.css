@@ -1,420 +1,773 @@
-/* ═══════════════════════════════════════════════════════
-   GEEKLEARN GAMES — glg-premium.css  v5
-   Pure BLACK & WHITE — AAA studio visual layer
-   No colour. Only contrast, depth, texture, motion.
-   Loads after main.css — overrides where needed.
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   GEEKLEARN GAMES — glg-premium.css  v6
+   B&W AAA STUDIO — Complete premium visual layer
+   Loads after main.css. Overrides everything that needs it.
+   Philosophy: depth through shadow · precision through spacing
+               quality through texture · prestige through restraint
+═══════════════════════════════════════════════════════════════ */
 
-/* ───────────────────────────────────────────────────────
-   0. RESET COLOUR SYSTEM → pure white/grey only
-   Overrides any gold or red that main.css may define.
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §0  COLOUR SYSTEM OVERRIDE
+   The main.css "GLG Overhaul v4" adds gold (--accent:#ffd050).
+   We reset the entire accent axis to pure white/grey.
+──────────────────────────────────────────────────────────────*/
 :root {
-  --accent:     #ffffff;
-  --accent-rgb: 255,255,255;
-
-  /* Tighten surface scale */
+  /* Core surfaces — slightly cooler than main.css originals */
   --bg:    #080808;
-  --s1:    #0e0e0e;
-  --s2:    #131313;
-  --s3:    #1a1a1a;
+  --s1:    #0c0c0c;
+  --s2:    #111111;
+  --s3:    #171717;
+  --s4:    #1f1f1f;
+
+  /* Accent → pure white on black */
+  --accent:      #ffffff;
+  --accent-rgb:  255,255,255;
+  --accent-dim:  rgba(255,255,255,.07);
+
+  /* Borders */
   --border: rgba(255,255,255,.07);
   --bmd:    rgba(255,255,255,.13);
   --bhi:    rgba(255,255,255,.24);
 
-  /* Selection */
-  --sel-bg: rgba(255,255,255,.16);
+  /* Grey scale text */
+  --w100: #ffffff;
+  --w82:  rgba(255,255,255,.82);
+  --w55:  rgba(255,255,255,.55);
+  --w30:  rgba(255,255,255,.30);
+  --w14:  rgba(255,255,255,.14);
+  --w07:  rgba(255,255,255,.07);
+
+  /* Shared easing */
+  --ease:  cubic-bezier(.16,1,.3,1);
+  --ease2: cubic-bezier(.76,0,.24,1);
+  --ease3: cubic-bezier(.25,.46,.45,.94);
+
+  /* Text selection */
+  --sel-bg: rgba(255,255,255,.15);
 }
 
+/* ── Global text selection ── */
 ::selection      { background: var(--sel-bg); color: #000; }
 ::-moz-selection { background: var(--sel-bg); color: #000; }
 
-/* ───────────────────────────────────────────────────────
-   1. SCROLL PROGRESS BAR
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §1  SCROLL PROGRESS BAR
+──────────────────────────────────────────────────────────────*/
 #sprogress {
-  background: rgba(255,255,255,.72);
   height: 1px;
+  background: rgba(255,255,255,.65);
+  box-shadow: none;
 }
 
-/* ───────────────────────────────────────────────────────
-   2. NAVIGATION — refined glass
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §2  NAVIGATION
+──────────────────────────────────────────────────────────────*/
+#nav { transition: background .35s, border-color .35s, box-shadow .35s; }
+
 #nav.scrolled {
-  background: rgba(8,8,8,.96);
-  backdrop-filter: blur(22px) saturate(130%);
-  -webkit-backdrop-filter: blur(22px) saturate(130%);
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  box-shadow: 0 4px 32px rgba(0,0,0,.5);
+  background: rgba(8,8,8,.96) !important;
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border-bottom: 1px solid rgba(255,255,255,.06) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 40px rgba(0,0,0,.55);
 }
 
-/* Contact nav button — subtle white border only */
+/* Nav links */
+.nav-link::after { background: #fff !important; }
+.nav-link { transition: color .2s !important; }
+
+/* Contact CTA button in nav */
 .nav-cta {
-  border: 1px solid rgba(255,255,255,.3) !important;
-  transition: border-color .22s, background .22s !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  padding: 6px 20px;
+  transition: background .22s, border-color .22s !important;
 }
 .nav-cta:hover {
-  background: rgba(255,255,255,.06) !important;
-  border-color: rgba(255,255,255,.55) !important;
+  background: rgba(255,255,255,.05) !important;
+  border-color: rgba(255,255,255,.5) !important;
 }
 .nav-cta.active {
-  background: rgba(255,255,255,.05) !important;
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.3) !important;
 }
 
-/* Underline draw stays white */
-.nav-link::after { background: rgba(255,255,255,.7) !important; }
+/* Mobile nav */
+.nav-mobile { background: #080808 !important; border-top-color: rgba(255,255,255,.07) !important; }
 
-/* ───────────────────────────────────────────────────────
-   3. HERO — cinematic depth, pure B&W
-──────────────────────────────────────────────────────── */
-/* Replace placeholder SVG with a real CSS atmosphere */
+/* ────────────────────────────────────────────────────────────
+   §3  HERO — cinematic B&W atmosphere
+   Replaces the noisy coloured gradient from main.css v4.
+──────────────────────────────────────────────────────────────*/
+
+/* Pure atmospheric dark background — no colour */
 .hero-bg {
   background:
-    radial-gradient(ellipse 90% 50% at 50% 110%,
-      rgba(255,255,255,.07) 0%,
-      rgba(255,255,255,.02) 45%,
+    /* Very soft white underlighting where text lives */
+    radial-gradient(ellipse 85% 55% at 50% 108%,
+      rgba(255,255,255,.065) 0%,
+      rgba(255,255,255,.02)  42%,
       transparent 65%),
-    linear-gradient(180deg, #040408 0%, #07070c 60%, #030306 100%) !important;
+    /* Deep atmospheric dark */
+    linear-gradient(175deg,
+      #050508 0%,
+      #080810 45%,
+      #040408 100%) !important;
   filter: none !important;
-  animation: heroDrift 28s ease-in-out infinite alternate !important;
+  will-change: transform;
+  animation: heroDrift 30s ease-in-out infinite alternate !important;
 }
 
-/* Breathing under-glow: very subtle white light */
+/* Subtle breathing glow behind text */
 .hero-bg::after {
   content: '';
   position: absolute;
-  bottom: -8%;
+  bottom: -12%;
   left: 50%;
   transform: translateX(-50%);
-  width: 70%;
-  height: 55%;
-  background: radial-gradient(ellipse,
-    rgba(255,255,255,.07) 0%,
-    transparent 65%);
-  animation: heroGlowPulse 9s ease-in-out infinite alternate;
+  width: 68%;
+  height: 52%;
+  background: radial-gradient(ellipse, rgba(255,255,255,.055) 0%, transparent 68%);
+  animation: pGlowBreathe 10s ease-in-out infinite alternate;
   pointer-events: none;
-  border-radius: 50%;
 }
-@keyframes heroGlowPulse {
-  from { opacity: .5;  transform: translateX(-50%) scale(.92); }
-  to   { opacity: 1;   transform: translateX(-50%) scale(1.06); }
+@keyframes pGlowBreathe {
+  from { opacity: .45; transform: translateX(-50%) scale(.9); }
+  to   { opacity: 1;   transform: translateX(-50%) scale(1.08); }
 }
 
-/* Film grain — stronger for texture */
-.hero-grain { opacity: .32 !important; }
+/* Stronger grain for cinematic texture */
+.hero-grain { opacity: .28 !important; }
 
-/* Vignette stays dark at bottom */
+/* Bottom vignette */
 .hero-overlay {
   background: linear-gradient(
     to bottom,
-    rgba(0,0,0,.1)  0%,
-    transparent     22%,
-    rgba(8,8,8,.5)  70%,
+    rgba(5,5,8,.12) 0%,
+    transparent    22%,
+    rgba(8,8,8,.48) 68%,
     rgba(8,8,8,.97) 100%
   ) !important;
 }
 
-/* Hollow text — thin white stroke */
+/* Hollow text — visible but not harsh */
 .hero-slogan .hollow {
-  -webkit-text-stroke: 1.5px rgba(255,255,255,.22) !important;
+  -webkit-text-stroke: 1.5px rgba(255,255,255,.20) !important;
+  color: transparent !important;
 }
 
-/* Clean horizontal rule below slogan */
+/* Thin rule under slogan */
 .hero-slogan { position: relative; }
 .hero-slogan::after {
   content: '';
   display: block;
-  width: clamp(36px,5vw,60px);
+  width: clamp(32px,4.5vw,56px);
   height: 1px;
-  background: rgba(255,255,255,.3);
-  margin: 18px auto 0;
-  border-radius: 1px;
+  background: rgba(255,255,255,.32);
+  margin: 20px auto 0;
 }
 
-/* Scroll indicator */
+/* Scroll indicator line */
 .hero-scroll-line {
-  background: linear-gradient(transparent, rgba(255,255,255,.32)) !important;
+  background: linear-gradient(transparent, rgba(255,255,255,.28)) !important;
 }
+.hero-scroll span { color: rgba(255,255,255,.28) !important; }
 
-/* ───────────────────────────────────────────────────────
-   4. MARQUEE
-──────────────────────────────────────────────────────── */
-.marquee-dot  { background: rgba(255,255,255,.35) !important; box-shadow: none !important; }
-.marquee-item { color: rgba(255,255,255,.38) !important; }
+/* Eyebrow dashes */
+.hero-eyebrow-dash { background: rgba(255,255,255,.28) !important; }
+.hero-eyebrow-text { color: rgba(255,255,255,.42) !important; letter-spacing: .38em !important; }
 
-/* ───────────────────────────────────────────────────────
-   5. BUTTONS — clean B&W
-──────────────────────────────────────────────────────── */
-.btn { letter-spacing: .26em !important; }
+/* ────────────────────────────────────────────────────────────
+   §4  MARQUEE BAR
+──────────────────────────────────────────────────────────────*/
+.marquee-bar   { background: var(--s1) !important; border-color: rgba(255,255,255,.06) !important; }
+.marquee-item  { color: rgba(255,255,255,.32) !important; letter-spacing: .18em !important; }
+.marquee-dot   { background: rgba(255,255,255,.28) !important; box-shadow: none !important; }
 
+/* ────────────────────────────────────────────────────────────
+   §5  BUTTONS — clean B&W, precise
+──────────────────────────────────────────────────────────────*/
+.btn { letter-spacing: .24em !important; }
+
+/* Primary: white fill → invert on hover */
 .btn-primary {
   background: #fff !important;
   color: #000 !important;
   border-color: #fff !important;
+  box-shadow: none !important;
 }
 .btn-primary:hover {
   background: transparent !important;
   color: #fff !important;
-  border-color: rgba(255,255,255,.45) !important;
+  border-color: rgba(255,255,255,.42) !important;
   box-shadow: none !important;
 }
-.btn-outline  { border-color: rgba(255,255,255,.28) !important; }
+
+/* Outline */
+.btn-outline  { border-color: rgba(255,255,255,.26) !important; }
 .btn-outline:hover {
-  border-color: rgba(255,255,255,.55) !important;
+  border-color: rgba(255,255,255,.52) !important;
   background: rgba(255,255,255,.04) !important;
 }
+
+/* Ghost */
+.btn-ghost { border-color: rgba(255,255,255,.12) !important; color: rgba(255,255,255,.55) !important; }
 .btn-ghost:hover {
   color: #fff !important;
-  border-color: rgba(255,255,255,.28) !important;
+  border-color: rgba(255,255,255,.26) !important;
+  background: rgba(255,255,255,.03) !important;
 }
 
-/* ───────────────────────────────────────────────────────
-   6. PUZZLE STRIPS — slightly more visible
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §6  SHOWCASE / PUZZLE STRIPS
+──────────────────────────────────────────────────────────────*/
+/* Desaturate images — cinematic B&W treatment */
 .puz-strip-img {
-  filter: brightness(.5) saturate(.4) !important;
+  filter: brightness(.48) saturate(.35) !important;
+  transition: filter .7s var(--ease), transform 1s var(--ease) !important;
 }
 .puz-strip-row:hover .puz-strip-img {
-  filter: brightness(.72) saturate(.6) !important;
+  filter: brightness(.7) saturate(.5) !important;
+  transform: scale(1.04) !important;
 }
-.puz-quote-text {
-  opacity: 1 !important;
-  color: rgba(255,255,255,.9) !important;
-}
-/* Subtle white accent line on strip edge */
+
+/* Inner edge glow on hover */
 .puz-strip::after {
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
   transition: box-shadow .4s !important;
 }
 .puz-strip-row:hover .puz-strip::after {
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.32) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28) !important;
 }
 
-/* ───────────────────────────────────────────────────────
-   7. STUDIO BLOCK
-──────────────────────────────────────────────────────── */
+/* Quotes */
+.puz-quote-text {
+  opacity: 1 !important;
+  color: rgba(255,255,255,.88) !important;
+  text-shadow:
+    0 2px 40px rgba(0,0,0,.98),
+    0 0  12px rgba(0,0,0,.95),
+    0 1px 4px rgba(0,0,0,.9) !important;
+}
+.puz-quote-tag { color: rgba(255,255,255,.32) !important; }
+
+/* Category labels */
+.puz-cat { opacity: .055 !important; }
+.puz-strip-row:hover .puz-cat { opacity: .11 !important; }
+
+/* Large index numbers */
+.puz-strip-index { opacity: .038 !important; }
+.puz-strip-row:hover .puz-strip-index { opacity: .075 !important; }
+
+/* Showcase section title */
+.showcase-title { letter-spacing: .02em !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §7  GLG BAND SEPARATOR
+──────────────────────────────────────────────────────────────*/
+.glg-band-label {
+  color: rgba(255,255,255,.22) !important;
+  letter-spacing: .5em !important;
+  font-size: .44rem !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   §8  STUDIO BLOCK
+──────────────────────────────────────────────────────────────*/
 .studio-quote {
-  font-size: clamp(1.6rem,3.8vw,3rem) !important;
-  line-height: 1.18 !important;
+  font-size: clamp(1.5rem,3.5vw,2.8rem) !important;
+  line-height: 1.2 !important;
+  color: rgba(255,255,255,.92) !important;
+  letter-spacing: -.01em !important;
 }
-/* Remove any colour from quote em */
-.studio-quote em { color: inherit !important; }
+/* Remove any colour override from quote em */
+.studio-quote em { color: rgba(255,255,255,.92) !important; font-style: italic; }
 
-.studio-theme-bar { background: rgba(255,255,255,.78) !important; }
+.studio-theme-bar {
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: none !important;
+}
 .studio-theme-item:hover .studio-theme-bar {
   background: #fff !important;
   box-shadow: none !important;
 }
 
-/* ───────────────────────────────────────────────────────
-   8. GAME CARDS — pure B&W hover
-──────────────────────────────────────────────────────── */
+/* Theme names */
+.studio-theme-name {
+  color: rgba(255,255,255,.55) !important;
+  transition: color .25s, letter-spacing .3s var(--ease) !important;
+}
+.studio-theme-item:hover .studio-theme-name {
+  color: #fff !important;
+}
+
+/* Studio body text */
+.studio-body { color: rgba(255,255,255,.52) !important; }
+.studio-body p { line-height: 1.78 !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §9  STATS BAND
+──────────────────────────────────────────────────────────────*/
+.glg-stats-band { border-color: rgba(255,255,255,.07) !important; }
+.glg-stat-num {
+  color: #fff !important;
+  font-size: clamp(2.4rem,5.5vw,4.8rem) !important;
+  text-shadow: none !important;
+}
+.glg-stat-num::after { color: rgba(255,255,255,.42) !important; }
+.glg-stat-label { color: rgba(255,255,255,.38) !important; letter-spacing: .22em !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §10  GAME CARDS (carousel)
+   Remove ALL coloured per-game glows from main.css v4.
+──────────────────────────────────────────────────────────────*/
+
+/* Kill main.css v4 colour overlays */
+.c-card[data-g] .c-card-pw::after { background: none !important; opacity: 0 !important; }
+
+/* Card base */
 .c-card {
-  transition:
-    transform .38s cubic-bezier(.16,1,.3,1),
-    box-shadow .38s cubic-bezier(.16,1,.3,1) !important;
+  transition: transform .38s var(--ease), box-shadow .38s var(--ease) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 3px !important;
 }
 .c-card:hover {
   transform: translateY(-5px) !important;
+  border-color: rgba(255,255,255,.2) !important;
   box-shadow:
     0 0 0 1px rgba(255,255,255,.12),
-    0 18px 52px rgba(0,0,0,.7) !important;
+    0 20px 60px rgba(0,0,0,.72) !important;
 }
-/* Remove all coloured per-glow overrides */
-.c-card::before { background: transparent !important; }
 
-.c-card-type  { color: rgba(255,255,255,.42) !important; opacity: 1 !important; }
-.c-card-name  { color: #fff !important; }
-.c-card-yr    { color: rgba(255,255,255,.36) !important; opacity: 1 !important; }
+/* Top colour glow — white instead of RGB colour */
+.c-card::before {
+  background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, transparent 40%) !important;
+}
+.c-card:hover::before { opacity: 1 !important; }
 
-.c-badge { color: rgba(255,255,255,.65) !important; border-color: rgba(255,255,255,.16) !important; }
+/* Image */
+.c-card-pw img {
+  filter: brightness(.62) saturate(.6) !important;
+  transition: transform .65s var(--ease), filter .45s !important;
+}
+.c-card:hover .c-card-pw img {
+  filter: brightness(.82) saturate(.75) !important;
+  transform: scale(1.06) !important;
+}
+
+/* Title watermark (behind image) */
+.c-card-title-bg {
+  color: rgba(255,255,255,.05) !important;
+  font-size: clamp(.88rem,1.7vw,1.4rem) !important;
+}
+
+/* Overlay — always visible */
+.c-card-overlay {
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.96) 0%,
+    rgba(0,0,0,.72) 40%,
+    transparent 100%
+  ) !important;
+}
+.c-card:hover .c-card-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.98) 0%,
+    rgba(0,0,0,.85) 55%,
+    rgba(0,0,0,.18) 100%
+  ) !important;
+}
+
+/* Card text */
+.c-card-type { color: rgba(255,255,255,.38) !important; font-size: .4rem !important; opacity: 1 !important; }
+.c-card-name { color: #fff !important; font-size: .88rem !important; line-height: 1.08 !important; text-shadow: 0 1px 8px rgba(0,0,0,.9) !important; }
+.c-card-yr   { color: rgba(255,255,255,.38) !important; opacity: 1 !important; }
+
+/* Badge */
+.c-badge {
+  color: rgba(255,255,255,.65) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.68) !important;
+  border-radius: 2px !important;
+  font-size: .38rem !important;
+  letter-spacing: .12em !important;
+}
 .c-badge.coming-soon {
-  background: rgba(0,0,0,.72) !important;
-  color: rgba(255,255,255,.7) !important;
-  border-color: rgba(255,255,255,.18) !important;
+  color: rgba(255,255,255,.62) !important;
+  border-color: rgba(255,255,255,.14) !important;
 }
 
-/* Remove per-game colour glows from c-card-pw::after */
-.c-card[data-g] .c-card-pw::after { background: none !important; }
+/* ────────────────────────────────────────────────────────────
+   §11  WORKS PAGE
+──────────────────────────────────────────────────────────────*/
+.works-hero { text-align: center; border-bottom: 1px solid rgba(255,255,255,.06); }
+.works-hero::after { -webkit-text-stroke: 1px rgba(255,255,255,.025) !important; color: transparent !important; }
+.works-cat-label { color: rgba(255,255,255,.42) !important; letter-spacing: .32em !important; }
+.works-cat-label::before,
+.works-cat-label::after { background: rgba(255,255,255,.25) !important; }
 
-/* ───────────────────────────────────────────────────────
-   9. WORKS PAGE HERO
-──────────────────────────────────────────────────────── */
-.works-hero .section-h::after {
+/* Category title underline */
+.works-hero .section-h::after,
+.about-hero  .section-h::after {
   content: '';
   display: block;
-  width: clamp(32px,4.5vw,56px);
+  width: clamp(28px,4vw,52px);
   height: 1px;
-  background: rgba(255,255,255,.3);
+  background: rgba(255,255,255,.32);
   margin: 14px auto 0;
-  border-radius: 1px;
 }
 
-/* ───────────────────────────────────────────────────────
-   10. CTA BAND
-──────────────────────────────────────────────────────── */
+/* Carousel arrows */
+.carousel-btn { border-color: rgba(255,255,255,.16) !important; }
+.carousel-btn:hover { background: rgba(255,255,255,.06) !important; border-color: rgba(255,255,255,.35) !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §12  CTA BAND
+──────────────────────────────────────────────────────────────*/
 .glg-cta-band { position: relative; overflow: hidden; }
 .glg-cta-band::before {
   content: '';
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%,-50%);
-  width: 55%; height: 90%;
+  width: 60%; height: 80%;
   background: radial-gradient(ellipse, rgba(255,255,255,.03) 0%, transparent 68%);
   pointer-events: none;
 }
-
-/* ───────────────────────────────────────────────────────
-   11. ABOUT PAGE
-──────────────────────────────────────────────────────── */
-.about-hero .section-h::after {
-  content: '';
-  display: block;
-  width: clamp(32px,4.5vw,56px);
-  height: 1px;
-  background: rgba(255,255,255,.3);
-  margin: 14px auto 0;
-  border-radius: 1px;
+#cta-title {
+  font-size: clamp(2.8rem,8vw,8rem) !important;
+  line-height: .9 !important;
+  letter-spacing: .01em !important;
 }
+
+/* ────────────────────────────────────────────────────────────
+   §13  SECTION LABELS (section-eye)
+──────────────────────────────────────────────────────────────*/
+.section-eye {
+  color: rgba(255,255,255,.38) !important;
+  letter-spacing: .42em !important;
+}
+.section-eye::before,
+.section-eye::after { background: rgba(255,255,255,.22) !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §14  ABOUT PAGE
+──────────────────────────────────────────────────────────────*/
+/* About hero pattern background */
+.about-hero { border-bottom: 1px solid rgba(255,255,255,.06) !important; }
+.about-hero .section-eye { color: rgba(255,255,255,.38) !important; }
+
+/* Team / crew cards */
 .cm-card {
-  transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s !important;
+  transition: transform .35s var(--ease), box-shadow .35s !important;
+  border: 1px solid rgba(255,255,255,.06) !important;
 }
 .cm-card:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,.6) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,.65) !important;
 }
 
-/* ───────────────────────────────────────────────────────
-   12. CONTACT PAGE
-──────────────────────────────────────────────────────── */
-.contact-hero { position: relative; overflow: hidden; }
+/* Manifesto */
+.about-manifesto-quote {
+  color: rgba(255,255,255,.82) !important;
+}
+
+/* Awards */
+.award-card { border-color: rgba(255,255,255,.07) !important; }
+.award-card:hover {
+  border-color: rgba(255,255,255,.18) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,.6) !important;
+}
+
+/* ────────────────────────────────────────────────────────────
+   §15  CONTACT PAGE
+──────────────────────────────────────────────────────────────*/
+.contact-hero { position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,.06); }
+
+/* Very subtle atmospheric glow */
 .contact-hero::before {
   content: '';
   position: absolute;
-  bottom: -25%; left: 50%;
+  bottom: -20%; left: 50%;
   transform: translateX(-50%);
   width: 80%; height: 80%;
-  background: radial-gradient(ellipse, rgba(255,255,255,.03) 0%, transparent 60%);
+  background: radial-gradient(ellipse, rgba(255,255,255,.04) 0%, transparent 58%);
   pointer-events: none;
 }
+
+/* Enormous title */
 .contact-hero-h {
   font-size: clamp(5rem,15vw,14rem) !important;
-}
-/* B&W promise numbers */
-.contact-promise-n {
+  line-height: .85 !important;
   color: #fff !important;
-  text-shadow: none !important;
+  -webkit-text-fill-color: #fff !important;
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
 }
-.contact-direct-card::before {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent) !important;
+.contact-eye-lbl { color: rgba(255,255,255,.38) !important; }
+.contact-hero-desc { color: rgba(255,255,255,.48) !important; }
+
+/* Promise strip */
+.contact-promises { border-color: rgba(255,255,255,.08) !important; background: rgba(255,255,255,.025) !important; }
+.contact-promise-n { color: #fff !important; text-shadow: none !important; }
+.contact-promise-l { color: rgba(255,255,255,.38) !important; }
+.contact-promise-div { background: rgba(255,255,255,.07) !important; }
+
+/* Form column */
+.contact-form-eyebrow { color: rgba(255,255,255,.38) !important; }
+
+/* Form inputs — underline style */
+.form-input,
+.form-textarea,
+.form-select {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 0 !important;
+  color: #fff !important;
+  padding: 12px 0 !important;
+  font-size: .9rem !important;
+  transition: border-color .25s !important;
 }
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  border-bottom-color: rgba(255,255,255,.55) !important;
+  outline: none !important;
+}
+.form-input::placeholder,
+.form-textarea::placeholder { color: rgba(255,255,255,.18) !important; }
+.form-select { background-color: transparent !important; color: rgba(255,255,255,.72) !important; }
+.form-select option { background: #111; color: #fff; }
+
+/* Form labels */
+.form-label { color: rgba(255,255,255,.42) !important; letter-spacing: .24em !important; font-size: .5rem !important; margin-bottom: 8px !important; }
+
+/* CSS step counters on form */
+#contact-form { counter-reset: form-step; }
+#contact-form .form-group { counter-increment: form-step; }
+#contact-form .form-label::before {
+  content: counter(form-step, decimal-leading-zero);
+  display: inline-block;
+  margin-right: 10px;
+  font-size: .44rem;
+  color: rgba(255,255,255,.2);
+  letter-spacing: .1em;
+  vertical-align: middle;
+}
+
+/* Submit button */
 .contact-submit-btn {
   width: 100% !important;
-  justify-content: center;
+  justify-content: center !important;
   padding: 16px 24px !important;
   background: #fff !important;
   color: #000 !important;
   border-color: #fff !important;
+  font-weight: 600 !important;
+  letter-spacing: .28em !important;
+  transition: background .25s, color .25s, border-color .25s !important;
 }
 .contact-submit-btn:hover {
   background: transparent !important;
   color: #fff !important;
-  border-color: rgba(255,255,255,.45) !important;
+  border-color: rgba(255,255,255,.42) !important;
   box-shadow: none !important;
 }
+.contact-submit-btn:disabled {
+  opacity: .7 !important;
+  cursor: not-allowed !important;
+}
+.contact-legal { color: rgba(255,255,255,.28) !important; font-size: .68rem !important; margin-top: 12px !important; }
 
-/* ───────────────────────────────────────────────────────
-   13. DETAIL PAGE
-──────────────────────────────────────────────────────── */
+/* Info column */
+.contact-direct-card {
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  transition: border-color .22s !important;
+}
+.contact-direct-card:hover { border-color: rgba(255,255,255,.16) !important; }
+.contact-direct-card::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent) !important;
+}
+.contact-direct-label { color: rgba(255,255,255,.35) !important; }
+.c-main-email {
+  color: #fff !important;
+  font-size: clamp(.86rem,1.8vw,1.06rem) !important;
+  transition: opacity .22s !important;
+}
+.c-main-email:hover { opacity: .65 !important; color: #fff !important; }
+.contact-direct-promise { color: rgba(255,255,255,.35) !important; }
+
+/* Topics grid */
+.contact-topics { border-color: rgba(255,255,255,.07) !important; }
+.c-info-block { border-color: rgba(255,255,255,.07) !important; transition: background .2s !important; }
+.c-info-block:hover { background: rgba(255,255,255,.025) !important; }
+.c-info-lbl { color: rgba(255,255,255,.82) !important; letter-spacing: .22em !important; }
+.c-info-sub { color: rgba(255,255,255,.38) !important; }
+
+/* Socials */
+.socials-row { border-top: 1px solid rgba(255,255,255,.06) !important; padding-top: 28px !important; margin-top: 28px !important; }
+.soc-icon { opacity: .32 !important; filter: brightness(0) invert(1) !important; transition: opacity .22s !important; }
+.soc-btn:hover .soc-icon { opacity: .88 !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §16  DETAIL PAGE
+──────────────────────────────────────────────────────────────*/
+/* Back button */
+.dp-back { color: rgba(255,255,255,.55) !important; transition: color .2s !important; }
+.dp-back:hover { color: #fff !important; }
+
+/* Badge dot */
+.dp-hero-badge-dot { background: rgba(255,255,255,.72) !important; box-shadow: none !important; }
+@keyframes dpBadgePulse { 0%,100%{opacity:1}50%{opacity:.28} }
+
+/* Feature items */
+.dp-feat-num { color: rgba(255,255,255,.14) !important; opacity: 1 !important; }
+.dp-feat-item:hover .dp-feat-num { color: rgba(255,255,255,.35) !important; }
+
+/* Platform buttons */
+.dp-plat-btn {
+  border-color: rgba(255,255,255,.08) !important;
+  transition: all .22s var(--ease) !important;
+}
+.dp-plat-btn:hover {
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.04) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Buy button */
 .dp-buy-btn {
   background: #fff !important;
   border-color: #fff !important;
   color: #000 !important;
+  transition: background .22s, color .22s, border-color .22s !important;
 }
 .dp-buy-btn:hover {
   background: rgba(255,255,255,.88) !important;
   border-color: rgba(255,255,255,.88) !important;
 }
-.dp-sticky-buy {
-  border-color: rgba(255,255,255,.35) !important;
-  color: #fff !important;
-}
-.dp-sticky-buy:hover {
-  background: rgba(255,255,255,.07) !important;
-}
 
-/* ───────────────────────────────────────────────────────
-   14. FOOTER
-──────────────────────────────────────────────────────── */
-footer { position: relative; }
+/* Sticky bar */
+.dp-sticky-buy {
+  border-color: rgba(255,255,255,.3) !important;
+  color: #fff !important;
+  transition: background .22s !important;
+}
+.dp-sticky-buy:hover { background: rgba(255,255,255,.07) !important; }
+
+/* Marquee strip */
+.dp-marquee-dot { color: rgba(255,255,255,.15) !important; }
+.dp-mq-item { color: rgba(255,255,255,.38) !important; }
+.dp-mq-item b { color: rgba(255,255,255,.72) !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §17  SHOP PAGE (WIP)
+──────────────────────────────────────────────────────────────*/
+.shop-wip-dash { background: rgba(255,255,255,.4) !important; box-shadow: none !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §18  LANGUAGE GATE
+──────────────────────────────────────────────────────────────*/
+/* Background: very deep dark — gate manages its own atmosphere */
+#lang-gate { background: #050508 !important; }
+
+.gate-lang::after {
+  background: rgba(255,255,255,.85) !important;
+  height: 2px !important;
+}
+.gate-lang:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.22) !important; }
+
+.gate-sep-line { background: rgba(255,255,255,.14) !important; }
+.gate-sep-label { color: rgba(255,255,255,.35) !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §19  LOADER
+──────────────────────────────────────────────────────────────*/
+#loader { background: #050508 !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §20  FOOTER
+──────────────────────────────────────────────────────────────*/
+footer { position: relative !important; background: #050508 !important; }
 footer::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.12) 35%, rgba(255,255,255,.12) 65%, transparent 100%);
   pointer-events: none;
 }
+.footer-col-title { color: rgba(255,255,255,.28) !important; letter-spacing: .3em !important; }
+.footer-brand-desc { color: rgba(255,255,255,.38) !important; }
+.footer-links button,
+.footer-links a    { color: rgba(255,255,255,.42) !important; transition: color .2s !important; }
 .footer-links button:hover,
 .footer-links a:hover { color: #fff !important; }
+.footer-copy { color: rgba(255,255,255,.22) !important; }
 
-/* ───────────────────────────────────────────────────────
-   15. LANGUAGE GATE
-──────────────────────────────────────────────────────── */
-.gate-lang::after   { background: rgba(255,255,255,.85) !important; height: 2px !important; }
-.gate-lang:hover    { box-shadow: 0 0 0 1px rgba(255,255,255,.22) !important; }
-
-/* ───────────────────────────────────────────────────────
-   16. SEARCH MODAL
-──────────────────────────────────────────────────────── */
-.match-hl {
-  color: #fff !important;
-  border-bottom-color: rgba(255,255,255,.4) !important;
-}
+/* ────────────────────────────────────────────────────────────
+   §21  SEARCH MODAL
+──────────────────────────────────────────────────────────────*/
+.match-hl { color: #fff !important; border-bottom-color: rgba(255,255,255,.35) !important; }
 .search-result:hover {
   background: rgba(255,255,255,.04) !important;
   border-color: rgba(255,255,255,.14) !important;
 }
 
-/* ───────────────────────────────────────────────────────
-   17. PAGE TRANSITION
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §22  MODAL (buy / trailer)
+──────────────────────────────────────────────────────────────*/
+.modal-box { border: 1px solid rgba(255,255,255,.08) !important; }
+.modal-eye { color: rgba(255,255,255,.45) !important; }
+.modal-title { color: #fff !important; }
+
+/* ────────────────────────────────────────────────────────────
+   §23  PAGE TRANSITION
+──────────────────────────────────────────────────────────────*/
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
-.page.active {
-  animation: pageIn .52s cubic-bezier(.16,1,.3,1) both !important;
-}
+.page.active { animation: pageIn .5s cubic-bezier(.16,1,.3,1) both !important; }
 
-/* ───────────────────────────────────────────────────────
-   18. FOCUS
-──────────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid rgba(255,255,255,.38) !important;
-  outline-offset: 3px !important;
-}
+/* ────────────────────────────────────────────────────────────
+   §24  FOCUS
+──────────────────────────────────────────────────────────────*/
+:focus-visible { outline: 2px solid rgba(255,255,255,.35) !important; outline-offset: 3px !important; }
 
-/* ───────────────────────────────────────────────────────
-   19. PREFERS-REDUCED-MOTION
-──────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   §25  PREFERS REDUCED MOTION
+──────────────────────────────────────────────────────────────*/
 @media (prefers-reduced-motion: reduce) {
   .hero-bg,
   .hero-bg::after { animation: none !important; opacity: 1; }
+  .pGlowBreathe { animation: none !important; }
 }
 
-/* ───────────────────────────────────────────────────────
-   20. RESPONSIVE
-──────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .contact-hero-h { font-size: clamp(4rem,14vw,10rem) !important; }
-  .hero-slogan::after,
-  .works-hero .section-h::after,
-  .about-hero  .section-h::after { width: 32px; margin-top: 12px; }
+/* ────────────────────────────────────────────────────────────
+   §26  RESPONSIVE OVERRIDES
+──────────────────────────────────────────────────────────────*/
+@media (max-width: 1024px) {
+  .contact-hero-h { font-size: clamp(4rem,13vw,11rem) !important; }
 }
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .contact-hero-h { font-size: clamp(3.8rem,14vw,9rem) !important; }
   .hero-slogan::after,
   .works-hero .section-h::after,
-  .about-hero  .section-h::after { width: 24px; margin-top: 10px; }
-  .contact-hero-h { font-size: clamp(3.5rem,18vw,8rem) !important; }
+  .about-hero  .section-h::after { width: 28px; margin-top: 12px; }
+  .c-card { border-radius: 3px !important; }
+  #cta-title { font-size: clamp(2.4rem,10vw,6rem) !important; }
+}
+@media (max-width: 480px) {
+  .contact-hero-h { font-size: clamp(3.2rem,17vw,7rem) !important; }
+  .contact-promises { flex-wrap: wrap !important; }
+  .hero-slogan::after { display: none; }
+  .form-row2 { grid-template-columns: 1fr !important; }
 }

@@ -540,6 +540,7 @@ function applyTranslations() {
   setText('search-label-txt', t('searchLabel') || 'Search a game or film');
   const sinp = $('search-input');
   if (sinp) sinp.placeholder = t('searchHint') || 'Type a title...';
+  applyStudioThemes();
 }
 
 /* ══════════════════════════════════════════
@@ -548,6 +549,7 @@ function applyTranslations() {
 function initSite() {
   window.scrollTo({ top: 0, behavior: 'instant' }); // guarantee top position on every site init
   buildMarquee();
+  buildStatsBand();
   buildCarousels();
   buildPuzzleStrips();
   buildAboutPage();
@@ -555,8 +557,11 @@ function initSite() {
   initScrollProgress();
   initReveal();
   initCounters();
+  initAnimations();
   applyWorksPageLabels();
   // Touch swipe is now built into buildCarousel() — no separate init needed
+  // Notify the GSAP animation layer that the site is ready
+  document.dispatchEvent(new CustomEvent('glg:site-built'));
 }
 
 /* ══════════════════════════════════════════
@@ -604,6 +609,10 @@ function showPage(name, itemId = null) {
   window.history.pushState({ page: name, id: itemId }, '', url);
 
   setTimeout(initReveal, 80);
+
+  // Notify GSAP animation layer
+  const activePage = itemId ? $('page-detail') : $('page-' + name);
+  document.dispatchEvent(new CustomEvent('glg:page-changed', { detail: { name, el: activePage } }));
 }
 
 // Handle browser back/forward
@@ -826,6 +835,7 @@ function cardHTML(item, typeLabel) {
       <div class="c-card-pw">
         <img src="${item.cover}" alt="${item.title}" loading="lazy"
              onerror="this.style.background='#111';this.style.display='block'">
+        <div class="c-card-title-bg" aria-hidden="true">${item.title}</div>
       </div>
       <span class="c-badge ${item.status}">${getStatusLabel(item)}</span>
       <div class="c-card-overlay">
@@ -1217,6 +1227,9 @@ function buildDetail(id) {
   // Init scroll reveals on newly injected elements
   initReveal();
 
+  // Re-attach magnetic effect to fresh detail page buttons
+  initMagneticCTAs();
+
   // Trigger hero BG slow-zoom entrance
   requestAnimationFrame(() => {
     const hero = container.querySelector('.dp-hero');
@@ -1428,12 +1441,18 @@ function initCounters() {
 
 /* ══════════════════════════════════════════
    CONTACT FORM
+   Real email delivery via FormSubmit.co
+   → geeklearngames.studio@gmail.com
+   Subject format: [GLG] Category — Name
+   ⚠ FIRST USE: FormSubmit will send an
+     activation email to the Gmail account.
+     Click the link once to activate.
 ══════════════════════════════════════════ */
-function handleContactForm(e) {
+async function handleContactForm(e) {
   e.preventDefault();
   const form = e.target;
 
-  /* ── Security check (rate limit + honeypot, via protection.js) ── */
+  /* ── Security check (rate limit + honeypot) ── */
   if (typeof window._glgCheckForm === 'function') {
     const chk = window._glgCheckForm(form);
     if (!chk.ok) {
@@ -1441,72 +1460,175 @@ function handleContactForm(e) {
         const btn = $('form-submit-btn');
         if (btn) {
           const orig = btn.innerHTML;
-          btn.textContent = t('errRateLimit') || 'Too many requests — please wait a few minutes.';
+          btn.textContent = t('errRateLimit') || 'Too many requests — please wait.';
           btn.disabled = true;
           setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 5000);
         }
       }
-      // Bot case: silently pretend success (don't educate bots about the check)
-      return;
+      return; // silently ignore bots
     }
   }
 
-  /* ── Clear previous inline errors ── */
+  /* ── Clear previous errors ── */
   form.querySelectorAll('.form-err').forEach(el => el.remove());
-  form.querySelectorAll('.form-input--err, .form-select--err, .form-textarea--err')
-    .forEach(el => el.classList.remove('form-input--err','form-select--err','form-textarea--err'));
+  form.querySelectorAll('.form-input--err,.form-select--err,.form-textarea--err')
+      .forEach(el => el.classList.remove('form-input--err','form-select--err','form-textarea--err'));
 
-  /* ── Gather fields ── */
-  const inputs = form.querySelectorAll('[required]');
+  /* ── Validate required fields ── */
   let valid = true;
-
-  inputs.forEach(input => {
+  form.querySelectorAll('[required]').forEach(input => {
     const val = input.value.trim();
-    let errMsg = '';
-
+    let msg = '';
     if (!val) {
-      const tag = input.tagName.toLowerCase();
-      if (tag === 'select') errMsg = t('errRequired') || 'Required';
-      else if (input.type === 'email') errMsg = t('errEmail') || 'Valid email required';
-      else errMsg = t('errRequired') || 'Required';
+      msg = input.type === 'email'
+        ? (t('errEmail')    || 'Valid email required')
+        : (t('errRequired') || 'Required');
     } else if (input.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-      errMsg = t('errEmail') || 'Valid email required';
+      msg = t('errEmail') || 'Valid email required';
     }
-
-    if (errMsg) {
+    if (msg) {
       valid = false;
-      /* Mark input */
-      const errClass = input.tagName === 'SELECT'
+      const cls = input.tagName === 'SELECT'
         ? 'form-select--err'
         : input.tagName === 'TEXTAREA'
           ? 'form-textarea--err'
           : 'form-input--err';
-      input.classList.add(errClass);
-      /* Inject error message */
-      const err = document.createElement('p');
-      err.className = 'form-err';
-      err.textContent = errMsg;
-      input.parentNode.appendChild(err);
+      input.classList.add(cls);
+      const errEl = document.createElement('p');
+      errEl.className = 'form-err';
+      errEl.textContent = msg;
+      input.parentNode.appendChild(errEl);
     }
   });
+  if (!valid) return;
 
-  if (!valid) return; /* Stop — errors shown */
+  /* ── Gather values ── */
+  const first     = ($('inp-first')?.value   || '').trim();
+  const last      = ($('inp-last')?.value    || '').trim();
+  const email     = ($('inp-email')?.value   || '').trim();
+  const company   = ($('inp-company')?.value || '').trim();
+  const subjectEl = $('contact-subject');
+  const subject   = subjectEl
+    ? (subjectEl.options[subjectEl.selectedIndex]?.text || subjectEl.value || '')
+    : '';
+  const message   = ($('inp-message')?.value || '').trim();
+  const portfolio = ($('inp-link')?.value    || '').trim();
 
-  /* ── All valid — show success ── */
-  const btn = $('form-submit-btn');
+  const fullName = `${first} ${last}`.trim();
+
+  /* ── UI: loading state ── */
+  const btn  = $('form-submit-btn');
   if (!btn) return;
   const orig = btn.innerHTML;
-  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> <span id="form-submit-txt">${t('formSent') || 'Sent!'}</span>`;
-  btn.style.background = 'transparent';
-  btn.style.color = 'var(--white)';
+  const txtEl = btn.querySelector('#form-submit-txt');
+  if (txtEl) txtEl.textContent = t('formSending') || 'Sending…';
   btn.disabled = true;
-  setTimeout(() => {
-    btn.innerHTML = orig;
-    btn.style.background = '';
-    btn.style.color = '';
+  btn.style.opacity = '0.72';
+
+  /* ── Build the payload for FormSubmit.co ──
+     Subject prefixed with [GLG] + category
+     → lets Gmail filters auto-label by type  */
+  const categoryTag = subject
+    ? subject.split(/\s/)[0].replace(/[^a-zA-Z]/g, '')
+    : 'Contact';
+
+  // Auto-reply to the sender (FormSubmit feature)
+  const autoReply = [
+    `Dear ${first},`,
+    '',
+    `Thank you for reaching out to GEEKLEARN GAMES.`,
+    `We've received your message and will get back to you within 48 hours.`,
+    '',
+    'Best regards,',
+    'GEEKLEARN GAMES — geeklearngames.studio@gmail.com',
+  ].join('\n');
+
+  const payload = {
+    /* FormSubmit meta-fields */
+    _subject:      `[GLG][${categoryTag}] ${fullName} — ${subject}`,
+    _template:     'table',
+    _captcha:      'false',
+    _autoresponse: autoReply,
+    _replyto:      email,
+
+    /* Visible email body fields */
+    'Full Name':   fullName,
+    'Email':       email,
+    'Company / Studio': company || '—',
+    'Subject':     subject,
+    'Message':     message,
+    'Portfolio / Press kit': portfolio || '—',
+    'Language':    LANG || 'en',
+    'Sent from':   window.location.hostname,
+  };
+
+  try {
+    const res = await fetch(
+      'https://formsubmit.co/ajax/geeklearngames.studio@gmail.com',
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept':        'application/json',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    let data = {};
+    try { data = await res.json(); } catch (_) { /* network body parse error */ }
+
+    if (res.ok && (data.success === 'true' || data.success === true)) {
+      /* ── SUCCESS ── */
+      btn.innerHTML = [
+        '<svg width="13" height="13" viewBox="0 0 16 16" fill="none">',
+        '<path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+        '</svg>',
+        ` <span id="form-submit-txt">${t('formSent') || 'Message sent!'}</span>`,
+      ].join('');
+      btn.style.background = 'transparent';
+      btn.style.color      = '#fff';
+      btn.style.borderColor = 'rgba(255,255,255,.28)';
+      btn.style.opacity    = '1';
+
+      setTimeout(() => {
+        btn.innerHTML    = orig;
+        btn.style.background  = '';
+        btn.style.color       = '';
+        btn.style.borderColor = '';
+        btn.style.opacity     = '';
+        btn.disabled = false;
+        form.reset();
+      }, 4000);
+
+    } else {
+      throw new Error(data.message || `HTTP ${res.status}`);
+    }
+
+  } catch (err) {
+    /* ── ERROR ── */
+    console.error('[GLG Contact]', err);
+    const errMsg = t('formError') || 'Could not send — please try again or email us directly.';
+    if (txtEl) txtEl.textContent = errMsg;
+    else if (btn.querySelector('#form-submit-txt')) btn.querySelector('#form-submit-txt').textContent = errMsg;
+    btn.style.opacity = '1';
     btn.disabled = false;
-    form.reset();
-  }, 3500);
+
+    // Show a form-level error
+    const globalErr = document.createElement('p');
+    globalErr.className = 'form-err';
+    globalErr.style.cssText = 'margin-top:8px;font-size:.62rem;';
+    globalErr.textContent = errMsg;
+    btn.parentNode.appendChild(globalErr);
+
+    setTimeout(() => {
+      btn.innerHTML = orig;
+      btn.style.background  = '';
+      btn.style.color       = '';
+      btn.style.opacity     = '';
+      globalErr.remove();
+    }, 5000);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -1827,6 +1949,345 @@ function initCarouselTouch() { /* no-op — see buildCarousel() */
     }, { passive: true });
   });
 }
+
+/* ════════════════════════════════════════════════════════
+   ★  GLG — CINEMATIC ANIMATION SYSTEM v2
+   ════════════════════════════════════════════════════════
+   Custom cursor · Mouse parallax · Scroll parallax
+   Magnetic CTAs · 3-D card tilt
+   Guards: pointer:fine / prefers-reduced-motion / touch
+════════════════════════════════════════════════════════ */
+
+/* ── Feature detection ──────────────────────────────── */
+const _GLG = {
+  fine:   () => window.matchMedia('(hover:hover) and (pointer:fine)').matches,
+  touch:  () => window.matchMedia('(hover:none),(pointer:coarse)').matches,
+  motion: () => !window.matchMedia('(prefers-reduced-motion:reduce)').matches,
+};
+
+
+/* ── 2. Hero content parallax (mouse-move) ──────────── */
+/* Moves the TEXT LAYER slightly opposite to the cursor.
+   The background is never touched — no conflict with the
+   CSS heroDrift animation or dp-hero slow-zoom. */
+let _heroParallaxBound = false;
+function initHeroParallax() {
+  if (_heroParallaxBound || !_GLG.fine() || !_GLG.motion()) return;
+  _heroParallaxBound = true;
+
+  let tx = 0, ty = 0, cx = 0, cy = 0;
+
+  document.addEventListener('mousemove', e => {
+    const hero = document.querySelector('.page.active .hero');
+    if (!hero) return;
+    const r = hero.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right  ||
+        e.clientY < r.top  || e.clientY > r.bottom) return;
+    tx = (e.clientX / window.innerWidth  - .5);
+    ty = (e.clientY / window.innerHeight - .5);
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => { tx = 0; ty = 0; });
+
+  (function loopParallax() {
+    cx += (tx - cx) * .05;
+    cy += (ty - cy) * .05;
+    if (Math.abs(cx) > .0005 || Math.abs(cy) > .0005) {
+      const content = document.querySelector('.page.active .hero .hero-content');
+      if (content) {
+        content.style.transform = `translate(${cx * -8}px,${cy * -5}px)`;
+      }
+    }
+    requestAnimationFrame(loopParallax);
+  })();
+}
+
+/* ── 3. Scroll parallax on home hero ────────────────── */
+/* Fades + lifts the hero content as user scrolls down.
+   The hero background drift animation is not touched. */
+let _scrollParallaxBound = false;
+function initScrollParallax() {
+  if (_scrollParallaxBound || !_GLG.motion()) return;
+  _scrollParallaxBound = true;
+
+  window.addEventListener('scroll', () => {
+    const page = document.getElementById('page-home');
+    if (!page?.classList.contains('active')) return;
+    const hero    = page.querySelector('.hero');
+    const content = page.querySelector('.hero-content');
+    if (!hero || !content) return;
+    const sy = window.scrollY;
+    const h  = hero.offsetHeight;
+    if (sy > h) return;
+    const p = sy / h;                        /* 0 at top, 1 at hero bottom */
+    content.style.opacity   = String(Math.max(0, 1 - p * 2.2));
+    content.style.transform = `translateY(${p * 26}px)`;
+  }, { passive: true });
+}
+
+/* ── 4. Magnetic CTAs ───────────────────────────────── */
+/* Primary buttons gently pull toward the cursor.
+   Guard: _magInit prevents double-binding after buildDetail. */
+function initMagneticCTAs() {
+  if (!_GLG.fine() || !_GLG.motion()) return;
+  const SEL = '.btn-primary,.btn-outline,.dp-buy-btn,.dp-sticky-buy';
+  document.querySelectorAll(SEL).forEach(btn => {
+    if (btn._magInit) return;
+    btn._magInit = true;
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width  / 2) * .30;
+      const y = (e.clientY - r.top  - r.height / 2) * .30;
+      btn.style.transform = `translate(${x}px,${y}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+}
+
+/* ── 5. 3-D card tilt ───────────────────────────────── */
+/* Subtle perspective tilt on carousel cards.
+   GPU-composited (rotateX/Y inside perspective). */
+let _cardTiltBound = false;
+function initCardTilt() {
+  if (_cardTiltBound || !_GLG.fine() || !_GLG.motion()) return;
+  _cardTiltBound = true;
+
+  document.addEventListener('mousemove', e => {
+    document.querySelectorAll('.c-card:hover').forEach(card => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width  - .5;
+      const y = (e.clientY - r.top)  / r.height - .5;
+      card.style.transform =
+        `translateY(-6px) scale(1.015) perspective(700px) ` +
+        `rotateY(${x * 8}deg) rotateX(${-y * 6}deg)`;
+    });
+  }, { passive: true });
+
+  /* Reset on mouse exit */
+  document.addEventListener('mouseout', e => {
+    const card = e.target.closest?.('.c-card');
+    if (card && !card.contains(e.relatedTarget)) {
+      card.style.transform = '';
+    }
+  });
+}
+
+/* ── 6. Master animation init ───────────────────────── */
+function initAnimations() {
+  initHeroParallax();
+  initScrollParallax();
+  initMagneticCTAs();
+  initCardTilt();
+  // initGLGCursor() — removed: using default browser cursor per design spec
+  initHeroCanvas();
+}
+
+/* ════════════════════════════════════════════════════════
+   GLG ENHANCEMENT BLOCK v3 — new functions
+   ════════════════════════════════════════════════════════ */
+
+/* ── Custom GLG cursor ────────────────────────────────── */
+let _cursorInit = false;
+function initGLGCursor() {
+  if (_cursorInit || !_GLG.fine()) return;
+  _cursorInit = true;
+
+  if (document.getElementById('glg-cur-dot')) return;
+  const dot  = Object.assign(document.createElement('div'), { id: 'glg-cur-dot' });
+  const ring = Object.assign(document.createElement('div'), { id: 'glg-cur-ring' });
+  document.body.append(dot, ring);
+
+  let mx = 0, my = 0, rx = 0, ry = 0, visible = false;
+  const INTERACTIVE = 'a,button,[role=button],.c-card,.gate-lang,.dp-plat-btn,' +
+    '.soc-btn,label,select,input,textarea,.nav-link,.footer-links button,.search-result';
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    if (!visible) {
+      visible = true;
+      rx = mx; ry = my;
+      dot.classList.add('glg-cur-on');
+      ring.classList.add('glg-cur-on');
+    }
+    dot.style.transform = `translate(calc(${mx}px - 50%),calc(${my}px - 50%))`;
+  }, { passive: true });
+
+  (function loopRing() {
+    rx += (mx - rx) * .13;
+    ry += (my - ry) * .13;
+    ring.style.transform = `translate(calc(${rx}px - 50%),calc(${ry}px - 50%))`;
+    requestAnimationFrame(loopRing);
+  })();
+
+  document.addEventListener('mouseover',  e => { if (e.target.closest(INTERACTIVE)) document.body.classList.add('glg-cur-hover'); });
+  document.addEventListener('mouseout',   e => { if (e.target.closest(INTERACTIVE)) document.body.classList.remove('glg-cur-hover'); });
+  document.addEventListener('mousedown',  () => document.body.classList.add('glg-cur-click'));
+  document.addEventListener('mouseup',    () => document.body.classList.remove('glg-cur-click'));
+}
+
+/* ── Hero canvas particles ────────────────────────────── */
+let _heroCanvasInit = false;
+function initHeroCanvas() {
+  if (_heroCanvasInit || !_GLG.motion()) return;
+  _heroCanvasInit = true;
+
+  const hero = document.querySelector('.hero');
+  if (!hero || document.getElementById('glg-hero-canvas')) return;
+
+  const cvs = document.createElement('canvas');
+  cvs.id = 'glg-hero-canvas';
+  hero.prepend(cvs);
+
+  const ctx = cvs.getContext('2d');
+  let W = 0, H = 0;
+  const PARTICLES = [];
+  const COUNT = 75;
+
+  function resize() {
+    W = cvs.width  = hero.offsetWidth;
+    H = cvs.height = hero.offsetHeight;
+  }
+
+  function make() {
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - .5) * .22,
+      vy: (Math.random() - .5) * .14 - .05,
+      r:  Math.random() * 1.6 + .3,
+      a:  Math.random() * .45 + .08,
+      ph: Math.random() * Math.PI * 2,
+    };
+  }
+
+  function initParticles() {
+    PARTICLES.length = 0;
+    for (let i = 0; i < COUNT; i++) PARTICLES.push(make());
+  }
+
+  function draw() {
+    if (!document.getElementById('page-home')?.classList.contains('active')) {
+      requestAnimationFrame(draw); return;
+    }
+    ctx.clearRect(0, 0, W, H);
+    for (const p of PARTICLES) {
+      p.x += p.vx; p.y += p.vy; p.ph += .014;
+      if (p.x < -4) p.x = W + 4;
+      if (p.x > W + 4) p.x = -4;
+      if (p.y < -4) p.y = H + 4;
+      if (p.y > H + 4) p.y = -4;
+      const alpha = p.a * (.55 + .45 * Math.sin(p.ph));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,215,90,${alpha.toFixed(3)})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initParticles();
+  draw();
+
+  window.addEventListener('resize', () => { resize(); initParticles(); }, { passive: true });
+}
+
+/* ── Studio themes i18n ───────────────────────────────── */
+const _STUDIO_THEMES = {
+  fr: ['HORREUR','AVENTURE','ÉMOTION','MYSTÈRE'],
+  en: ['HORROR','ADVENTURE','EMOTION','MYSTERY'],
+  es: ['HORROR','AVENTURA','EMOCIÓN','MISTERIO'],
+  de: ['HORROR','ABENTEUER','EMOTION','MYSTERIUM'],
+  ar: ['رعب','مغامرة','عاطفة','غموض'],
+  zh: ['恐惧','冒险','情感','神秘'],
+  ja: ['ホラー','アドベンチャー','感情','ミステリー'],
+  ru: ['УЖАС','ПРИКЛЮЧЕНИЕ','ЭМОЦИЯ','ТАЙНА'],
+  pl: ['GROZA','PRZYGODA','EMOCJE','TAJEMNICA'],
+  it: ['ORRORE','AVVENTURA','EMOZIONE','MISTERO'],
+};
+
+const _STUDIO_EYEBROWS = {
+  fr: '— Univers Créatifs', en: '— Creative Universes', es: '— Universos Creativos',
+  de: '— Kreative Welten',  ar: '— العوالم الإبداعية', zh: '— 创意世界',
+  ja: '— クリエイティブな世界', ru: '— Творческие Миры', pl: '— Kreatywne Światy',
+  it: '— Universi Creativi',
+};
+
+const _STUDIO_FOOTERS = {
+  fr: 'Films interactifs & Jeux vidéo · Est. 2026',
+  en: 'Interactive Films & Video Games · Est. 2026',
+  es: 'Films Interactivos & Videojuegos · Est. 2026',
+  de: 'Interaktive Filme & Videospiele · Est. 2026',
+  ar: 'أفلام تفاعلية وألعاب فيديو · تأسست 2026',
+  zh: '互动电影与电子游戏 · 成立于 2026',
+  ja: 'インタラクティブフィルム & ゲーム · 設立 2026',
+  ru: 'Интерактивные фильмы и игры · Осн. 2026',
+  pl: 'Filmy interaktywne i gry · Zał. 2026',
+  it: 'Film Interattivi & Videogiochi · Est. 2026',
+};
+
+function applyStudioThemes() {
+  const lang = LANG || 'en';
+  const themes   = _STUDIO_THEMES[lang]   || _STUDIO_THEMES.en;
+  const eyebrow  = _STUDIO_EYEBROWS[lang] || _STUDIO_EYEBROWS.en;
+  const footer   = _STUDIO_FOOTERS[lang]  || _STUDIO_FOOTERS.en;
+
+  $$('.studio-theme-name').forEach((el, i) => {
+    if (themes[i] !== undefined) el.textContent = themes[i];
+  });
+
+  const eyeEl = document.querySelector('.studio-themes-eyebrow span');
+  if (eyeEl) eyeEl.textContent = eyebrow;
+
+  const footEl = document.querySelector('.studio-themes-footer');
+  if (footEl) footEl.textContent = footer;
+}
+
+/* ── Stats band ───────────────────────────────────────── */
+let _statsBandBuilt = false;
+function buildStatsBand() {
+  const marquee = document.querySelector('.marquee-bar');
+  if (!marquee) return;
+
+  // Remove previous band if language changed
+  const prev = document.querySelector('.glg-stats-band');
+  if (prev) prev.remove();
+
+  const lang = LANG || 'en';
+  const labels = {
+    titles:    (I18N[lang] || I18N.en).statTitles    || 'Titles',
+    films:     (I18N[lang] || I18N.en).statFilms     || 'Interactive Films',
+    games:     (I18N[lang] || I18N.en).statGames     || 'Video Games',
+    platforms: (I18N[lang] || I18N.en).statPlatforms || 'Platforms',
+  };
+
+  const band = document.createElement('div');
+  band.className = 'glg-stats-band';
+  band.innerHTML =
+    `<div class="glg-stat-item">
+       <div class="glg-stat-num" data-count="8" data-suffix="">0</div>
+       <div class="glg-stat-label" id="stat-titles">${labels.titles}</div>
+     </div>
+     <div class="glg-stat-item">
+       <div class="glg-stat-num" data-count="4" data-suffix="+">0</div>
+       <div class="glg-stat-label" id="stat-films">${labels.films}</div>
+     </div>
+     <div class="glg-stat-item">
+       <div class="glg-stat-num" data-count="4" data-suffix="+">0</div>
+       <div class="glg-stat-label" id="stat-games">${labels.games}</div>
+     </div>
+     <div class="glg-stat-item">
+       <div class="glg-stat-num" data-count="5" data-suffix="+">0</div>
+       <div class="glg-stat-label" id="stat-platforms">${labels.platforms}</div>
+     </div>`;
+
+  marquee.insertAdjacentElement('afterend', band);
+  _statsBandBuilt = true;
+}
+
+/* ════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
   // Lock scroll while language gate is showing (html+body for iOS Safari)
