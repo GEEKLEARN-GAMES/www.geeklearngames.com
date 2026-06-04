@@ -295,11 +295,13 @@
     if (typeof Lenis === 'undefined') return;
     try {
       const lenis = new Lenis({
-        duration:   1.18,
-        easing:     t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        duration:        0.9,
+        easing:          t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        wheelMultiplier: 1.0,
         touchMultiplier: 1.8,
-        syncTouch:  false,
-        smoothTouch: false,
+        syncTouch:       false,
+        smoothTouch:     false,
+        smoothWheel:     true,
       });
       lenis.on('scroll', ScrollTrigger.update);
       gsap.ticker.add(time => lenis.raf(time * 1000));

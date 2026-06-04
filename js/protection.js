@@ -34,7 +34,7 @@
       'flex-direction:column;gap:20px;pointer-events:all;' +
       'user-select:none;-webkit-user-select:none';
     shieldEl.innerHTML =
-      '<img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png"' +
+      '<img src="assets/img/brand/glg-logo-white.png"' +
       ' alt="GLG" style="height:42px;opacity:.65;pointer-events:none;display:block">' +
       '<p style="font-family:monospace;font-size:10px;letter-spacing:.3em;' +
       'color:rgba(255,255,255,.25);text-transform:uppercase;margin:0">' +

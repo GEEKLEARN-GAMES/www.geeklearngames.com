@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="shortcut icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="assets/icons/favicon-96x96.png" sizes="96x96" />
+  <link rel="shortcut icon" href="assets/icons/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="GLG" />
-  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="manifest" href="site.webmanifest" />
   <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -25,7 +24,7 @@
   <meta property="og:description" content="Independent game studio creating interactive experiences. Eight titles — interactive films and video games.">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://www.geeklearngames.com">
-  <meta property="og:image"       content="https://www.geeklearngames.com/assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png">
+  <meta property="og:image"       content="https://www.geeklearngames.com/assets/img/brand/glg-logo-white.png">
   <meta name="twitter:card"       content="summary_large_image">
   <meta name="twitter:site"       content="@geeklearngames">
   <meta name="twitter:title"      content="GEEKLEARN GAMES">
@@ -47,7 +46,7 @@
       "url": "https://www.geeklearngames.com",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.geeklearngames.com/assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png"
+        "url": "https://www.geeklearngames.com/assets/img/brand/glg-logo-white.png"
       },
       "sameAs": [
         "https://x.com/geeklearngames",
@@ -64,14 +63,14 @@
   <!-- Content Security Policy: restrict resource origins, block injected scripts -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
-                 script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+                 script-src 'self' 'unsafe-inline';
                  style-src  'self' 'unsafe-inline' https://fonts.googleapis.com;
                  font-src   'self' https://fonts.gstatic.com;
                  img-src    'self' data: blob:;
-                 connect-src https://api.frankfurter.app https://formsubmit.co;
+                 connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://*.supabase.co wss://*.supabase.co;
                  object-src  'none';
                  base-uri    'self';
-                 form-action 'self';">
+                 form-action 'self' https://formsubmit.co;">
   <!-- Prevent MIME-type sniffing attacks -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <!-- Limit referrer leakage -->
@@ -86,9 +85,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=41">
+  <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
+  <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
+  <link rel="stylesheet" href="css/main.css?v=43">
   <!-- Premium visual layer & animations -->
-  <link rel="stylesheet" href="css/glg-premium.css?v=6">
+  <link rel="stylesheet" href="css/glg-premium.css?v=7">
+  <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
+  <link rel="stylesheet" href="css/glg-aaa.css?v=3">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js"></script>
 </head>
@@ -112,7 +115,7 @@
 
   <!-- Logo -->
   <div class="gate-logo-wrap">
-    <img class="gate-logo-img" src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GEEKLEARN GAMES">
+    <img class="gate-logo-img" src="assets/img/brand/glg-logo-white.png" alt="GEEKLEARN GAMES" fetchpriority="high" decoding="async" width="180" height="180">
     <span class="gate-studio-name">GEEKLEARN GAMES</span>
   </div>
 
@@ -139,7 +142,7 @@
 
 <!-- ══════════ LOADER ══════════ -->
 <div id="loader">
-  <img class="loader-logo" src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GEEKLEARN GAMES">
+  <img class="loader-logo" src="assets/img/brand/glg-logo-white.png" alt="GEEKLEARN GAMES">
 </div>
 <div id="sprogress"></div>
 
@@ -167,7 +170,7 @@
 <nav id="nav">
   <div class="nav-logo" onclick="showPage('home')">
     <div class="nav-logo-stack">
-      <img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GLG" class="nav-logo-mark">
+      <img src="assets/img/brand/glg-logo-white.png" alt="GLG" class="nav-logo-mark">
       <span class="nav-logo-name">GEEKLEARN GAMES</span>
     </div>
   </div>
@@ -429,11 +432,35 @@
 
       <p class="shop-wip-sub" id="shop-sub">Our shop is being assembled with the same care<br>we put into every world we build.</p>
 
-      <div class="shop-wip-items" aria-hidden="true">
-        <span>Merch</span><span class="shop-wip-sep">·</span>
-        <span>Art Books</span><span class="shop-wip-sep">·</span>
-        <span>Soundtracks</span><span class="shop-wip-sep">·</span>
-        <span>Collector Pieces</span>
+      <div class="shop-teasers" aria-hidden="true">
+        <div class="shop-teaser">
+          <div class="shop-teaser-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8z" stroke="currentColor" stroke-width="1.3"/><path d="M9 8V6a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.3"/></svg>
+          </div>
+          <span class="shop-teaser-name">Merch</span>
+          <span class="shop-teaser-soon">Coming soon</span>
+        </div>
+        <div class="shop-teaser">
+          <div class="shop-teaser-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.3"/><path d="M5 17h13" stroke="currentColor" stroke-width="1.3"/></svg>
+          </div>
+          <span class="shop-teaser-name">Art Books</span>
+          <span class="shop-teaser-soon">Coming soon</span>
+        </div>
+        <div class="shop-teaser">
+          <div class="shop-teaser-ico">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="17" r="2.4" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="15" r="2.4" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 17V6l10-2v11" stroke="currentColor" stroke-width="1.3"/></svg>
+          </div>
+          <span class="shop-teaser-name">Soundtracks</span>
+          <span class="shop-teaser-soon">Coming soon</span>
+        </div>
+        <div class="shop-teaser">
+          <div class="shop-teaser-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.5 5 5.5.8-4 3.9.95 5.5L12 16.5 7.05 18.1 8 12.7 4 8.8 9.5 8 12 3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="shop-teaser-name">Collector</span>
+          <span class="shop-teaser-soon">Coming soon</span>
+        </div>
       </div>
 
       <div class="shop-wip-divider"></div>
@@ -634,19 +661,19 @@
       <!-- Social links -->
       <div class="socials-row">
         <button class="soc-btn" onclick="window.open('https://x.com/geeklearngames')" title="X / Twitter" aria-label="X Twitter">
-          <img src="assets/images/LINKS - LOGOS/X_logo_2023_(white).png" alt="X" class="soc-icon">
+          <img src="assets/img/social/x.png" alt="X" class="soc-icon">
         </button>
         <button class="soc-btn" onclick="window.open('https://discord.gg/M7YJsC9BwH')" title="Discord" aria-label="Discord">
-          <img src="assets/images/LINKS - LOGOS/DISCORD - LOGO - TRANSPARANT.png" alt="Discord" class="soc-icon">
+          <img src="assets/img/social/discord.png" alt="Discord" class="soc-icon">
         </button>
         <button class="soc-btn" onclick="window.open('https://www.youtube.com/@GEEKLEARN-GAMES')" title="YouTube" aria-label="YouTube">
-          <img src="assets/images/LINKS - LOGOS/YOUTUBE - LOGO - TRANSPARENT.png" alt="YouTube" class="soc-icon">
+          <img src="assets/img/social/youtube.png" alt="YouTube" class="soc-icon">
         </button>
         <button class="soc-btn" onclick="window.open('https://www.instagram.com/geeklearn_games/')" title="Instagram" aria-label="Instagram">
-          <img src="assets/images/LINKS - LOGOS/INSTAGRAM - LOGO - TRANSPARENT.png" alt="Instagram" class="soc-icon">
+          <img src="assets/img/social/instagram.png" alt="Instagram" class="soc-icon">
         </button>
         <button class="soc-btn" onclick="window.open('https://store.steampowered.com/dev/GEEKLEARN-GAMES')" title="Steam" aria-label="Steam">
-          <img src="assets/images/LINKS - LOGOS/STEAM - LOGO - TRANSPARENT.png" alt="Steam" class="soc-icon">
+          <img src="assets/img/social/steam.png" alt="Steam" class="soc-icon">
         </button>
       </div>
 
@@ -682,13 +709,18 @@
   const _yr = new Date().getFullYear();
   document.querySelectorAll('#yr,.yr2').forEach(el => el.textContent = _yr);
 </script>
-<script src="js/data.js?v=2"></script>
-<script src="js/app.js?v=42"></script>
-<!-- GSAP + ScrollTrigger — AAA animation engine -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<!-- Lenis smooth scroll — butter-smooth scrolling on desktop -->
-<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
-<script src="js/glg-animations.js?v=2" defer></script>
+<!-- Site data + core app -->
+<script src="js/data.js?v=3"></script>
+<script src="js/app.js?v=45"></script>
+<!-- Accounts (Supabase) — self-hosted, no external CDN -->
+<script src="js/vendor/supabase.min.js" defer></script>
+<script src="js/config.js?v=2" defer></script>
+<script src="js/auth.js?v=1" defer></script>
+<!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
+<script src="js/vendor/gsap.min.js" defer></script>
+<script src="js/vendor/ScrollTrigger.min.js" defer></script>
+<!-- Lenis smooth scroll — butter-smooth scrolling on desktop (self-hosted) -->
+<script src="js/vendor/lenis.min.js" defer></script>
+<script src="js/glg-animations.js?v=3" defer></script>
 </body>
 </html>

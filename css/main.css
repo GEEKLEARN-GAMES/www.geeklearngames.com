@@ -34,7 +34,7 @@
 
 /* ─── RESET ────────────────────────────────────────── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{font-size:16px;overflow-x:hidden;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;scrollbar-gutter:stable}
+html{font-size:16px;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--white);font-family:var(--f-body);font-weight:400;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 /* Dark minimal scrollbar — Chrome/Edge/Safari */
 ::-webkit-scrollbar{width:5px}
@@ -323,8 +323,8 @@ ul{list-style:none}
 
 /* ─── HERO — Centered, content pushed lower ─────────── */
 .hero{position:relative;height:100vh;min-height:640px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
-.hero-bg{position:absolute;inset:0;background:url('../assets/images/bg/hero.svg') center/cover no-repeat;filter:brightness(.28);animation:heroDrift 22s ease-in-out infinite alternate}
-@keyframes heroDrift{from{transform:scale(1.04)}to{transform:scale(1.07) translateX(-1%)}}
+.hero-bg{position:absolute;inset:0;background:url('../assets/img/backgrounds/hero.svg') center/cover no-repeat;filter:brightness(.28);animation:heroDrift 22s ease-in-out infinite alternate}
+@keyframes heroDrift{from{transform:scale(1.04)}to{transform:scale(1.06)}}
 .hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.2) 0%,transparent 25%,rgba(0,0,0,.55) 75%,rgba(8,8,8,.92) 100%)}
 .hero-grain{position:absolute;inset:0;opacity:.25;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
 /* Content at the bottom, centered */
@@ -901,7 +901,7 @@ ul{list-style:none}
   /* 100% de la section + 1 tuile = jamais de vide quelle que soit la largeur */
   width: calc(100% + 480px);
   height: 100%;
-  background-image: url('../assets/images/logo/glg-pattern.png');
+  background-image: url('../assets/img/brand/glg-pattern.png');
   /* 480 / 1.778 ≈ 270px — ratio 16:9 exact */
   background-size: 480px 270px;
   background-repeat: repeat;
@@ -1058,7 +1058,7 @@ ul{list-style:none}
 .c-card-type{font-family:var(--f-mono);font-size:.42rem;letter-spacing:.2em;color:var(--w50);text-transform:uppercase;margin-bottom:2px}
 .c-card-name{font-family:var(--f-disp);font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;line-height:1.05}
 .c-card-yr  {font-family:var(--f-mono);font-size:.42rem;letter-spacing:.12em;color:var(--w50);margin-top:2px}
-.c-badge{position:absolute;top:8px;left:8px;z-index:4;font-family:var(--f-mono);font-size:.42rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);border:1px solid var(--bmd);color:var(--w80)}
+.c-badge{position:absolute;top:8px;left:8px;z-index:4;font-family:var(--f-mono);font-size:.42rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;background:rgba(0,0,0,.82);border:1px solid var(--bmd);color:var(--w80)}
 
 /* ─── DETAIL PAGE v3 — GLG FILM DOSSIER ─────────────────────── */
 /* Hero */
@@ -2099,12 +2099,9 @@ footer{
   to  {opacity:1;transform:none}
 }
 
-/* ── Improved page transition (overrides earlier def.) ── */
-@keyframes pageIn{
-  from{opacity:0;transform:translateY(9px)}
-  to  {opacity:1;transform:none}
-}
-.page.active{display:block;animation:pageIn .62s cubic-bezier(.16,1,.3,1) both}
+/* pageIn: opacity-only fallback — GSAP handles the translateY */
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+.page.active{display:block;animation:pageIn .5s cubic-bezier(.16,1,.3,1) both}
 
 /* ── Nav entrance ─────────────────────────────────────── */
 #nav{animation:navIn .55s .05s var(--ease) both}
@@ -2268,9 +2265,9 @@ footer{
    Custom cursor · Stats band · Visual polish
    ════════════════════════════════════════════════════════ */
 
-/* ── Custom GLG cursor (fine pointer / desktop only) ──── */
+/* ── Custom GLG cursor REMOVED — native cursor restored (see glg-aaa.css §11) ──── */
 @media (hover:hover) and (pointer:fine){
-  *{cursor:none!important}
+  /* (was: *{cursor:none!important}) — native cursor is now visible everywhere */
   #glg-cur-dot,#glg-cur-ring{
     position:fixed;top:0;left:0;border-radius:50%;
     pointer-events:none;z-index:99999;opacity:0;
@@ -2747,7 +2744,6 @@ footer{
   font-size:.38rem;
   letter-spacing:.14em;
   padding:3px 8px;
-  backdrop-filter:blur(10px);
 }
 .c-badge.coming-soon{
   background:rgba(0,0,0,.68) !important;

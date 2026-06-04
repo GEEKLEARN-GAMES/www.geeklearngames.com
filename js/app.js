@@ -117,6 +117,15 @@ const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
 function setHTML(id, html) { const e = $(id); if(e) e.innerHTML = html; }
 function setText(id, txt) { const e = $(id); if(e) e.textContent = txt; }
+/* "#ff6a00" → "255,106,0" (for rgba() with CSS var). Returns null if invalid. */
+function hexToRgb(hex) {
+  if (typeof hex !== 'string') return null;
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  const n = parseInt(h, 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+}
 
 /* ══════════════════════════════════════════
    LANGUAGE GATE
@@ -201,7 +210,7 @@ function buildGate() {
             onclick="selectLang('${l.code}')" aria-label="${l.label}"
             style="touch-action:manipulation">
       <img class="gate-flag-img"
-           src="assets/images/FLAGS/${l.code}.svg"
+           src="assets/img/flags/${l.code}.svg"
            alt="${l.label}"
            onerror="this.style.opacity='0'">
       <div class="gate-lang-overlay"></div>
@@ -261,7 +270,7 @@ function selectLang(code) {
   });
 
   // Update nav flag to the chosen language
-  const flagSrc = `assets/images/FLAGS/${code}.svg`;
+  const flagSrc = `assets/img/flags/${code}.svg`;
   const f1 = $('nav-lang-flag');        if (f1) { f1.src = flagSrc; f1.alt = code.toUpperCase(); }
   const f2 = $('nav-lang-flag-mobile'); if (f2) { f2.src = flagSrc; f2.alt = code.toUpperCase(); }
   const lb = $('nml-lang-label');       if (lb) lb.textContent = t('langChange') || 'Change Language';
@@ -553,11 +562,15 @@ function initSite() {
   buildCarousels();
   buildPuzzleStrips();
   buildAboutPage();
+  buildFeaturedWork();
   initNav();
   initScrollProgress();
   initReveal();
   initCounters();
   initAnimations();
+  initWorksFilters();
+  initContactEnhancements();
+  initAuthUI();
   applyWorksPageLabels();
   // Touch swipe is now built into buildCarousel() — no separate init needed
   // Notify the GSAP animation layer that the site is ready
@@ -572,8 +585,14 @@ let _navScrollBound = false;
 function initNav() {
   if (!_navScrollBound) {
     _navScrollBound = true;
+    let _navRaf = false;
     window.addEventListener('scroll', () => {
-      $('nav').classList.toggle('scrolled', window.scrollY > 40);
+      if (_navRaf) return;
+      _navRaf = true;
+      requestAnimationFrame(() => {
+        _navRaf = false;
+        $('nav').classList.toggle('scrolled', window.scrollY > 40);
+      });
     }, { passive: true });
   }
 
@@ -587,6 +606,10 @@ function initNav() {
 }
 
 function showPage(name, itemId = null) {
+  // Reset hero-content styles left by scroll/mouse parallax to avoid visual seams
+  const prevHeroContent = document.querySelector('.page.active .hero-content');
+  if (prevHeroContent) { prevHeroContent.style.opacity = ''; prevHeroContent.style.transform = ''; }
+
   $$('.page').forEach(p => p.classList.remove('active'));
   $$('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === name));
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -830,32 +853,153 @@ function buildCarousel(id, items, typeLabel) {
 }
 
 function cardHTML(item, typeLabel) {
+  // --tint = per-work accent colour, revealed only on hover (rest of Works page stays monochrome)
+  const tint = item.tint || '#ffffff';
+  const tintRgb = hexToRgb(tint) || '255,255,255';
   return `
-    <div class="c-card" data-g="${item.glow}" onclick="showPage('detail','${item.id}')">
+    <div class="c-card" data-g="${item.glow}" style="--tint:${tint};--tint-rgb:${tintRgb}" onclick="showPage('detail','${item.id}')">
       <div class="c-card-pw">
         <img src="${item.cover}" alt="${item.title}" loading="lazy"
              onerror="this.style.background='#111';this.style.display='block'">
         <div class="c-card-title-bg" aria-hidden="true">${item.title}</div>
+        <div class="c-card-tintwash" aria-hidden="true"></div>
       </div>
       <span class="c-badge ${item.status}">${getStatusLabel(item)}</span>
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
         <div class="c-card-yr">${item.year} · <span class="price-display" data-base-price="${item.basePrice ?? ''}">${getPrice(item)}</span></div>
+        <span class="c-card-cta" aria-hidden="true"><span class="c-card-cta-arrow">→</span></span>
       </div>
     </div>
   `;
 }
 
-// filterWorks / buildWorksList removed — works page uses carousels only
 // buildFooterWorks() removed — footer works list is now built inside footerHTML() / buildPageFooters()
+
+/* ══════════════════════════════════════════
+   WORKS — FILTERS (All / Films / Games)
+══════════════════════════════════════════ */
+const _WORKS_FILTER_LABELS = {
+  all:   { fr:'Tout', en:'All', es:'Todo', de:'Alle', ar:'الكل', zh:'全部', ja:'すべて', ru:'Все', pl:'Wszystko', it:'Tutto' },
+  films: { fr:'Films', en:'Films', es:'Films', de:'Filme', ar:'أفلام', zh:'电影', ja:'映画', ru:'Фильмы', pl:'Filmy', it:'Film' },
+  games: { fr:'Jeux', en:'Games', es:'Juegos', de:'Spiele', ar:'ألعاب', zh:'游戏', ja:'ゲーム', ru:'Игры', pl:'Gry', it:'Giochi' },
+};
+function initWorksFilters() {
+  const page = $('page-works');
+  if (!page) return;
+  const L = c => _WORKS_FILTER_LABELS[c][LANG] || _WORKS_FILTER_LABELS[c].en;
+  let bar = page.querySelector('.works-filters');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'works-filters reveal';
+    const hero = page.querySelector('.works-hero');
+    if (hero) hero.insertAdjacentElement('afterend', bar);
+    else page.prepend(bar);
+  }
+  bar.innerHTML = `
+    <button class="works-filter active" data-f="all">${L('all')}</button>
+    <button class="works-filter" data-f="films">${L('films')}<span class="works-filter-count">${FILMS.length}</span></button>
+    <button class="works-filter" data-f="games">${L('games')}<span class="works-filter-count">${GAMES.length}</span></button>`;
+  bar.querySelectorAll('.works-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.works-filter').forEach(b => b.classList.toggle('active', b === btn));
+      applyWorksFilter(btn.dataset.f);
+    });
+  });
+}
+function applyWorksFilter(f) {
+  const page = $('page-works'); if (!page) return;
+  const sections = [...page.querySelectorAll('.works-cat-section')]; // [0]=films, [1]=games
+  const band = page.querySelector('.glg-band');
+  const show = (el, vis) => el && el.classList.toggle('wcat-hidden', !vis);
+  if (f === 'films') { show(sections[0], true);  show(sections[1], false); if (band) band.style.display = 'none'; }
+  else if (f === 'games') { show(sections[0], false); show(sections[1], true);  if (band) band.style.display = 'none'; }
+  else { sections.forEach(s => show(s, true)); if (band) band.style.display = ''; }
+  requestAnimationFrame(buildCarousels); // re-measure visible carousels
+}
+
+/* ══════════════════════════════════════════
+   HOME — FEATURED WORK (spotlight)
+══════════════════════════════════════════ */
+const _FEATURED_LABELS = {
+  eyebrow: { fr:'À la une', en:'Featured', es:'Destacado', de:'Im Fokus', ar:'مميّز', zh:'焦点', ja:'注目', ru:'В центре', pl:'Wyróżnione', it:'In evidenza' },
+  cta:     { fr:'Découvrir', en:'Discover', es:'Descubrir', de:'Entdecken', ar:'اكتشف', zh:'探索', ja:'詳しく', ru:'Подробнее', it:'Scopri', pl:'Odkryj' },
+};
+function buildFeaturedWork() {
+  const home = $('page-home'); if (!home) return;
+  // Pick the featured item: first available, else first overall
+  const item = ALL_WORKS.find(w => w.status === 'available') || ALL_WORKS[0];
+  if (!item) return;
+  let host = $('featured-work');
+  if (!host) {
+    host = document.createElement('section');
+    host.id = 'featured-work';
+    const anchor = home.querySelector('.showcase-section');
+    if (anchor) anchor.insertAdjacentElement('afterend', host);
+    else return;
+  }
+  const eye = _FEATURED_LABELS.eyebrow[LANG] || _FEATURED_LABELS.eyebrow.en;
+  const cta = _FEATURED_LABELS.cta[LANG] || _FEATURED_LABELS.cta.en;
+  const tag = getItemField(item, 'tagline');
+  host.innerHTML = `
+    <div class="ft-media" aria-hidden="true">
+      <img src="${item.cover}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <div class="ft-media-grad"></div>
+    </div>
+    <div class="ft-body reveal">
+      <div class="ft-eyebrow"><span class="ft-eyebrow-dash"></span>${eye}</div>
+      <h2 class="ft-title">${item.title}</h2>
+      <p class="ft-tagline">${tag}</p>
+      <div class="ft-meta">${getCatLabel(item)} · ${item.year}</div>
+      <button class="btn btn-primary btn-lg" onclick="showPage('detail','${item.id}')">${cta} →</button>
+    </div>`;
+}
 
 /* ══════════════════════════════════════════
    ABOUT PAGE
 ══════════════════════════════════════════ */
 function buildAboutPage() {
   buildOrgTree();
+  buildStudioValues();
   buildAwards();
+}
+
+/* ── Studio values — the three brand pillars (Teach · Move · Haunt) ── */
+const _VALUES = {
+  heading: { fr:'Nos valeurs', en:'What we stand for', es:'Lo que defendemos', de:'Wofür wir stehen', ar:'ما نؤمن به', zh:'我们的信念', ja:'私たちの信条', ru:'Наши ценности', pl:'Nasze wartości', it:'I nostri valori' },
+  eyebrow: { fr:'Le studio', en:'The Studio', es:'El estudio', de:'Das Studio', ar:'الأستوديو', zh:'工作室', ja:'スタジオ', ru:'Студия', pl:'Studio', it:'Lo studio' },
+  items: [
+    { k:'teach', t:{ fr:'TEACH', en:'TEACH', es:'ENSEÑAR', de:'LEHREN', ar:'نُعلّم', zh:'启迪', ja:'学び', ru:'УЧИТЬ', pl:'UCZYĆ', it:'INSEGNARE' },
+      d:{ fr:'Chaque monde transmet quelque chose de vrai — sans jamais sacrifier le plaisir de jouer.', en:'Every world teaches something true — without ever sacrificing the joy of play.', es:'Cada mundo enseña algo verdadero, sin sacrificar nunca el placer de jugar.', de:'Jede Welt lehrt etwas Wahres — ohne je den Spielspaß zu opfern.', ar:'كل عالم يُعلّم شيئاً حقيقياً — دون التضحية بمتعة اللعب.', zh:'每个世界都传递真实之物——绝不牺牲游戏的乐趣。', ja:'すべての世界は本物の何かを伝える——遊ぶ喜びを犠牲にせずに。', ru:'Каждый мир учит чему-то настоящему — не жертвуя радостью игры.', pl:'Każdy świat uczy czegoś prawdziwego — nigdy nie kosztem radości z gry.', it:'Ogni mondo insegna qualcosa di vero — senza mai sacrificare il piacere del gioco.' } },
+    { k:'move', t:{ fr:'MOVE', en:'MOVE', es:'EMOCIONAR', de:'BEWEGEN', ar:'نُحرّك', zh:'触动', ja:'動かす', ru:'ТРОГАТЬ', pl:'PORUSZAĆ', it:'EMOZIONARE' },
+      d:{ fr:'On vise l\'émotion réelle : la chair de poule, les larmes, le cœur qui s\'emballe.', en:'We aim for real emotion: the chills, the tears, the racing heart.', es:'Buscamos emoción real: los escalofríos, las lágrimas, el corazón acelerado.', de:'Wir zielen auf echte Emotion: Gänsehaut, Tränen, rasendes Herz.', ar:'نسعى إلى عاطفة حقيقية: القشعريرة، الدموع، تسارع القلب.', zh:'我们追求真实的情感：战栗、泪水、心跳加速。', ja:'本物の感情を目指す——震え、涙、高鳴る鼓動。', ru:'Мы стремимся к настоящим эмоциям: мурашки, слёзы, бешеное сердце.', pl:'Dążymy do prawdziwych emocji: dreszcze, łzy, przyspieszone bicie serca.', it:'Puntiamo all\'emozione vera: i brividi, le lacrime, il cuore in corsa.' } },
+    { k:'haunt', t:{ fr:'HAUNT', en:'HAUNT', es:'PERDURAR', de:'NACHHALLEN', ar:'نبقى', zh:'萦绕', ja:'刻む', ru:'ПРЕСЛЕДОВАТЬ', pl:'NAWIEDZAĆ', it:'RESTARE' },
+      d:{ fr:'Nos histoires restent. Longtemps après l\'écran noir, elles continuent de vous habiter.', en:'Our stories linger. Long after the screen goes dark, they stay with you.', es:'Nuestras historias perduran. Mucho después de apagarse la pantalla, siguen contigo.', de:'Unsere Geschichten bleiben. Lange nach dem schwarzen Bildschirm wirken sie nach.', ar:'قصصنا تبقى. بعد انطفاء الشاشة بوقت طويل، تظل معك.', zh:'我们的故事会留下。屏幕熄灭很久之后，依然萦绕于心。', ja:'物語は残る。画面が暗くなった後も、ずっと心に。', ru:'Наши истории остаются. Долго после того, как экран гаснет, они с вами.', pl:'Nasze historie zostają. Długo po wygaśnięciu ekranu wciąż w tobie trwają.', it:'Le nostre storie restano. Molto dopo lo schermo nero, rimangono con te.' } },
+  ],
+};
+function buildStudioValues() {
+  const about = $('page-about'); if (!about) return;
+  let host = $('studio-values');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'studio-values';
+    const manifesto = about.querySelector('.about-manifesto');
+    if (manifesto) manifesto.insertAdjacentElement('beforebegin', host);
+    else return;
+  }
+  const L = m => m[LANG] || m.en;
+  host.innerHTML = `
+    <div class="sv-eyebrow reveal">${L(_VALUES.eyebrow)}</div>
+    <h2 class="sv-heading reveal">${L(_VALUES.heading)}</h2>
+    <div class="sv-grid">
+      ${_VALUES.items.map((v, i) => `
+        <div class="sv-card reveal" style="transition-delay:${i * 0.08}s">
+          <div class="sv-num">0${i + 1}</div>
+          <div class="sv-name">${L(v.t)}</div>
+          <p class="sv-desc">${L(v.d)}</p>
+        </div>`).join('')}
+    </div>`;
 }
 
 /* ── CINEMA SPLIT — team member cards ── */
@@ -885,20 +1029,27 @@ function memberCardHTML(member, isLeft, index) {
     studio:  { fr:'Studio',  en:'Studio',  es:'Studio', de:'Studio',  ar:'الأستوديو',zh:'工作室',ja:'スタジオ',ru:'Студия',pl:'Studio',it:'Studio'}[LANG] || 'Studio',
   };
 
-  // Photo panel — cinematic name overlay (first name large, last name hollow below)
+  // Localised role + quote + identity (pseudonym large, real name below)
+  const roleLabel = (member.roleI18n && member.roleI18n[LANG]) || member.role || '';
+  const quote     = (member.quoteI18n && member.quoteI18n[LANG]) || member.quote || '';
+  const realName  = member.alias ? `${member.name || ''} ${member.nameLine2 || ''}`.trim() : '';
+  const bigName   = member.alias
+    ? member.alias
+    : `${member.name || ''}${member.nameLine2 ? `<span class="cm-photo-name-hollow">${member.nameLine2}</span>` : ''}`;
+
+  // Photo panel — cinematic identity overlay (pseudonym large, real name + role below)
   const photoBlock = `
     <div class="cm-photo">
       ${member.photo
-        ? `<img src="${member.photo}" alt="${member.name} ${member.nameLine2 || ''}" onerror="this.style.display='none'">`
+        ? `<img src="${member.photo}" alt="${member.alias || member.name} ${member.nameLine2 || ''}" loading="lazy" onerror="this.style.display='none'">`
         : `<div class="cm-photo-init">${initials}</div>`
       }
       <div class="cm-photo-grad"></div>
       <div class="cm-photo-ident">
-        <div class="cm-photo-name">
-          ${member.name}${member.nameLine2 ? `<span class="cm-photo-name-hollow">${member.nameLine2}</span>` : ''}
-        </div>
+        <div class="cm-photo-name">${bigName}</div>
+        ${realName ? `<div class="cm-photo-realname">${realName}</div>` : ''}
         <div class="cm-photo-meta">
-          <span class="cm-photo-roletag">GEEKLEARN GAMES</span>
+          <span class="cm-photo-roletag">${roleLabel}</span>
         </div>
       </div>
     </div>`;
@@ -908,9 +1059,9 @@ function memberCardHTML(member, isLeft, index) {
     <div class="cm-info">
       <div class="cm-watermark">${idx}</div>
       <div class="cm-info-inner">
-        <p class="cm-quote">${member.quote}</p>
+        <p class="cm-quote">${quote}</p>
         <div class="cm-divider"></div>
-        <div class="cm-role">${member.role}</div>
+        <div class="cm-role">GEEKLEARN GAMES</div>
       </div>
       <div class="cm-stats">
         <div class="cm-stat">
@@ -937,18 +1088,15 @@ function buildAwards() {
   const container = $('awards-grid');
   if (!container) return;
 
+  // Empty awards → hide the whole section (cleaner than empty trophy shelves).
+  // Populate AWARDS in data.js and it reappears automatically.
+  const section = container.closest('.about-awards-section');
   if (!AWARDS.length) {
-    // Show 3 placeholder cards
-    container.innerHTML = [1,2,3].map(() => `
-      <div class="award-card award-card--soon">
-        <div class="award-soon-inner">
-          <div class="award-soon-icon">★</div>
-          <div class="award-soon-label">${t('awardsSoon') || 'Coming Soon'}</div>
-        </div>
-      </div>
-    `).join('');
+    if (section) section.style.display = 'none';
+    container.innerHTML = '';
     return;
   }
+  if (section) section.style.display = '';
 
   container.innerHTML = AWARDS.map(a => `
     <div class="award-card">
@@ -1030,6 +1178,10 @@ function buildDetail(id) {
   if (!item) return;
 
   const container        = $('page-detail');
+  // Per-work colour identity: the ONLY page allowed to break monochrome.
+  container.style.setProperty('--tint', item.tint || '#ffffff');
+  const tintRGB = hexToRgb(item.tint || '#ffffff');
+  if (tintRGB) container.style.setProperty('--tint-rgb', tintRGB);
   const localTagline     = getItemField(item, 'tagline');
   const localDescription = getItemField(item, 'description');
   const localFeatures    = getItemField(item, 'features');
@@ -1141,6 +1293,7 @@ function buildDetail(id) {
             ${item.screenshots.map((ss, idx) => `
               <div class="dp-ss-slide">
                 <img src="${ss}" alt="Screenshot ${idx + 1}" loading="lazy"
+                     onclick="openLightbox('${item.id}',${idx})"
                      onerror="this.parentElement.style.background='var(--s2)'">
               </div>`).join('')}
           </div>
@@ -1212,6 +1365,8 @@ function buildDetail(id) {
       </div>
     </div>` : ''}
 
+    ${relatedWorksHTML(item)}
+
     ${footerHTML()}
   `;
 
@@ -1235,6 +1390,98 @@ function buildDetail(id) {
     const hero = container.querySelector('.dp-hero');
     if (hero) requestAnimationFrame(() => hero.classList.add('dp-entered'));
   });
+}
+
+/* ══════════════════════════════════════════
+   RELATED WORKS (bottom of detail page)
+══════════════════════════════════════════ */
+const _RELATED_LABELS = {
+  fr:'À découvrir aussi', en:'You may also like', es:'También te puede gustar',
+  de:'Das könnte dir gefallen', ar:'قد يعجبك أيضاً', zh:'你可能也喜欢',
+  ja:'こちらもおすすめ', ru:'Вам может понравиться', pl:'Może ci się spodobać', it:'Potrebbe piacerti',
+};
+function relatedWorksHTML(item) {
+  const related = ALL_WORKS.filter(w => w.type === item.type && w.id !== item.id).slice(0, 4);
+  if (!related.length) return '';
+  const label = _RELATED_LABELS[LANG] || _RELATED_LABELS.en;
+  return `
+    <div class="dp-related reveal">
+      <div class="dp-sec-label">${label}</div>
+      <div class="dp-related-grid">
+        ${related.map(w => `
+          <div class="dp-rel-card" onclick="showPage('detail','${w.id}')" style="--tint:${w.tint || '#fff'}">
+            <img src="${w.cover}" alt="${w.title}" loading="lazy" onerror="this.style.display='none'">
+            <div class="dp-rel-name">${w.title}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════
+   SCREENSHOT LIGHTBOX
+══════════════════════════════════════════ */
+let _glb = { shots: [], idx: 0, bound: false };
+function _glbEnsure() {
+  let bg = $('glg-lightbox');
+  if (bg) return bg;
+  bg = document.createElement('div');
+  bg.id = 'glg-lightbox';
+  bg.className = 'gll-bg';
+  bg.innerHTML = `
+    <div class="gll-stage">
+      <button class="gll-close" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="gll-nav gll-prev" aria-label="Previous">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <img class="gll-img" alt="Screenshot">
+      <button class="gll-nav gll-next" aria-label="Next">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="gll-counter"></div>
+    </div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click', e => { if (e.target === bg) closeLightbox(); });
+  bg.querySelector('.gll-close').addEventListener('click', closeLightbox);
+  bg.querySelector('.gll-prev').addEventListener('click', () => lightboxNav(-1));
+  bg.querySelector('.gll-next').addEventListener('click', () => lightboxNav(1));
+  if (!_glb.bound) {
+    _glb.bound = true;
+    document.addEventListener('keydown', e => {
+      if (!$('glg-lightbox')?.classList.contains('open')) return;
+      if (e.key === 'Escape')     closeLightbox();
+      if (e.key === 'ArrowLeft')  lightboxNav(-1);
+      if (e.key === 'ArrowRight') lightboxNav(1);
+    });
+  }
+  return bg;
+}
+function _glbRender() {
+  const bg = $('glg-lightbox'); if (!bg) return;
+  const img = bg.querySelector('.gll-img');
+  img.src = _glb.shots[_glb.idx];
+  bg.querySelector('.gll-counter').textContent = `${_glb.idx + 1} / ${_glb.shots.length}`;
+}
+function openLightbox(id, idx) {
+  const item = ALL_WORKS.find(i => i.id === id);
+  if (!item || !item.screenshots?.length) return;
+  _glb.shots = item.screenshots;
+  _glb.idx   = Math.max(0, Math.min(idx || 0, item.screenshots.length - 1));
+  const bg = _glbEnsure();
+  _glbRender();
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => bg.classList.add('open'));
+}
+function closeLightbox() {
+  const bg = $('glg-lightbox'); if (!bg) return;
+  bg.classList.remove('open');
+  document.body.style.overflow = '';
+}
+function lightboxNav(dir) {
+  if (!_glb.shots.length) return;
+  _glb.idx = (_glb.idx + dir + _glb.shots.length) % _glb.shots.length;
+  _glbRender();
 }
 
 /* ══════════════════════════════════════════
@@ -1324,7 +1571,7 @@ function footerHTML() {
     <div class="footer-inner">
       <div>
         <div class="footer-logo">
-          <img src="assets/images/logo/GEEKLEARN_GAMES_NEW_LOGO_V4_WHITE.png" alt="GLG" onerror="this.style.display='none'">
+          <img src="assets/img/brand/glg-logo-white.png" alt="GLG" onerror="this.style.display='none'">
         </div>
         <p class="footer-brand-desc">${t('footerDesc')}</p>
       </div>
@@ -1348,19 +1595,19 @@ function footerHTML() {
         <div class="footer-col-title">${t('footerFollowTitle')}</div>
         <div class="footer-socials-row">
           <a href="https://x.com/geeklearngames" target="_blank" rel="noopener" class="footer-soc-btn" title="X / Twitter" aria-label="X Twitter">
-            <img src="assets/images/LINKS - LOGOS/X_logo_2023_(white).png" alt="X" class="soc-icon">
+            <img src="assets/img/social/x.png" alt="X" class="soc-icon">
           </a>
           <a href="https://discord.gg/M7YJsC9BwH" target="_blank" rel="noopener" class="footer-soc-btn" title="Discord" aria-label="Discord">
-            <img src="assets/images/LINKS - LOGOS/DISCORD - LOGO - TRANSPARANT.png" alt="Discord" class="soc-icon">
+            <img src="assets/img/social/discord.png" alt="Discord" class="soc-icon">
           </a>
           <a href="https://www.youtube.com/@GEEKLEARN-GAMES" target="_blank" rel="noopener" class="footer-soc-btn" title="YouTube" aria-label="YouTube">
-            <img src="assets/images/LINKS - LOGOS/YOUTUBE - LOGO - TRANSPARENT.png" alt="YouTube" class="soc-icon">
+            <img src="assets/img/social/youtube.png" alt="YouTube" class="soc-icon">
           </a>
           <a href="https://www.instagram.com/geeklearn_games/" target="_blank" rel="noopener" class="footer-soc-btn" title="Instagram" aria-label="Instagram">
-            <img src="assets/images/LINKS - LOGOS/INSTAGRAM - LOGO - TRANSPARENT.png" alt="Instagram" class="soc-icon">
+            <img src="assets/img/social/instagram.png" alt="Instagram" class="soc-icon">
           </a>
           <a href="https://store.steampowered.com/dev/GEEKLEARN-GAMES" target="_blank" rel="noopener" class="footer-soc-btn" title="Steam" aria-label="Steam">
-            <img src="assets/images/LINKS - LOGOS/STEAM - LOGO - TRANSPARENT.png" alt="Steam" class="soc-icon">
+            <img src="assets/img/social/steam.png" alt="Steam" class="soc-icon">
           </a>
         </div>
       </div>
@@ -1388,11 +1635,17 @@ let _scrollProgressBound = false;
 function initScrollProgress() {
   if (!_scrollProgressBound) {
     _scrollProgressBound = true;
+    let _rafPending = false;
     window.addEventListener('scroll', () => {
-      const d = document.documentElement;
-      const pct = (window.scrollY / (d.scrollHeight - d.clientHeight)) * 100;
-      const el = $('sprogress');
-      if (el) el.style.width = pct + '%';
+      if (_rafPending) return;
+      _rafPending = true;
+      requestAnimationFrame(() => {
+        _rafPending = false;
+        const d = document.documentElement;
+        const pct = (window.scrollY / (d.scrollHeight - d.clientHeight)) * 100;
+        const el = $('sprogress');
+        if (el) el.style.width = pct + '%';
+      });
     }, { passive: true });
   }
 }
@@ -1562,6 +1815,17 @@ async function handleContactForm(e) {
     'Sent from':   window.location.hostname,
   };
 
+  // ── Safety net: mirror every message into Supabase (fire-and-forget) ──
+  // Guarantees no message is ever lost, even if the email service fails.
+  if (window.GLG_AUTH?.isConfigured?.() && GLG_AUTH.getClient()) {
+    try {
+      GLG_AUTH.getClient().from('messages').insert({
+        name: fullName, email, company: company || null, subject,
+        body: message, portfolio: portfolio || null, lang: LANG || 'en',
+      }).then(({ error }) => { if (error) console.info('[GLG] Supabase message log skipped:', error.message); });
+    } catch (_) { /* never block the email path */ }
+  }
+
   try {
     const res = await fetch(
       'https://formsubmit.co/ajax/geeklearngames.studio@gmail.com',
@@ -1632,12 +1896,530 @@ async function handleContactForm(e) {
 }
 
 /* ══════════════════════════════════════════
+   CONTACT — UX ENHANCEMENTS
+   Real-time validation + topic-card → subject autofill
+══════════════════════════════════════════ */
+let _contactEnhanced = false;
+function initContactEnhancements() {
+  const form = $('contact-form');
+  if (!form || _contactEnhanced) return;
+  _contactEnhanced = true;
+
+  // Clear error styling as soon as the user edits a field
+  form.addEventListener('input', e => {
+    const el = e.target;
+    if (!el.matches('input,select,textarea')) return;
+    el.classList.remove('form-input--err', 'form-select--err', 'form-textarea--err');
+    const next = el.parentNode.querySelector('.form-err');
+    if (next) next.remove();
+  });
+
+  // Live email format hint on blur
+  const email = $('inp-email');
+  if (email) {
+    email.addEventListener('blur', () => {
+      const v = email.value.trim();
+      if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+        email.classList.add('form-input--err');
+        if (!email.parentNode.querySelector('.form-err')) {
+          const p = document.createElement('p');
+          p.className = 'form-err';
+          p.textContent = t('errEmail') || 'Valid email required';
+          email.parentNode.appendChild(p);
+        }
+      }
+    });
+  }
+
+  // Topic cards → preselect the matching subject + scroll to form
+  // Card order in DOM: [General, Publishers, Press, Bug] → subjectOpts index
+  const TOPIC_SUBJ = [7, 0, 2, 5];
+  const cards = document.querySelectorAll('.contact-topics .c-info-block');
+  cards.forEach((card, i) => {
+    card.classList.add('c-info-block--clickable');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    const pick = () => {
+      const sel = $('contact-subject');
+      if (sel) {
+        sel.selectedIndex = (TOPIC_SUBJ[i] ?? 0) + 1; // +1 skips placeholder
+        sel.classList.remove('form-select--err');
+        sel.classList.add('field-flash');
+        setTimeout(() => sel.classList.remove('field-flash'), 700);
+      }
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const firstEmpty = [...form.querySelectorAll('input[required]')].find(el => !el.value.trim());
+      if (firstEmpty) setTimeout(() => firstEmpty.focus(), 350);
+    };
+    card.addEventListener('click', pick);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  });
+}
+
+/* ══════════════════════════════════════════
+   ACCOUNTS — UI (Supabase)
+   Nav button + auth modal (login / signup / profile)
+   Data layer lives in js/auth.js → window.GLG_AUTH
+══════════════════════════════════════════ */
+/* i18n (FR/EN robustes ; repli EN pour les autres langues — extensible) */
+const _AUTH_T = {
+  account:{fr:'Compte',en:'Account'}, signIn:{fr:'Se connecter',en:'Sign in'},
+  signUp:{fr:'Créer un compte',en:'Create account'}, myAccount:{fr:'Mon compte',en:'My account'},
+  email:{fr:'E-mail',en:'Email'}, password:{fr:'Mot de passe',en:'Password'},
+  username:{fr:"Pseudo",en:'Username'}, age:{fr:'Âge',en:'Age'},
+  gender:{fr:'Genre',en:'Gender'}, male:{fr:'Homme',en:'Male'}, female:{fr:'Femme',en:'Female'},
+  other:{fr:'Autre',en:'Other'}, specify:{fr:'Préciser',en:'Please specify'},
+  consent:{fr:"J'accepte que mes données soient utilisées pour gérer mon compte.",en:'I agree that my data is used to manage my account.'},
+  submitLogin:{fr:'Connexion',en:'Log in'}, submitSignup:{fr:'Créer mon compte',en:'Create my account'},
+  working:{fr:'Veuillez patienter…',en:'Please wait…'},
+  logout:{fr:'Se déconnecter',en:'Log out'}, save:{fr:'Enregistrer',en:'Save'},
+  saved:{fr:'Enregistré ✓',en:'Saved ✓'}, del:{fr:'Supprimer mon compte',en:'Delete my account'},
+  delConfirm:{fr:'Supprimer définitivement ton compte ? Cette action est irréversible.',en:'Permanently delete your account? This cannot be undone.'},
+  memberSince:{fr:'Membre depuis',en:'Member since'},
+  haveAccount:{fr:'Déjà un compte ?',en:'Already have an account?'},
+  noAccount:{fr:'Pas encore de compte ?',en:'No account yet?'},
+  checkEmail:{fr:'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.',en:'Account created! Check your inbox to confirm your email.'},
+  welcome:{fr:'Connecté ✓',en:'Signed in ✓'},
+  pwWeak:{fr:'Mot de passe trop faible (8+ caractères, mélange maj/min/chiffre/symbole).',en:'Password too weak (8+ chars, mix upper/lower/digit/symbol).'},
+  pwStrength:{fr:['Très faible','Faible','Correct','Bon','Excellent'],en:['Very weak','Weak','Fair','Good','Strong']},
+  uTaken:{fr:'Ce pseudo est déjà pris.',en:'This username is taken.'},
+  uAvail:{fr:'Pseudo disponible ✓',en:'Username available ✓'},
+  uShort:{fr:'3 caractères minimum.',en:'At least 3 characters.'},
+  uInvalid:{fr:'Lettres, chiffres, . _ - uniquement.',en:'Letters, numbers, . _ - only.'},
+  emailTaken:{fr:'Cet e-mail est déjà utilisé.',en:'This email is already in use.'},
+  emailInvalid:{fr:'E-mail invalide.',en:'Invalid email.'},
+  badCreds:{fr:'E-mail ou mot de passe incorrect.',en:'Wrong email or password.'},
+  ageMin:{fr:'Tu dois avoir au moins 13 ans.',en:'You must be at least 13.'},
+  required:{fr:'Champ requis.',en:'Required field.'},
+  genderReq:{fr:'Choisis une option.',en:'Please choose an option.'},
+  consentReq:{fr:'Tu dois accepter pour continuer.',en:'You must accept to continue.'},
+  fail:{fr:"Échec — réessaie.",en:'Failed — please try again.'},
+  notConfigured:{fr:'Les comptes ne sont pas encore activés sur ce site.',en:'Accounts are not enabled on this site yet.'},
+  close:{fr:'Fermer',en:'Close'},
+  profileItem:{fr:'Profil',en:'Profile'}, optionsItem:{fr:'Options',en:'Options'},
+  chooseAvatar:{fr:'Choisir un avatar',en:'Choose an avatar'},
+  avatarChange:{fr:"Changer d'avatar",en:'Change avatar'},
+  presetsLabel:{fr:'Personnages',en:'Characters'},
+  customLabel:{fr:'Image personnelle',en:'Custom image'},
+  uploadBtn:{fr:'Téléverser une image',en:'Upload an image'},
+  back:{fr:'Retour',en:'Back'},
+  modOff:{fr:"Upload perso bientôt disponible (modération requise). Choisis un personnage pour l'instant.",en:'Custom upload coming soon (moderation required). Pick a character for now.'},
+  imgType:{fr:'Format non supporté (PNG, JPG, WEBP).',en:'Unsupported format (PNG, JPG, WEBP).'},
+  imgSize:{fr:'Image trop lourde (max 2 Mo).',en:'Image too large (max 2 MB).'},
+  imgRejected:{fr:'Image refusée par la modération.',en:'Image rejected by moderation.'},
+  imgUploaded:{fr:'Avatar mis à jour ✓',en:'Avatar updated ✓'},
+};
+function _at(k){ const m=_AUTH_T[k]; if(!m) return k; return m[LANG]||m.en; }
+
+let _authUIInit = false;
+function initAuthUI() {
+  _buildAccountButton();
+  _buildAuthModal();
+  if (!_authUIInit) {
+    _authUIInit = true;
+    document.addEventListener('glg:auth-ready', refreshAccountUI);
+    if (window.GLG_AUTH?.isConfigured?.()) GLG_AUTH.onChange(() => refreshAccountUI());
+  }
+  refreshAccountUI();
+}
+
+const _ACCOUNT_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
+    <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`;
+let _accountProfile = null;
+
+/* Circular avatar markup: photo if set, else first-letter disc */
+function _avatarDiscHTML(profile, user) {
+  const url  = profile?.avatar_url;
+  const init = ((profile?.username || user?.email || '?')[0] || '?').toUpperCase();
+  return url
+    ? `<img class="ava-img" src="${url}" alt="" onerror="this.remove()"><span class="ava-init ava-init--fallback">${init}</span>`
+    : `<span class="ava-init">${init}</span>`;
+}
+
+function _buildAccountButton() {
+  if ($('nav-account-btn')) return;
+  const nav = $('nav'); if (!nav) return;
+  const btn = document.createElement('button');
+  btn.id = 'nav-account-btn';
+  btn.setAttribute('aria-label', _at('account'));
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.title = _at('account');
+  btn.innerHTML = `<span class="nav-account-ava">${_ACCOUNT_ICON}</span><span class="nav-account-name"></span>`;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const loggedIn = btn.classList.contains('is-auth');
+    if (loggedIn) toggleAccountMenu();
+    else openAuthModal('login');
+  });
+  const langBtn = $('nav-lang-btn');
+  if (langBtn) nav.insertBefore(btn, langBtn);
+  else nav.appendChild(btn);
+  _buildAccountMenu();
+}
+
+/* Dropdown shown when clicking the avatar (logged in) */
+function _buildAccountMenu() {
+  if ($('nav-account-menu')) return;
+  const menu = document.createElement('div');
+  menu.id = 'nav-account-menu';
+  menu.className = 'acct-menu';
+  menu.setAttribute('role', 'menu');
+  menu.innerHTML = `
+    <button class="acct-menu-item" data-act="profile" role="menuitem">${_at('profileItem')}</button>
+    <button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>
+    <button class="acct-menu-item acct-menu-item--danger" data-act="logout" role="menuitem">${_at('logout')}</button>`;
+  document.body.appendChild(menu);
+  menu.addEventListener('click', async e => {
+    const act = e.target.closest('.acct-menu-item')?.dataset.act;
+    if (!act) return;
+    closeAccountMenu();
+    if (act === 'profile') openAuthModal();
+    else if (act === 'options') { openAuthModal(); }
+    else if (act === 'logout') { await GLG_AUTH.signOut(); refreshAccountUI(); }
+  });
+  // Close on outside click / escape
+  document.addEventListener('click', e => {
+    if (!$('nav-account-menu')?.classList.contains('open')) return;
+    if (e.target.closest('#nav-account-menu') || e.target.closest('#nav-account-btn')) return;
+    closeAccountMenu();
+  });
+}
+function toggleAccountMenu() {
+  const menu = $('nav-account-menu'); const btn = $('nav-account-btn');
+  if (!menu || !btn) return;
+  if (menu.classList.contains('open')) { closeAccountMenu(); return; }
+  // Refresh labels (language may have changed)
+  menu.querySelector('[data-act="profile"]').textContent = _at('profileItem');
+  menu.querySelector('[data-act="options"]').textContent = _at('optionsItem');
+  menu.querySelector('[data-act="logout"]').textContent  = _at('logout');
+  const r = btn.getBoundingClientRect();
+  menu.style.top   = (r.bottom + 8) + 'px';
+  menu.style.right = (window.innerWidth - r.right) + 'px';
+  menu.classList.add('open');
+}
+function closeAccountMenu() { $('nav-account-menu')?.classList.remove('open'); }
+
+let _authTab = 'login';
+function _buildAuthModal() {
+  if ($('glg-auth-modal')) return;
+  const m = document.createElement('div');
+  m.id = 'glg-auth-modal';
+  m.className = 'auth-bg';
+  m.addEventListener('click', e => { if (e.target === m) closeAuthModal(); });
+  document.body.appendChild(m);
+}
+
+function openAuthModal(tab) {
+  _authTab = tab || 'login';
+  const m = $('glg-auth-modal'); if (!m) return;
+  renderAuthModal();
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => m.classList.add('open'));
+}
+function closeAuthModal() {
+  const m = $('glg-auth-modal'); if (!m) return;
+  m.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function renderAuthModal() {
+  const m = $('glg-auth-modal'); if (!m) return;
+  const configured = !!window.GLG_AUTH?.isConfigured?.();
+  const user = configured ? await GLG_AUTH.getUser() : null;
+
+  if (user) { m.innerHTML = await _profileHTML(); _wireProfile(); return; }
+
+  const notice = configured ? '' : `<div class="auth-notice">${_at('notConfigured')}</div>`;
+  m.innerHTML = `
+    <div class="auth-box" role="dialog" aria-modal="true">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="auth-brand">
+        <img src="assets/img/brand/glg-logo-white.png" alt="GEEKLEARN GAMES" onerror="this.style.display='none'">
+        <span class="auth-brand-name">GEEKLEARN GAMES</span>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab ${_authTab==='login'?'active':''}" data-tab="login">${_at('signIn')}</button>
+        <button class="auth-tab ${_authTab==='signup'?'active':''}" data-tab="signup">${_at('signUp')}</button>
+      </div>
+      ${notice}
+      <div class="auth-body">${_authTab==='login' ? _loginFormHTML() : _signupFormHTML()}</div>
+    </div>`;
+  m.querySelectorAll('.auth-tab').forEach(b => b.addEventListener('click', () => { _authTab = b.dataset.tab; renderAuthModal(); }));
+  if (_authTab === 'login') _wireLogin(); else _wireSignup();
+}
+
+function _loginFormHTML() {
+  return `
+    <form id="auth-login" novalidate>
+      <label class="auth-field"><span>${_at('email')}</span>
+        <input type="email" id="al-email" autocomplete="email" required></label>
+      <label class="auth-field"><span>${_at('password')}</span>
+        <input type="password" id="al-pass" autocomplete="current-password" required></label>
+      <p class="auth-err" id="al-err" hidden></p>
+      <button type="submit" class="btn btn-primary auth-submit" id="al-submit">${_at('submitLogin')}</button>
+      <p class="auth-switch">${_at('noAccount')} <button type="button" class="auth-link" onclick="_authTab='signup';renderAuthModal()">${_at('signUp')}</button></p>
+    </form>`;
+}
+function _signupFormHTML() {
+  return `
+    <form id="auth-signup" novalidate>
+      <label class="auth-field"><span>${_at('username')}</span>
+        <input type="text" id="as-user" autocomplete="username" required maxlength="20">
+        <span class="auth-hint" id="as-user-hint"></span></label>
+      <label class="auth-field"><span>${_at('email')}</span>
+        <input type="email" id="as-email" autocomplete="email" required></label>
+      <label class="auth-field"><span>${_at('password')}</span>
+        <input type="password" id="as-pass" autocomplete="new-password" required>
+        <span class="auth-meter" aria-hidden="true"><i id="as-meter"></i></span>
+        <span class="auth-hint" id="as-pass-hint"></span></label>
+      <div class="auth-field"><span>${_at('gender')}</span>
+        <div class="auth-radios">
+          <label><input type="radio" name="as-gender" value="male"><span>${_at('male')}</span></label>
+          <label><input type="radio" name="as-gender" value="female"><span>${_at('female')}</span></label>
+          <label><input type="radio" name="as-gender" value="other"><span>${_at('other')}</span></label>
+        </div>
+        <input type="text" id="as-gender-other" class="auth-gender-other" placeholder="${_at('specify')}" maxlength="60" hidden></div>
+      <label class="auth-field"><span>${_at('age')}</span>
+        <input type="number" id="as-age" min="13" max="120" required></label>
+      <label class="auth-consent"><input type="checkbox" id="as-consent"><span>${_at('consent')}</span></label>
+      <p class="auth-err" id="as-err" hidden></p>
+      <button type="submit" class="btn btn-primary auth-submit" id="as-submit">${_at('submitSignup')}</button>
+      <p class="auth-switch">${_at('haveAccount')} <button type="button" class="auth-link" onclick="_authTab='login';renderAuthModal()">${_at('signIn')}</button></p>
+    </form>`;
+}
+
+function _showErr(id, msg) { const e = $(id); if (e) { e.textContent = msg; e.hidden = false; } }
+function _hideErr(id) { const e = $(id); if (e) e.hidden = true; }
+
+function _wireLogin() {
+  const form = $('auth-login'); if (!form) return;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    _hideErr('al-err');
+    if (!window.GLG_AUTH?.isConfigured?.()) { _showErr('al-err', _at('notConfigured')); return; }
+    const btn = $('al-submit'); const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = _at('working');
+    const r = await GLG_AUTH.signIn({ email: $('al-email').value, password: $('al-pass').value });
+    btn.disabled = false; btn.textContent = orig;
+    if (!r.ok) { _showErr('al-err', r.code === 'badCredentials' ? _at('badCreds') : _at('fail')); return; }
+    closeAuthModal(); refreshAccountUI();
+  });
+}
+
+function _wireSignup() {
+  const form = $('auth-signup'); if (!form) return;
+
+  // Gender "other" → reveal specify input
+  form.querySelectorAll('input[name="as-gender"]').forEach(r =>
+    r.addEventListener('change', () => {
+      $('as-gender-other').hidden = form.querySelector('input[name="as-gender"]:checked')?.value !== 'other';
+    }));
+
+  // Password strength meter (live)
+  const pass = $('as-pass');
+  pass?.addEventListener('input', () => {
+    const s = GLG_AUTH.passwordStrength(pass.value);
+    const meter = $('as-meter');
+    if (meter) { meter.style.width = (s.score / 4 * 100) + '%'; meter.dataset.score = s.score; }
+    const labels = _AUTH_T.pwStrength[LANG] || _AUTH_T.pwStrength.en;
+    $('as-pass-hint').textContent = pass.value ? labels[s.score] : '';
+  });
+
+  // Username availability (debounced)
+  const userI = $('as-user'); let utimer = null;
+  userI?.addEventListener('input', () => {
+    clearTimeout(utimer);
+    const hint = $('as-user-hint'); hint.className = 'auth-hint';
+    const v = GLG_AUTH.validateUsername(userI.value);
+    if (!v.ok) { hint.textContent = userI.value ? (v.code==='tooShort'?_at('uShort'):_at('uInvalid')) : ''; return; }
+    hint.textContent = '…';
+    utimer = setTimeout(async () => {
+      const a = await GLG_AUTH.checkUsernameAvailable(userI.value);
+      if (a.ok && a.available) { hint.textContent = _at('uAvail'); hint.classList.add('ok'); }
+      else if (a.ok && !a.available) { hint.textContent = _at('uTaken'); hint.classList.add('bad'); }
+      else hint.textContent = '';
+    }, 450);
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    _hideErr('as-err');
+    if (!window.GLG_AUTH?.isConfigured?.()) { _showErr('as-err', _at('notConfigured')); return; }
+    if (!$('as-consent').checked) { _showErr('as-err', _at('consentReq')); return; }
+    const gender = form.querySelector('input[name="as-gender"]:checked')?.value;
+    const btn = $('as-submit'); const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = _at('working');
+    const r = await GLG_AUTH.signUp({
+      username: $('as-user').value, email: $('as-email').value, password: $('as-pass').value,
+      gender, genderOther: $('as-gender-other').value, age: $('as-age').value,
+    });
+    btn.disabled = false; btn.textContent = orig;
+    if (!r.ok) {
+      const map = { weak:_at('pwWeak'), taken:_at('uTaken'), emailTaken:_at('emailTaken'),
+        invalid:_at('emailInvalid'), tooShort:_at('uShort'), required:_at('required'),
+        min:_at('ageMin'), max:_at('required') };
+      const msg = (r.field==='gender') ? _at('genderReq') : (map[r.code] || _at('fail'));
+      _showErr('as-err', msg);
+      return;
+    }
+    if (r.needsConfirm) { _showErr('as-err', _at('checkEmail')); $('as-err').classList.add('ok'); }
+    else { closeAuthModal(); refreshAccountUI(); }
+  });
+}
+
+async function _profileHTML() {
+  const p = await GLG_AUTH.getProfile();
+  const u = await GLG_AUTH.getUser();
+  const name = p?.username || u?.email?.split('@')[0] || '—';
+  const since = p?.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { year:'numeric', month:'long' }) : '';
+  const initial = (name[0] || '?').toUpperCase();
+  const gLabel = p?.gender === 'male' ? _at('male') : p?.gender === 'female' ? _at('female') : (p?.gender_other || _at('other'));
+  return `
+    <div class="auth-box auth-box--profile" role="dialog" aria-modal="true">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" class="auth-avatar auth-avatar--btn" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
+        ${_avatarDiscHTML(p, u)}
+        <span class="auth-avatar-edit" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+      <h3 class="auth-profile-name">${name}</h3>
+      <p class="auth-profile-meta">${u?.email || ''}${since ? ` · ${_at('memberSince')} ${since}` : ''}</p>
+      <form id="auth-profile" novalidate>
+        <label class="auth-field"><span>${_at('username')}</span>
+          <input type="text" id="ap-user" value="${name}" maxlength="20"><span class="auth-hint" id="ap-user-hint"></span></label>
+        <div class="auth-row">
+          <label class="auth-field"><span>${_at('gender')}</span>
+            <select id="ap-gender">
+              <option value="male" ${p?.gender==='male'?'selected':''}>${_at('male')}</option>
+              <option value="female" ${p?.gender==='female'?'selected':''}>${_at('female')}</option>
+              <option value="other" ${p?.gender==='other'?'selected':''}>${_at('other')}</option>
+            </select></label>
+          <label class="auth-field"><span>${_at('age')}</span>
+            <input type="number" id="ap-age" min="13" max="120" value="${p?.age ?? ''}"></label>
+        </div>
+        <p class="auth-err" id="ap-err" hidden></p>
+        <button type="submit" class="btn btn-primary auth-submit" id="ap-save">${_at('save')}</button>
+      </form>
+      <div class="auth-profile-actions">
+        <button class="auth-link" id="ap-logout">${_at('logout')}</button>
+        <button class="auth-link auth-link--danger" id="ap-delete">${_at('del')}</button>
+      </div>
+    </div>`;
+}
+
+function _wireProfile() {
+  $('ap-avatar')?.addEventListener('click', openAvatarPicker);
+  $('auth-profile')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    _hideErr('ap-err');
+    const btn = $('ap-save'); const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = _at('working');
+    const r = await GLG_AUTH.updateProfile({
+      username: $('ap-user').value, gender: $('ap-gender').value, age: $('ap-age').value,
+    });
+    btn.disabled = false;
+    if (!r.ok) { btn.textContent = orig; _showErr('ap-err', r.code==='taken'?_at('uTaken'):_at('fail')); return; }
+    btn.textContent = _at('saved');
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+    refreshAccountUI();
+  });
+  $('ap-logout')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); });
+  $('ap-delete')?.addEventListener('click', async () => {
+    if (!confirm(_at('delConfirm'))) return;
+    const r = await GLG_AUTH.deleteAccount();
+    if (r.ok) { closeAuthModal(); refreshAccountUI(); }
+    else _showErr('ap-err', _at('fail'));
+  });
+}
+
+/* Preset avatars = circular crops of each work's cover (replace later with
+   dedicated character art dropped into assets/img/avatars/). */
+function getPresetAvatars() {
+  return (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).map(w => ({ id: w.id, label: w.title, src: w.cover }));
+}
+
+async function openAvatarPicker() {
+  const m = $('glg-auth-modal'); if (!m) return;
+  const presets = getPresetAvatars();
+  m.innerHTML = `
+    <div class="auth-box" role="dialog" aria-modal="true">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="auth-back" id="apick-back">‹ ${_at('back')}</button>
+      <h3 class="auth-picker-title">${_at('chooseAvatar')}</h3>
+      <div class="auth-picker-label">${_at('presetsLabel')}</div>
+      <div class="avatar-grid">
+        ${presets.map(p => `
+          <button class="avatar-cell" data-src="${p.src}" title="${p.label}">
+            <img src="${p.src}" alt="${p.label}" loading="lazy" onerror="this.style.opacity=0">
+          </button>`).join('')}
+      </div>
+      <div class="auth-picker-label">${_at('customLabel')}</div>
+      <label class="avatar-upload">
+        <input type="file" id="apick-file" accept="image/png,image/jpeg,image/webp" hidden>
+        <span>＋ ${_at('uploadBtn')}</span>
+      </label>
+      <p class="auth-err" id="apick-err" hidden></p>
+    </div>`;
+  $('apick-back').addEventListener('click', renderAuthModal);
+  m.querySelectorAll('.avatar-cell').forEach(c => c.addEventListener('click', async () => {
+    _hideErr('apick-err');
+    const r = await GLG_AUTH.updateProfile({ avatar_url: c.dataset.src });
+    if (r.ok) { await refreshAccountUI(); renderAuthModal(); }
+    else _showErr('apick-err', r.code === 'notConfigured' ? _at('notConfigured') : _at('fail'));
+  }));
+  $('apick-file').addEventListener('change', async e => {
+    const file = e.target.files?.[0]; if (!file) return;
+    _hideErr('apick-err');
+    const r = await GLG_AUTH.uploadAvatar(file);
+    if (r.ok) { await refreshAccountUI(); renderAuthModal(); return; }
+    const map = { mod_off:_at('modOff'), type:_at('imgType'), size:_at('imgSize'),
+      rejected:_at('imgRejected'), notConfigured:_at('notConfigured') };
+    _showErr('apick-err', map[r.code] || _at('fail'));
+  });
+}
+
+async function refreshAccountUI() {
+  const btn = $('nav-account-btn'); if (!btn) return;
+  const avaEl  = btn.querySelector('.nav-account-ava');
+  const nameEl = btn.querySelector('.nav-account-name');
+  let user = null;
+  if (window.GLG_AUTH?.isConfigured?.()) user = await GLG_AUTH.getUser();
+  if (user) {
+    const p = await GLG_AUTH.getProfile();
+    _accountProfile = p;
+    const name = p?.username || user.email?.split('@')[0] || '';
+    btn.classList.add('is-auth');
+    if (avaEl)  avaEl.innerHTML = _avatarDiscHTML(p, user);
+    if (nameEl) nameEl.textContent = name;
+    btn.title = _at('myAccount');
+  } else {
+    _accountProfile = null;
+    closeAccountMenu();
+    btn.classList.remove('is-auth');
+    if (avaEl)  avaEl.innerHTML = _ACCOUNT_ICON;
+    if (nameEl) nameEl.textContent = '';
+    btn.title = _at('account');
+  }
+}
+
+/* ══════════════════════════════════════════
    KEYBOARD
 ══════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeBuyModal();
     closeTrailerModal();
+    closeLightbox();
+    closeAuthModal();
     closeSearch();
     $('nav-mobile')?.classList.remove('open');
     $('nav-burger')?.classList.remove('open');
@@ -1976,12 +2758,25 @@ function initHeroParallax() {
   _heroParallaxBound = true;
 
   let tx = 0, ty = 0, cx = 0, cy = 0;
+  let _content = null; // cached on page-changed, never queried inside the loop
+
+  function updateContentRef(pageName) {
+    if (_content) { _content.style.transform = ''; }
+    cx = 0; cy = 0; tx = 0; ty = 0;
+    const page = document.getElementById('page-' + pageName);
+    _content = page ? page.querySelector('.hero .hero-content') : null;
+  }
+
+  // Keep cache in sync with page navigation — zero DOM queries inside the rAF loop
+  document.addEventListener('glg:page-changed', e => updateContentRef(e.detail?.name || ''));
+  document.addEventListener('glg:site-built',   () => updateContentRef('home'));
 
   document.addEventListener('mousemove', e => {
-    const hero = document.querySelector('.page.active .hero');
+    if (!_content) return;
+    const hero = _content.closest('.hero');
     if (!hero) return;
     const r = hero.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right  ||
+    if (e.clientX < r.left || e.clientX > r.right ||
         e.clientY < r.top  || e.clientY > r.bottom) return;
     tx = (e.clientX / window.innerWidth  - .5);
     ty = (e.clientY / window.innerHeight - .5);
@@ -1992,11 +2787,8 @@ function initHeroParallax() {
   (function loopParallax() {
     cx += (tx - cx) * .05;
     cy += (ty - cy) * .05;
-    if (Math.abs(cx) > .0005 || Math.abs(cy) > .0005) {
-      const content = document.querySelector('.page.active .hero .hero-content');
-      if (content) {
-        content.style.transform = `translate(${cx * -8}px,${cy * -5}px)`;
-      }
+    if ((Math.abs(cx) > .0005 || Math.abs(cy) > .0005) && _content) {
+      _content.style.transform = `translate(${cx * -8}px,${cy * -5}px)`;
     }
     requestAnimationFrame(loopParallax);
   })();
@@ -2010,18 +2802,24 @@ function initScrollParallax() {
   if (_scrollParallaxBound || !_GLG.motion()) return;
   _scrollParallaxBound = true;
 
+  let _rafPending = false;
   window.addEventListener('scroll', () => {
-    const page = document.getElementById('page-home');
-    if (!page?.classList.contains('active')) return;
-    const hero    = page.querySelector('.hero');
-    const content = page.querySelector('.hero-content');
-    if (!hero || !content) return;
-    const sy = window.scrollY;
-    const h  = hero.offsetHeight;
-    if (sy > h) return;
-    const p = sy / h;                        /* 0 at top, 1 at hero bottom */
-    content.style.opacity   = String(Math.max(0, 1 - p * 2.2));
-    content.style.transform = `translateY(${p * 26}px)`;
+    if (_rafPending) return;
+    _rafPending = true;
+    requestAnimationFrame(() => {
+      _rafPending = false;
+      const page = document.getElementById('page-home');
+      if (!page?.classList.contains('active')) return;
+      const hero    = page.querySelector('.hero');
+      const content = page.querySelector('.hero-content');
+      if (!hero || !content) return;
+      const sy = window.scrollY;
+      const h  = hero.offsetHeight;
+      if (sy > h) return;
+      const p = sy / h;
+      content.style.opacity   = String(Math.max(0, 1 - p * 2.2));
+      content.style.transform = `translateY(${p * 26}px)`;
+    });
   }, { passive: true });
 }
 
@@ -2054,15 +2852,19 @@ function initCardTilt() {
   if (_cardTiltBound || !_GLG.fine() || !_GLG.motion()) return;
   _cardTiltBound = true;
 
+  let _hoveredCard = null;
+  document.addEventListener('mouseover', e => {
+    _hoveredCard = e.target.closest?.('.c-card') || null;
+  }, { passive: true });
+
   document.addEventListener('mousemove', e => {
-    document.querySelectorAll('.c-card:hover').forEach(card => {
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width  - .5;
-      const y = (e.clientY - r.top)  / r.height - .5;
-      card.style.transform =
-        `translateY(-6px) scale(1.015) perspective(700px) ` +
-        `rotateY(${x * 8}deg) rotateX(${-y * 6}deg)`;
-    });
+    if (!_hoveredCard) return;
+    const r = _hoveredCard.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width  - .5;
+    const y = (e.clientY - r.top)  / r.height - .5;
+    _hoveredCard.style.transform =
+      `translateY(-6px) scale(1.015) perspective(700px) ` +
+      `rotateY(${x * 8}deg) rotateX(${-y * 6}deg)`;
   }, { passive: true });
 
   /* Reset on mouse exit */
@@ -2167,10 +2969,10 @@ function initHeroCanvas() {
     for (let i = 0; i < COUNT; i++) PARTICLES.push(make());
   }
 
+  let _canvasRafId = null;
+  let _canvasActive = false;
+
   function draw() {
-    if (!document.getElementById('page-home')?.classList.contains('active')) {
-      requestAnimationFrame(draw); return;
-    }
     ctx.clearRect(0, 0, W, H);
     for (const p of PARTICLES) {
       p.x += p.vx; p.y += p.vy; p.ph += .014;
@@ -2184,12 +2986,21 @@ function initHeroCanvas() {
       ctx.fillStyle = `rgba(255,215,90,${alpha.toFixed(3)})`;
       ctx.fill();
     }
-    requestAnimationFrame(draw);
+    _canvasRafId = requestAnimationFrame(draw);
   }
+
+  function canvasStart() { if (!_canvasActive) { _canvasActive = true; _canvasRafId = requestAnimationFrame(draw); } }
+  function canvasStop()  { _canvasActive = false; cancelAnimationFrame(_canvasRafId); ctx.clearRect(0, 0, W, H); }
+
+  // Start/stop in sync with page visibility
+  document.addEventListener('glg:page-changed', e => {
+    e.detail?.name === 'home' ? canvasStart() : canvasStop();
+  });
 
   resize();
   initParticles();
-  draw();
+  // Only start if home is already active (initial load)
+  if (document.getElementById('page-home')?.classList.contains('active')) canvasStart();
 
   window.addEventListener('resize', () => { resize(); initParticles(); }, { passive: true });
 }
