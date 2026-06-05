@@ -129,10 +129,21 @@
     });
     if (error) {
       const msg = (error.message || '').toLowerCase();
-      if (msg.includes('already') || msg.includes('registered') || error.status === 422)
+      const status = error.status;
+      console.warn('[GLG signUp]', status, error.message); // surface the real cause
+      if (msg.includes('already') || msg.includes('registered'))
         return { ok: false, field: 'email', code: 'emailTaken' };
+      if (status === 429 || msg.includes('rate limit') || msg.includes('too many') || msg.includes('email rate'))
+        return { ok: false, code: 'rateLimit' };
+      if (msg.includes('password'))
+        return { ok: false, field: 'password', code: 'weak' };
+      if (msg.includes('invalid') && msg.includes('email'))
+        return { ok: false, field: 'email', code: 'invalid' };
       return { ok: false, code: 'signupFailed', error };
     }
+    // identities=[] means the email already exists (Supabase obfuscates to prevent enumeration)
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0)
+      return { ok: false, field: 'email', code: 'emailTaken' };
     return { ok: true, data, needsConfirm: !data.session };
   }
 
@@ -141,7 +152,12 @@
     if (!_ready) return { ok: false, code: 'notConfigured' };
     const ev = validateEmail(email); if (!ev.ok) return { ok: false, field: 'email', code: ev.code };
     const { data, error } = await _client.auth.signInWithPassword({ email: ev.value, password });
-    if (error) return { ok: false, code: 'badCredentials', error };
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (error.status === 429 || msg.includes('rate limit')) return { ok: false, code: 'rateLimit' };
+      if (msg.includes('not confirmed') || msg.includes('confirm')) return { ok: false, code: 'notConfirmed' };
+      return { ok: false, code: 'badCredentials', error };
+    }
     return { ok: true, data };
   }
 

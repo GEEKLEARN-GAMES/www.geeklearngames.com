@@ -1989,11 +1989,13 @@ const _AUTH_T = {
   emailTaken:{fr:'Cet e-mail est déjà utilisé.',en:'This email is already in use.'},
   emailInvalid:{fr:'E-mail invalide.',en:'Invalid email.'},
   badCreds:{fr:'E-mail ou mot de passe incorrect.',en:'Wrong email or password.'},
+  notConfirmed:{fr:'E-mail pas encore confirmé — clique le lien reçu par mail.',en:'Email not confirmed yet — click the link sent to your inbox.'},
   ageMin:{fr:'Tu dois avoir au moins 13 ans.',en:'You must be at least 13.'},
   required:{fr:'Champ requis.',en:'Required field.'},
   genderReq:{fr:'Choisis une option.',en:'Please choose an option.'},
   consentReq:{fr:'Tu dois accepter pour continuer.',en:'You must accept to continue.'},
   fail:{fr:"Échec — réessaie.",en:'Failed — please try again.'},
+  rateLimit:{fr:"Trop de tentatives. Patiente quelques minutes (limite d'e-mails du plan gratuit), ou désactive temporairement la confirmation e-mail dans Supabase.",en:'Too many attempts. Wait a few minutes (free-tier email limit), or temporarily disable email confirmation in Supabase.'},
   notConfigured:{fr:'Les comptes ne sont pas encore activés sur ce site.',en:'Accounts are not enabled on this site yet.'},
   close:{fr:'Fermer',en:'Close'},
   profileItem:{fr:'Profil',en:'Profile'}, optionsItem:{fr:'Options',en:'Options'},
@@ -2205,7 +2207,10 @@ function _wireLogin() {
     btn.disabled = true; btn.textContent = _at('working');
     const r = await GLG_AUTH.signIn({ email: $('al-email').value, password: $('al-pass').value });
     btn.disabled = false; btn.textContent = orig;
-    if (!r.ok) { _showErr('al-err', r.code === 'badCredentials' ? _at('badCreds') : _at('fail')); return; }
+    if (!r.ok) {
+      const map = { badCredentials:_at('badCreds'), rateLimit:_at('rateLimit'), notConfirmed:_at('notConfirmed') };
+      _showErr('al-err', map[r.code] || _at('fail')); return;
+    }
     closeAuthModal(); refreshAccountUI();
   });
 }
@@ -2261,7 +2266,7 @@ function _wireSignup() {
     if (!r.ok) {
       const map = { weak:_at('pwWeak'), taken:_at('uTaken'), emailTaken:_at('emailTaken'),
         invalid:_at('emailInvalid'), tooShort:_at('uShort'), required:_at('required'),
-        min:_at('ageMin'), max:_at('required') };
+        min:_at('ageMin'), max:_at('required'), rateLimit:_at('rateLimit') };
       const msg = (r.field==='gender') ? _at('genderReq') : (map[r.code] || _at('fail'));
       _showErr('as-err', msg);
       return;
