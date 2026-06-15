@@ -242,7 +242,7 @@ const GAMES = [
     },
   },
   {
-    id:'soul-redemption', type:'game', cat:'Video Game',
+    id:'soul-redemption', type:'game', cat:'Video Game', mature:true,
     title:'SOUL REDEMPTION',
     tagline:'Die. Learn. Rise. Redeem.',
     year:'2032', price:'39.99€', basePrice:39.99, status:'coming-soon', statusLabel:'Coming Soon',
@@ -289,7 +289,7 @@ const GAMES = [
     },
   },
   {
-    id:'soul-redemption-frenzy-fest', type:'game', cat:'Video Game',
+    id:'soul-redemption-frenzy-fest', type:'game', cat:'Video Game', mature:true,
     title:'SOUL REDEMPTION: FRENZY FEST',
     tagline:'The festival of excess. The chambers run red.',
     year:'2033', price:'FREE', basePrice:0, status:'coming-soon', statusLabel:'Coming Soon',
@@ -443,6 +443,95 @@ const TEAM = [
    },
 */
 const AWARDS = [];
+
+/* ── TROPHIES / SUCCÈS (style PlayStation) ───────────────────────────────
+   Définitions PUBLIQUES, écrites par le studio (versionnées avec le site).
+   Les DÉBLOCAGES réels sont stockés en base (table user_achievements) et
+   accordés par le jeu en production. Tiers : platinum > gold > silver > bronze.
+   La PLATINE se débloque automatiquement quand tous les autres trophées d'une
+   œuvre sont obtenus (calcul côté client). `hidden:true` masque l'intitulé tant
+   que le trophée n'est pas débloqué. i18n : en (base) + fr ; sinon fallback en. */
+const TROPHIES = {
+  'trick-or-treat':[
+    {code:'first_door', tier:'bronze', en:{t:'First Knock',d:'Knock on your very first door.'},        fr:{t:'Première Porte',d:'Frappe à ta toute première porte.'}},
+    {code:'sweet_tooth',tier:'bronze', en:{t:'Sweet Tooth',d:'Collect 50 treats in a single night.'},  fr:{t:'Bec Sucré',d:'Récolte 50 bonbons en une seule nuit.'}},
+    {code:'safe_home',  tier:'silver', en:{t:'Safe Home',d:'Reach a peaceful ending.'},                  fr:{t:'Rentré Sain',d:'Atteins une fin paisible.'}},
+    {code:'all_endings',tier:'gold',   en:{t:'Twelve Fates',d:'Unlock all 12 endings.'},                 fr:{t:'Douze Destins',d:'Débloque les 12 fins.'}},
+    {code:'platinum',   tier:'platinum',en:{t:'Master of the Night',d:'Earn every other trophy.'},       fr:{t:'Maître de la Nuit',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'a-terrible-wonderful-christmas':[
+    {code:'snowed_in', tier:'bronze', en:{t:'Snowed In',d:'Begin the longest night.'},                   fr:{t:'Pris par la Neige',d:'Commence la plus longue des nuits.'}},
+    {code:'wrapped',   tier:'bronze', en:{t:'Wrapped',d:'Open the first gift.'},                          fr:{t:'Emballé',d:'Ouvre le premier cadeau.'}},
+    {code:'secret',    tier:'silver', en:{t:'Hidden Truth',d:'Uncover a buried family secret.'},         fr:{t:'Vérité Cachée',d:'Découvre un secret de famille enfoui.'}},
+    {code:'four_pov',  tier:'gold',   en:{t:'Four Hearts',d:'See the night through all four members.'},  fr:{t:'Quatre Cœurs',d:'Vis la nuit à travers les quatre membres.'}},
+    {code:'platinum',  tier:'platinum',en:{t:'Spirit of Christmas',d:'Earn every other trophy.'},        fr:{t:'Esprit de Noël',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'easter-my-bunny':[
+    {code:'first_egg',tier:'bronze', en:{t:'First Egg',d:'Find the first hidden egg.'},                  fr:{t:'Premier Œuf',d:'Trouve le premier œuf caché.'}},
+    {code:'garden',   tier:'bronze', en:{t:'The Garden',d:'Explore the whole garden.'},                  fr:{t:'Le Jardin',d:'Explore tout le jardin.'}},
+    {code:'folklore', tier:'silver', en:{t:'Old Folklore',d:'Learn the truth of the rite.'},             fr:{t:'Vieux Folklore',d:'Apprends la vérité du rite.'}},
+    {code:'six_truths',tier:'gold',  en:{t:'Six Truths',d:'Reach all six endings.'},                     fr:{t:'Six Vérités',d:'Atteins les six fins.'}},
+    {code:'platinum', tier:'platinum',en:{t:'What Returns',d:'Earn every other trophy.'},                fr:{t:'Ce qui Revient',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'eid-of-light':[
+    {code:'homecoming',tier:'bronze',en:{t:'Homecoming',d:'Step back into the city.'},                   fr:{t:'Retour au Pays',d:'Reviens dans la ville.'}},
+    {code:'lantern',  tier:'bronze', en:{t:'First Lantern',d:'Light the first lantern.'},                fr:{t:'Première Lanterne',d:'Allume la première lanterne.'}},
+    {code:'reunion',  tier:'silver', en:{t:'Reunion',d:'Reunite with someone you lost.'},                fr:{t:'Retrouvailles',d:'Retrouve un être perdu de vue.'}},
+    {code:'ten_lights',tier:'gold',  en:{t:'Ten Lights',d:'Discover all ten endings.'},                  fr:{t:'Dix Lumières',d:'Découvre les dix fins.'}},
+    {code:'platinum', tier:'platinum',en:{t:'Night of Light',d:'Earn every other trophy.'},              fr:{t:'Nuit de Lumière',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'backrooms-liminal':[
+    {code:'noclip',  tier:'bronze', en:{t:'Noclip',d:'Fall out of reality.'},                            fr:{t:'Hors-Phase',d:'Glisse hors de la réalité.'}},
+    {code:'almond',  tier:'bronze', en:{t:'Almond Water',d:'Find your first Almond Water.'},             fr:{t:'Eau d’Amande',d:'Trouve ta première Eau d’Amande.'}},
+    {code:'smile',   tier:'silver', hidden:true, en:{t:'=)',d:'Reach a level that should not exist.'},   fr:{t:'=)',d:'Atteins un niveau qui ne devrait pas exister.'}},
+    {code:'way_back',tier:'gold',   en:{t:'Way Back',d:'Find the way out.'},                             fr:{t:'Le Chemin du Retour',d:'Trouve la sortie.'}},
+    {code:'platinum',tier:'platinum',en:{t:'Reality Restored',d:'Earn every other trophy.'},            fr:{t:'Réalité Retrouvée',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'soul-redemption':[
+    {code:'first_soul',tier:'bronze',en:{t:'First Soul',d:'Claim your first soul.'},                     fr:{t:'Première Âme',d:'Récupère ta première âme.'}},
+    {code:'first_blade',tier:'bronze',en:{t:'First Blade',d:'Forge your first weapon.'},                 fr:{t:'Première Lame',d:'Forge ta première arme.'}},
+    {code:'untouched',tier:'silver', en:{t:'Untouched',d:'Defeat a boss without taking a hit.'},         fr:{t:'Intouché',d:'Bats un boss sans subir de dégâts.'}},
+    {code:'redeemed', tier:'gold',   en:{t:'Redeemed',d:'Complete the path of redemption.'},             fr:{t:'Rédemption',d:'Achève la voie de la rédemption.'}},
+    {code:'platinum', tier:'platinum',en:{t:'Soulbound',d:'Earn every other trophy.'},                   fr:{t:'Lié à l’Âme',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'soul-redemption-frenzy-fest':[
+    {code:'frenzy',  tier:'bronze', en:{t:'Frenzy',d:'Enter your first frenzy.'},                         fr:{t:'Frénésie',d:'Entre dans ta première frénésie.'}},
+    {code:'chain10', tier:'bronze', en:{t:'Chain x10',d:'Land a 10-hit chain.'},                         fr:{t:'Chaîne x10',d:'Réussis un enchaînement de 10 coups.'}},
+    {code:'wave20',  tier:'silver', en:{t:'Wave 20',d:'Survive to wave 20.'},                            fr:{t:'Vague 20',d:'Survis jusqu’à la vague 20.'}},
+    {code:'flawless',tier:'gold',   en:{t:'Flawless Fest',d:'Clear a fest without dying.'},              fr:{t:'Festin Parfait',d:'Termine un festin sans mourir.'}},
+    {code:'platinum',tier:'platinum',en:{t:'Lord of Frenzy',d:'Earn every other trophy.'},              fr:{t:'Seigneur de la Frénésie',d:'Obtiens tous les autres trophées.'}},
+  ],
+  'hush':[
+    {code:'silence', tier:'bronze', en:{t:'Silence',d:'Survive the first room.'},                        fr:{t:'Silence',d:'Survis à la première pièce.'}},
+    {code:'breath',  tier:'bronze', en:{t:'Hold Your Breath',d:'Hide while it passes by.'},              fr:{t:'Retiens ton Souffle',d:'Cache-toi pendant qu’il passe.'}},
+    {code:'no_sound',tier:'silver', en:{t:'Not a Sound',d:'Clear a chapter in total silence.'},          fr:{t:'Pas un Bruit',d:'Termine un chapitre en silence total.'}},
+    {code:'mute',    tier:'gold',   en:{t:'Perfect Mute',d:'Finish the game without making a sound.'},   fr:{t:'Mutisme Parfait',d:'Termine le jeu sans faire le moindre bruit.'}},
+    {code:'platinum',tier:'platinum',en:{t:'The Unheard',d:'Earn every other trophy.'},                 fr:{t:'L’Inentendu',d:'Obtiens tous les autres trophées.'}},
+  ],
+};
+
+/* ── TAGS / GENRES (pour les fiches "magazine") ──────────────────────────
+   Vocabulaire i18n réutilisable + association par œuvre. */
+const TAG_LABELS = {
+  narrative:{fr:'Narratif',en:'Narrative'}, horror:{fr:'Horreur',en:'Horror'},
+  choices:{fr:'Choix multiples',en:'Branching'}, atmospheric:{fr:'Atmosphérique',en:'Atmospheric'},
+  stealth:{fr:'Infiltration',en:'Stealth'}, thriller:{fr:'Thriller',en:'Thriller'},
+  family:{fr:'Familial',en:'Family'}, drama:{fr:'Drame',en:'Drama'},
+  folk:{fr:'Horreur folk',en:'Folk horror'}, celebration:{fr:'Célébration',en:'Celebration'},
+  emotional:{fr:'Émotion',en:'Emotional'}, liminal:{fr:'Liminal',en:'Liminal'},
+  survival:{fr:'Survie',en:'Survival'}, action:{fr:'Action',en:'Action'},
+  rpg:{fr:'RPG',en:'RPG'}, soulslike:{fr:'Souls-like',en:'Souls-like'},
+};
+const WORK_TAGS = {
+  'trick-or-treat':['narrative','horror','choices','family'],
+  'a-terrible-wonderful-christmas':['narrative','drama','choices','family'],
+  'easter-my-bunny':['narrative','folk','atmospheric','thriller'],
+  'eid-of-light':['narrative','emotional','celebration','choices'],
+  'backrooms-liminal':['liminal','atmospheric','survival','horror'],
+  'soul-redemption':['action','rpg','soulslike','narrative'],
+  'soul-redemption-frenzy-fest':['action','soulslike','survival'],
+  'hush':['horror','stealth','atmospheric','survival'],
+};
 
 /* ── TRANSLATIONS ── */
 /* Each key maps to a language code.

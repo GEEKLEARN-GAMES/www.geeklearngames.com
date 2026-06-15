@@ -100,7 +100,7 @@
   }
 
   /* ── Inscription ───────────────────────────────────────── */
-  async function signUp({ email, password, username, gender, genderOther, age }) {
+  async function signUp({ email, password, username, gender, genderOther, age, birthdate }) {
     if (!_ready) return { ok: false, code: 'notConfigured' };
 
     const ev = validateEmail(email);      if (!ev.ok) return { ok: false, field: 'email',    code: ev.code };
@@ -124,6 +124,7 @@
           gender:       gender,
           gender_other: gender === 'other' ? (genderOther || '').trim().slice(0, 60) : null,
           age:          av.value,
+          birthdate:    birthdate || null,
         },
       },
     });
@@ -205,6 +206,16 @@
     if (fields.gender_other != null) allowed.gender_other = String(fields.gender_other).slice(0, 60);
     if (fields.avatar_url   !== undefined) allowed.avatar_url = fields.avatar_url; // preset path or storage URL
     if (fields.banner_url   !== undefined) allowed.banner_url = fields.banner_url;
+    if (fields.wishlist     !== undefined && Array.isArray(fields.wishlist)) {
+      // store as a de-duplicated array of work-id strings (defensive cap)
+      allowed.wishlist = Array.from(new Set(fields.wishlist.filter(x => typeof x === 'string'))).slice(0, 500);
+    }
+    if (fields.prefs        !== undefined && fields.prefs && typeof fields.prefs === 'object') {
+      allowed.prefs = fields.prefs;
+    }
+    if (fields.linked_accounts !== undefined && fields.linked_accounts && typeof fields.linked_accounts === 'object') {
+      allowed.linked_accounts = fields.linked_accounts;
+    }
     if (fields.age          != null) {
       const av = validateAge(fields.age);
       if (!av.ok) return { ok: false, field: 'age', code: av.code };
@@ -275,6 +286,70 @@
     return { ok: true };
   }
 
+  /* ── AMIS / CONTACTS ───────────────────────────────────
+     Toutes les mutations passent par des RPC SECURITY DEFINER
+     (db/schema.sql) qui vérifient auth.uid() côté serveur et ne
+     renvoient JAMAIS de donnée privée. Dégradation propre si la
+     base n'est pas configurée. */
+  async function searchUsers(q) {
+    if (!_ready) return { ok: false, code: 'notConfigured', results: [] };
+    const v = (q || '').trim();
+    if (v.length < 2) return { ok: true, results: [] };
+    const { data, error } = await _client.rpc('search_users', { q: v });
+    if (error) return { ok: false, code: 'network', results: [], error };
+    return { ok: true, results: Array.isArray(data) ? data : [] };
+  }
+  async function friendRequest(target) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('friend_request', { target });
+    if (error) return { ok: false, code: 'network', error };
+    return { ok: true, result: data };           // 'outgoing' | 'friends' | 'self' | 'notfound' | 'limit'
+  }
+  async function friendRespond(other, accept) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('friend_respond', { other, accept: !!accept });
+    if (error) return { ok: false, code: 'network', error };
+    return { ok: true, result: data };           // 'friends' | 'declined' | 'notfound'
+  }
+  async function friendRemove(other) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('friend_remove', { other });
+    if (error) return { ok: false, code: 'network', error };
+    return { ok: true, result: data };
+  }
+  async function friendsList() {
+    if (!_ready) return { ok: false, code: 'notConfigured', friends: [], incoming: [], outgoing: [] };
+    const { data, error } = await _client.rpc('friends_list');
+    if (error) return { ok: false, code: 'network', friends: [], incoming: [], outgoing: [] };
+    const friends = [], incoming = [], outgoing = [];
+    (data || []).forEach(r => {
+      const o = { id: r.other_id, username: r.username, avatar_url: r.avatar_url, fid: r.friendship_id, since: r.since };
+      if (r.kind === 'friend') friends.push(o);
+      else if (r.kind === 'incoming') incoming.push(o);
+      else outgoing.push(o);
+    });
+    return { ok: true, friends, incoming, outgoing };
+  }
+
+  /* ── TROPHÉES / SUCCÈS ─────────────────────────────────
+     Lecture protégée par RLS (chacun ne lit que SES déblocages).
+     grantAchievement = pour l'intégration jeu (idéalement appelée
+     côté serveur de confiance ; ici dispo pour démo/tests). */
+  async function getAchievements() {
+    if (!_ready) return { ok: false, code: 'notConfigured', keys: [] };
+    const user = await getUser();
+    if (!user) return { ok: true, keys: [] };
+    const { data, error } = await _client
+      .from('user_achievements').select('ach_key, unlocked_at').eq('user_id', user.id);
+    if (error) return { ok: false, code: 'network', keys: [], error };
+    return { ok: true, keys: (data || []).map(r => r.ach_key), rows: data || [] };
+  }
+  async function grantAchievement(game, code) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { error } = await _client.rpc('grant_achievement', { game, code });
+    return error ? { ok: false, error } : { ok: true };
+  }
+
   function onChange(cb) {
     if (!_ready) return () => {};
     const { data } = _client.auth.onAuthStateChange((event, session) => cb(event, session));
@@ -300,6 +375,8 @@
     signUp, signIn, signOut,
     getSession, getUser, getProfile, updateProfile, deleteAccount,
     uploadAvatar, moderateImage,
+    searchUsers, friendRequest, friendRespond, friendRemove, friendsList,
+    getAchievements, grantAchievement,
     onChange,
   };
 })();

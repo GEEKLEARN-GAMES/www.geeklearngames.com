@@ -1,4 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-  <rect width="1280" height="720" fill="#111"/>
-  <text x="640" y="368" font-family="Georgia,serif" font-size="11" fill="#2a2a2a" text-anchor="middle" letter-spacing="4">SCREENSHOT 1 — 1280×720px</text>
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0" stop-color="rgb(14,18,15)"/>
+      <stop offset="1" stop-color="rgb(6,6,8)"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.39" cy="0.19" r="0.7">
+      <stop offset="0" stop-color="rgba(86,171,47,0.3)"/>
+      <stop offset="0.42" stop-color="rgba(86,171,47,0.1)"/>
+      <stop offset="1" stop-color="rgba(86,171,47,0)"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.61" cy="0.68" r="0.56">
+      <stop offset="0" stop-color="rgba(137,196,109,0.1)"/>
+      <stop offset="1" stop-color="rgba(86,171,47,0)"/>
+    </radialGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.46" r="0.75">
+      <stop offset="0.45" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.62)"/>
+    </radialGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.5" stop-color="rgba(7,7,8,0)"/>
+      <stop offset="1" stop-color="rgba(7,7,8,0.78)"/>
+    </linearGradient>
+    <linearGradient id="mono" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(86,171,47,0)"/>
+      <stop offset="0.5" stop-color="rgba(86,171,47,0.5)"/>
+      <stop offset="1" stop-color="rgba(86,171,47,0)"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(86,171,47,0.06)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#base)"/>
+  <rect width="1280" height="720" fill="url(#glowB)"/>
+  <g transform="rotate(-23.66 640.0 360.0)"><rect x="589.22" y="-216.0" width="0.88" height="1152.0" fill="rgba(255,255,255,0.128)"/><rect x="497.38" y="-216.0" width="0.96" height="1152.0" fill="rgba(86,171,47,0.101)"/><rect x="422.0" y="-216.0" width="2.09" height="1152.0" fill="rgba(86,171,47,0.1)"/><rect x="452.76" y="-216.0" width="1.35" height="1152.0" fill="rgba(255,255,255,0.079)"/><rect x="427.02" y="-216.0" width="1.55" height="1152.0" fill="rgba(255,255,255,0.082)"/><rect x="1135.97" y="-216.0" width="2.04" height="1152.0" fill="rgba(86,171,47,0.158)"/></g>
+  <rect x="0" y="502.94" width="1280" height="1" fill="rgba(255,255,255,0.1)"/><rect x="0" y="502.94" width="1280" height="217.06" fill="url(#floor)"/>
+  <path d="M 406.74 375.59 A 328.82 328.82 0 0 1 1064.39 375.59" fill="none" stroke="rgba(86,171,47,0.26)" stroke-width="2"/><path d="M 538.27 375.59 A 197.29 197.29 0 0 1 932.86 375.59" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect width="1280" height="720" fill="url(#glowA)"/>
+  <circle cx="479.45" cy="562.46" r="0.75" fill="rgba(255,255,255,0.402)"/><circle cx="755.85" cy="142.57" r="1.5" fill="rgba(255,255,255,0.189)"/><circle cx="205.93" cy="652.25" r="1.75" fill="rgba(255,255,255,0.144)"/><circle cx="1062.15" cy="24.06" r="2.03" fill="rgba(255,255,255,0.42)"/><circle cx="194.38" cy="275.54" r="1.08" fill="rgba(255,255,255,0.299)"/><circle cx="733.72" cy="495.01" r="2.25" fill="rgba(255,255,255,0.23)"/><circle cx="969.99" cy="410.32" r="2.0" fill="rgba(255,255,255,0.111)"/><circle cx="781.33" cy="639.0" r="2.55" fill="rgba(255,255,255,0.09)"/><circle cx="664.55" cy="178.47" r="1.9" fill="rgba(255,255,255,0.216)"/><circle cx="958.03" cy="295.63" r="2.48" fill="rgba(86,171,47,0.285)"/><circle cx="305.47" cy="17.37" r="1.13" fill="rgba(86,171,47,0.305)"/><circle cx="591.48" cy="83.51" r="2.02" fill="rgba(255,255,255,0.201)"/><circle cx="51.05" cy="33.65" r="0.81" fill="rgba(255,255,255,0.394)"/><circle cx="889.61" cy="87.35" r="1.72" fill="rgba(255,255,255,0.216)"/><circle cx="282.23" cy="323.69" r="1.18" fill="rgba(255,255,255,0.285)"/><circle cx="463.05" cy="617.79" r="1.6" fill="rgba(86,171,47,0.194)"/><circle cx="308.33" cy="100.4" r="2.57" fill="rgba(86,171,47,0.427)"/><circle cx="988.35" cy="691.64" r="2.51" fill="rgba(86,171,47,0.124)"/><circle cx="1091.98" cy="365.39" r="2.3" fill="rgba(255,255,255,0.281)"/><circle cx="267.98" cy="47.26" r="0.65" fill="rgba(86,171,47,0.353)"/><circle cx="460.53" cy="388.01" r="2.54" fill="rgba(86,171,47,0.141)"/>
+  
+  <rect width="1280" height="720" fill="url(#vig)"/>
+  <rect width="1280" height="720" filter="url(#grain)" opacity="0.06"/>
+  <path d="M34 62 V34 H62" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M1218 34 H1246 V62" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M34 658 V686 H62" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M1218 686 H1246 V658" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/>
+  <rect x="0.5" y="0.5" width="1279" height="719" fill="none" stroke="rgba(255,255,255,0.06)"/>
 </svg>

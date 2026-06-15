@@ -208,6 +208,73 @@ ul{list-style:none}
   .gate-back-btn{padding:10px}
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LANGUAGE GATE — AAA boot-screen polish (v2)
+   Scanline · logo spotlight · staggered flags · ENTER hint ·
+   select-flash · live system HUD.  All transform-cheap.
+═══════════════════════════════════════════════════════════════ */
+.gate-tagline{font-weight:700;font-style:normal}
+
+/* Radial spotlight behind the logo */
+.gate-logo-wrap::before{
+  content:'';position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);
+  width:560px;height:560px;max-width:86vw;border-radius:50%;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle, rgba(255,255,255,.07), rgba(255,255,255,.02) 38%, transparent 64%);
+}
+
+/* One-time cinematic scanline sweep on boot */
+.gate-scan{
+  position:absolute;left:0;right:0;top:0;height:2px;z-index:3;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6) 35%,rgba(255,255,255,.6) 65%,transparent);
+  box-shadow:0 0 22px rgba(255,255,255,.45);
+  animation:gateScan 2.6s 1s cubic-bezier(.5,0,.25,1) 1 forwards;
+}
+@keyframes gateScan{
+  0%{opacity:0;transform:translateY(0)}
+  6%{opacity:.85}
+  90%{opacity:.85}
+  100%{opacity:0;transform:translateY(100vh)}
+}
+
+/* Per-flag staggered entrance (uses individual `translate` so the hover
+   `transform:scale()` is never overridden by the filling animation). */
+.gate-grid{animation:none}                 /* grid frame appears instantly; flags carry the reveal */
+.gate-lang{animation:gateFlagIn .55s both;animation-delay:calc(.45s + var(--gi,0) * .045s)}
+@keyframes gateFlagIn{from{opacity:0;translate:0 18px}to{opacity:1;translate:0 0}}
+
+/* Hover "ENTER →" hint on each flag */
+.gate-lang-go{
+  position:absolute;top:7px;right:9px;z-index:3;
+  font-family:var(--f-mono);font-size:.74rem;line-height:1;color:#fff;
+  opacity:0;transform:translateX(-5px);transition:opacity .3s var(--ease),transform .3s var(--ease);
+  text-shadow:0 1px 7px rgba(0,0,0,.95);
+}
+.gate-lang:hover .gate-lang-go{opacity:1;transform:none}
+
+/* Click ripple on the chosen flag */
+.gate-lang.selected{filter:grayscale(0%)!important;animation:gateSelFlash .6s ease 1}
+@keyframes gateSelFlash{0%{box-shadow:0 0 0 0 rgba(255,255,255,.9)}100%{box-shadow:0 0 0 16px rgba(255,255,255,0)}}
+
+/* System HUD strip — readable + animated */
+.gate-bottom{filter:drop-shadow(0 0 8px rgba(0,0,0,.98)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
+.gate-bottom-item{color:rgba(255,255,255,.34);font-size:.36rem}
+.gate-bottom-dot{color:rgba(255,255,255,.16)}
+.gate-bottom-clock{color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;min-width:62px;text-align:right}
+.gate-bottom-pulse{color:rgba(255,255,255,.62);animation:gateHudPulse 2.6s ease-in-out infinite}
+@keyframes gateHudPulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+@media(prefers-reduced-motion:reduce){
+  .gate-scan{animation:none;display:none}
+  .gate-lang{animation:none}
+  .gate-bottom-pulse{animation:none}
+  .gate-lang.selected{animation:none}
+}
+@media(max-width:480px){
+  .gate-bottom{gap:5px}
+  .gate-bottom-item{font-size:.3rem}
+  .gate-logo-wrap::before{width:360px;height:360px}
+}
+
 /* ─── LOADER ────────────────────────────────────────── */
 #loader{position:fixed;inset:0;z-index:8888;background:var(--black);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
 #loader.show{opacity:1;pointer-events:all}
@@ -329,16 +396,16 @@ ul{list-style:none}
 .hero-grain{position:absolute;inset:0;opacity:.25;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
 /* Content at the bottom, centered */
 .hero-content{position:relative;z-index:5;width:100%;max-width:1200px;padding:0 clamp(16px,5vw,72px) clamp(64px,10vh,120px);text-align:center;display:flex;flex-direction:column;align-items:center}
-.hero-eyebrow{display:flex;align-items:center;justify-content:center;gap:13px;margin-bottom:20px;animation:fadeUp .9s .3s cubic-bezier(.16,1,.3,1) both}
+.hero-eyebrow{display:flex;align-items:center;justify-content:center;gap:13px;margin-bottom:20px}
 .hero-eyebrow-dash{width:30px;height:1px;background:var(--w30)}
 .hero-eyebrow-text{font-family:var(--f-mono);font-size:.55rem;letter-spacing:.38em;color:var(--w50);text-transform:uppercase}
-.hero-slogan{font-family:var(--f-disp);font-size:clamp(3rem,8.5vw,9rem);line-height:.9;letter-spacing:.01em;text-transform:uppercase;margin-bottom:24px;animation:fadeUp 1s .45s cubic-bezier(.16,1,.3,1) both;white-space:nowrap}
+.hero-slogan{font-family:var(--f-disp);font-size:clamp(3rem,8.5vw,9rem);line-height:.9;letter-spacing:.01em;text-transform:uppercase;margin-bottom:24px;white-space:nowrap}
 .hero-slogan .hollow{display:block;-webkit-text-stroke:1px rgba(255,255,255,.25);color:transparent}
 /* Try to keep slogan on fewer lines */
 @media(max-width:900px){.hero-slogan{white-space:normal}}
-.hero-desc{font-family:var(--f-serif);font-style:italic;font-size:clamp(.88rem,1.4vw,1.1rem);color:var(--w50);line-height:1.7;max-width:540px;margin-bottom:32px;animation:fadeUp .9s .6s cubic-bezier(.16,1,.3,1) both;text-align:center}
-.hero-btns{display:flex;align-items:center;justify-content:center;gap:11px;flex-wrap:wrap;animation:fadeUp .9s .75s cubic-bezier(.16,1,.3,1) both}
-.hero-scroll{position:absolute;bottom:42px;right:clamp(16px,5vw,72px);display:flex;flex-direction:column;align-items:center;gap:9px;animation:fadeIn 1s 1.1s both}
+.hero-desc{font-family:var(--f-serif);font-style:italic;font-size:clamp(.88rem,1.4vw,1.1rem);color:var(--w50);line-height:1.7;max-width:540px;margin-bottom:32px;text-align:center}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:11px;flex-wrap:wrap}
+.hero-scroll{position:absolute;bottom:42px;right:clamp(16px,5vw,72px);display:flex;flex-direction:column;align-items:center;gap:9px}
 .hero-scroll-line{width:1px;height:50px;background:linear-gradient(transparent,var(--w30));animation:scrollBlink 2s infinite}
 @keyframes scrollBlink{0%,100%{opacity:.3}50%{opacity:.9}}
 .hero-scroll span{font-family:var(--f-mono);font-size:.48rem;letter-spacing:.3em;color:var(--w30);writing-mode:vertical-rl;text-transform:uppercase}
@@ -351,7 +418,7 @@ ul{list-style:none}
   white-space:nowrap;
   position:relative;z-index:2;  /* sits above any overflowing bg layers */
 }
-.marquee-track{display:inline-flex;animation:marquee 40s linear infinite;width:max-content}
+.marquee-track{display:inline-flex;animation:marquee var(--mq-dur,40s) linear infinite;width:max-content}
 .marquee-item{display:inline-flex;align-items:center;gap:22px;padding:0 22px;font-family:var(--f-disp);font-size:.82rem;letter-spacing:.13em;color:var(--grey);text-transform:uppercase}
 .marquee-dot{width:3px;height:3px;border-radius:50%;background:var(--grey);flex-shrink:0}
 @keyframes marquee{to{transform:translateX(-50%)}}
@@ -1101,7 +1168,7 @@ ul{list-style:none}
 
 /* Marquee info strip */
 .dp-marquee-strip{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);height:44px;background:var(--s1);display:flex;align-items:center}
-.dp-marquee-track{display:inline-flex;align-items:center;height:100%;width:max-content;white-space:nowrap;animation:dpMarquee 32s linear infinite;will-change:transform}
+.dp-marquee-track{display:inline-flex;align-items:center;height:100%;width:max-content;white-space:nowrap;animation:dpMarquee var(--mq-dur,32s) linear infinite;will-change:transform}
 @keyframes dpMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .dp-mq-item{font-family:var(--f-mono);font-size:.46rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grey);padding:0 24px;flex-shrink:0}
 .dp-mq-item b{color:var(--w50);font-weight:600}
@@ -1959,6 +2026,7 @@ footer{
 @media(max-width:900px){
   :root{--nav-h:68px}
   .nav-links{display:none}.nav-burger{display:flex;margin-left:8px}
+  .nav-search-btn,.nav-cta{display:none} /* desktop-only on mobile: search→topbar, contact→burger menu */
   .nav-search-topbar{display:flex;margin-left:auto} /* show + push the group right on mobile */
   #nav-lang-btn{margin-left:8px} /* flag sits flush after burger */
   .studio-block{grid-template-columns:1fr}

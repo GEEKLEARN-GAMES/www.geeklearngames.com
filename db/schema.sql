@@ -17,6 +17,7 @@ create table if not exists public.profiles (
   username      text not null,
   gender        text check (gender in ('male','female','other')),
   gender_other  text,
+  birthdate     date,                                   -- source de vérité pour l'âge (gating 18+)
   age           integer check (age >= 13 and age <= 120),
   -- Colonnes prêtes pour la suite (wishlist / préférences / avatar / bannière) :
   avatar_url    text,
@@ -26,6 +27,9 @@ create table if not exists public.profiles (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Idempotent : ajoute la colonne si la table existait déjà (re-run du script)
+alter table public.profiles add column if not exists birthdate date;
 
 -- Unicité du pseudo, insensible à la casse ("Evan" == "evan")
 create unique index if not exists profiles_username_lower_idx
@@ -72,13 +76,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, username, gender, gender_other, age)
+  insert into public.profiles (id, username, gender, gender_other, age, birthdate)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'username', 'user_' || left(new.id::text, 8)),
     new.raw_user_meta_data->>'gender',
     new.raw_user_meta_data->>'gender_other',
-    nullif(new.raw_user_meta_data->>'age','')::int
+    nullif(new.raw_user_meta_data->>'age','')::int,
+    nullif(new.raw_user_meta_data->>'birthdate','')::date
   );
   return new;
 end;
@@ -166,6 +171,185 @@ create policy "avatars_delete_own" on storage.objects
   for delete using (
     bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ════════════════════════════════════════════════════════════════════════
+--  AMIS / CONTACTS  (style Steam/Epic) — sécurisé par RLS + RPC SECURITY DEFINER
+--  ────────────────────────────────────────────────────────────────────────
+--  Modèle : une ligne par relation (requester → addressee).
+--    status 'pending'  = demande envoyée, pas encore acceptée
+--    status 'accepted' = amis
+--  Aucune donnée privée (email, âge, date de naissance) n'est jamais exposée :
+--  les RPC ne renvoient QUE { id, username, avatar_url, relation }.
+-- ════════════════════════════════════════════════════════════════════════
+create table if not exists public.friendships (
+  id          bigint generated always as identity primary key,
+  requester   uuid not null references public.profiles (id) on delete cascade,
+  addressee   uuid not null references public.profiles (id) on delete cascade,
+  status      text not null default 'pending' check (status in ('pending','accepted')),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  constraint friendships_no_self check (requester <> addressee),
+  constraint friendships_unique  unique (requester, addressee)
+);
+create index if not exists friendships_addressee_idx on public.friendships (addressee);
+create index if not exists friendships_requester_idx on public.friendships (requester);
+
+alter table public.friendships enable row level security;
+
+-- Lecture : uniquement les relations où JE suis impliqué (mutations = RPC ci-dessous)
+drop policy if exists "friendships_select_mine" on public.friendships;
+create policy "friendships_select_mine" on public.friendships
+  for select using (auth.uid() = requester or auth.uid() = addressee);
+
+drop trigger if exists friendships_touch on public.friendships;
+create trigger friendships_touch before update on public.friendships
+  for each row execute function public.touch_updated_at();
+
+-- ── Recherche d'utilisateurs (pseudo + avatar + relation seulement) ──────
+create or replace function public.search_users(q text)
+returns table (id uuid, username text, avatar_url text, relation text)
+language sql security definer set search_path = public as $$
+  select p.id, p.username, p.avatar_url,
+    case
+      when f1.status = 'accepted' or f2.status = 'accepted' then 'friends'
+      when f1.status = 'pending' then 'outgoing'
+      when f2.status = 'pending' then 'incoming'
+      else 'none'
+    end as relation
+  from public.profiles p
+  left join public.friendships f1 on f1.requester = auth.uid() and f1.addressee = p.id
+  left join public.friendships f2 on f2.requester = p.id and f2.addressee = auth.uid()
+  where p.id <> auth.uid()
+    and length(trim(q)) >= 2
+    and p.username ilike trim(q) || '%'
+  order by (p.username ilike trim(q)) desc, p.username
+  limit 12;
+$$;
+revoke all on function public.search_users(text) from public;
+grant execute on function public.search_users(text) to authenticated;
+
+-- ── Envoyer une demande (auto-accept si l'autre m'a déjà invité) ─────────
+create or replace function public.friend_request(target uuid)
+returns text language plpgsql security definer set search_path = public as $$
+declare existing record; out_count int;
+begin
+  if target = auth.uid() then return 'self'; end if;
+  if not exists (select 1 from public.profiles where id = target) then return 'notfound'; end if;
+  select * into existing from public.friendships
+    where (requester = auth.uid() and addressee = target)
+       or (requester = target and addressee = auth.uid())
+    limit 1;
+  if found then
+    if existing.status = 'accepted' then return 'friends'; end if;
+    if existing.requester = target and existing.status = 'pending' then
+      update public.friendships set status = 'accepted' where id = existing.id;
+      return 'friends';
+    end if;
+    return 'outgoing';
+  end if;
+  select count(*) into out_count from public.friendships
+    where requester = auth.uid() and status = 'pending';
+  if out_count >= 200 then return 'limit'; end if;   -- garde-fou anti-spam
+  insert into public.friendships (requester, addressee, status)
+    values (auth.uid(), target, 'pending');
+  return 'outgoing';
+end; $$;
+revoke all on function public.friend_request(uuid) from public;
+grant execute on function public.friend_request(uuid) to authenticated;
+
+-- ── Répondre à une demande entrante ──────────────────────────────────────
+create or replace function public.friend_respond(other uuid, accept boolean)
+returns text language plpgsql security definer set search_path = public as $$
+declare existing record;
+begin
+  select * into existing from public.friendships
+    where requester = other and addressee = auth.uid() and status = 'pending' limit 1;
+  if not found then return 'notfound'; end if;
+  if accept then
+    update public.friendships set status = 'accepted' where id = existing.id;
+    return 'friends';
+  else
+    delete from public.friendships where id = existing.id;
+    return 'declined';
+  end if;
+end; $$;
+revoke all on function public.friend_respond(uuid, boolean) from public;
+grant execute on function public.friend_respond(uuid, boolean) to authenticated;
+
+-- ── Retirer un ami / annuler une demande ─────────────────────────────────
+create or replace function public.friend_remove(other uuid)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.friendships
+    where (requester = auth.uid() and addressee = other)
+       or (requester = other and addressee = auth.uid());
+  return 'removed';
+end; $$;
+revoke all on function public.friend_remove(uuid) from public;
+grant execute on function public.friend_remove(uuid) to authenticated;
+
+-- ── Liste : amis + demandes entrantes/sortantes (pseudo + avatar) ────────
+create or replace function public.friends_list()
+returns table (friendship_id bigint, other_id uuid, username text, avatar_url text, kind text, since timestamptz)
+language sql security definer set search_path = public as $$
+  select f.id,
+         p.id,
+         p.username,
+         p.avatar_url,
+         case
+           when f.status = 'accepted'        then 'friend'
+           when f.requester = auth.uid()     then 'outgoing'
+           else 'incoming'
+         end as kind,
+         f.updated_at
+  from public.friendships f
+  join public.profiles p
+    on p.id = case when f.requester = auth.uid() then f.addressee else f.requester end
+  where auth.uid() in (f.requester, f.addressee)
+  order by (f.status = 'pending' and f.addressee = auth.uid()) desc, f.updated_at desc;
+$$;
+revoke all on function public.friends_list() from public;
+grant execute on function public.friends_list() to authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════
+--  TROPHÉES / SUCCÈS  (style PlayStation) — déblocages RÉELS
+--  ────────────────────────────────────────────────────────────────────────
+--  Les DÉFINITIONS de trophées vivent côté site (js/data.js → TROPHIES).
+--  Ici on ne stocke que les DÉBLOCAGES d'un utilisateur, protégés par RLS.
+--  En production, c'est le JEU (contexte de confiance) qui appelle
+--  grant_achievement() — idéalement via service_role pour empêcher la triche.
+-- ════════════════════════════════════════════════════════════════════════
+create table if not exists public.user_achievements (
+  user_id     uuid not null references public.profiles (id) on delete cascade,
+  ach_key     text not null,                       -- "<game_id>/<code>"
+  unlocked_at timestamptz not null default now(),
+  primary key (user_id, ach_key)
+);
+alter table public.user_achievements enable row level security;
+
+drop policy if exists "ua_select_own" on public.user_achievements;
+create policy "ua_select_own" on public.user_achievements
+  for select using (auth.uid() = user_id);
+drop policy if exists "ua_insert_own" on public.user_achievements;
+create policy "ua_insert_own" on public.user_achievements
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "ua_delete_own" on public.user_achievements;
+create policy "ua_delete_own" on public.user_achievements
+  for delete using (auth.uid() = user_id);
+
+create or replace function public.grant_achievement(game text, code text)
+returns void language sql security definer set search_path = public as $$
+  insert into public.user_achievements (user_id, ach_key)
+  values (auth.uid(), game || '/' || code)
+  on conflict do nothing;
+$$;
+revoke all on function public.grant_achievement(text, text) from public;
+grant execute on function public.grant_achievement(text, text) to authenticated;
+
+-- ── COMPTES LIÉS (Steam / Epic / PlayStation) ───────────────────────────
+-- Stockés sur le profil. MVP = identifiant saisi par l'utilisateur ; l'import
+-- d'amis live nécessite les API officielles + OAuth côté serveur (clés secrètes).
+alter table public.profiles add column if not exists linked_accounts jsonb not null default '{}'::jsonb;
 
 -- ════════════════════════════════════════════════════════════════════════
 --  FIN. Après exécution : Project Settings → API → copier URL + anon key

@@ -7,9 +7,8 @@
   <meta name="apple-mobile-web-app-title" content="GLG" />
   <link rel="manifest" href="site.webmanifest" />
   <meta charset="UTF-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
+  <!-- Caching: assets are cache-busted via ?v=N below, so the browser is free to
+       cache normally (faster repeat visits). No no-cache meta — it fought the ?v= system. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
@@ -23,7 +22,7 @@
   <meta property="og:title"       content="GEEKLEARN GAMES — Games that Teach, Move, Haunt Your Mind">
   <meta property="og:description" content="Independent game studio creating interactive experiences. Eight titles — interactive films and video games.">
   <meta property="og:type"        content="website">
-  <meta property="og:url"         content="https://www.geeklearngames.com">
+  <meta property="og:url"         content="https://www.geeklearngames.com/">
   <meta property="og:image"       content="https://www.geeklearngames.com/assets/img/brand/glg-logo-white.png">
   <meta name="twitter:card"       content="summary_large_image">
   <meta name="twitter:site"       content="@geeklearngames">
@@ -87,15 +86,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
-  <link rel="stylesheet" href="css/main.css?v=43">
+  <link rel="stylesheet" href="css/main.css?v=47">
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=3">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=23">
   <!-- Protection: loaded synchronously so it fires before any user action -->
-  <script src="js/protection.js"></script>
+  <script src="js/protection.js?v=2"></script>
 </head>
 <body>
+
+<!-- Accessibility: skip to main content -->
+<a href="#" class="skip-link" id="skip-link">Aller au contenu</a>
 
 <!-- ══════════ LANGUAGE GATE ══════════ -->
 <div id="lang-gate">
@@ -112,6 +114,9 @@
   <span class="gate-corner gate-tr" aria-hidden="true"></span>
   <span class="gate-corner gate-bl" aria-hidden="true"></span>
   <span class="gate-corner gate-br" aria-hidden="true"></span>
+
+  <!-- One-time cinematic scanline sweep on boot -->
+  <span class="gate-scan" aria-hidden="true"></span>
 
   <!-- Logo -->
   <div class="gate-logo-wrap">
@@ -135,6 +140,17 @@
   <!-- Bottom separator — full unbroken line (mirrors top separator, no centre label) -->
   <div class="gate-separator gate-sep-bottom" aria-hidden="true">
     <span class="gate-sep-line"></span>
+  </div>
+
+  <!-- System HUD strip (launcher boot feel) -->
+  <div class="gate-bottom" aria-hidden="true">
+    <span class="gate-bottom-item gate-bottom-pulse">▸ SELECT LANGUAGE TO ENTER</span>
+    <span class="gate-bottom-dot">◆</span>
+    <span class="gate-bottom-item">10 LANGUAGES</span>
+    <span class="gate-bottom-dot">◆</span>
+    <span class="gate-bottom-item">EST. 2026 · FRANCE</span>
+    <span class="gate-bottom-dot">◆</span>
+    <span class="gate-bottom-item gate-bottom-clock" id="gate-clock">--:--:--</span>
   </div>
 
 
@@ -175,20 +191,20 @@
     </div>
   </div>
   <div class="nav-links">
-    <!-- Search icon FIRST, before page links -->
-    <button class="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search a title">
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-        <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
     <button class="nav-link active" data-nav="home"    id="nl-home"    onclick="showPage('home')">Home</button>
     <button class="nav-link"        data-nav="works"   id="nl-works"   onclick="showPage('works')">Our Works</button>
     <button class="nav-link"        data-nav="shop"    id="nl-shop"    onclick="showPage('shop')">Shop</button>
     <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
-    <button class="nav-link nav-cta" data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
   </div>
-  <!-- Search icon visible only on mobile (hidden on desktop via CSS) -->
+  <!-- Right cluster — utilities → account → CONTACT cta -->
+  <!-- Desktop search -->
+  <button class="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search a title">
+    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <!-- Mobile-only search -->
   <button class="nav-search-topbar" onclick="openSearch()" aria-label="Search">
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
       <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
@@ -202,6 +218,9 @@
   <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
     <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
   </button>
+  <!-- Account button injected here by app.js (after the language flag) -->
+  <!-- Primary CTA: Contact (rightmost on desktop; in burger menu on mobile) -->
+  <button class="nav-link nav-cta" data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
 </nav>
 <div class="nav-mobile" id="nav-mobile">
   <button class="nav-mobile-link" id="nml-home"    onclick="showPage('home')">Home</button>
@@ -540,6 +559,12 @@
 
 
 <!-- ═══════════════════════
+     PAGE: PROFILE / MEMBER SPACE (dynamic)
+═══════════════════════ -->
+<main class="page" id="page-profile"></main>
+
+
+<!-- ═══════════════════════
      PAGE: CONTACT
 ═══════════════════════ -->
 <main class="page" id="page-contact">
@@ -556,17 +581,17 @@
       <div class="contact-promises reveal">
         <div class="contact-promise">
           <span class="contact-promise-n">48h</span>
-          <span class="contact-promise-l">Response guaranteed</span>
+          <span class="contact-promise-l" id="cp-resp">Response guaranteed</span>
         </div>
         <div class="contact-promise-div"></div>
         <div class="contact-promise">
           <span class="contact-promise-n">100%</span>
-          <span class="contact-promise-l">Messages read</span>
+          <span class="contact-promise-l" id="cp-read">Messages read</span>
         </div>
         <div class="contact-promise-div"></div>
         <div class="contact-promise">
           <span class="contact-promise-n">5+</span>
-          <span class="contact-promise-l">Titles in production</span>
+          <span class="contact-promise-l" id="cp-titles">Titles in production</span>
         </div>
       </div>
     </div>
@@ -634,7 +659,7 @@
             <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>
             <path d="M8 4.5v3.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
-          <span>We reply within 48h — every message is read</span>
+          <span id="cd-promise">We reply within 48h — every message is read</span>
         </div>
       </div>
 
@@ -710,17 +735,17 @@
   document.querySelectorAll('#yr,.yr2').forEach(el => el.textContent = _yr);
 </script>
 <!-- Site data + core app -->
-<script src="js/data.js?v=3"></script>
-<script src="js/app.js?v=46"></script>
+<script src="js/data.js?v=6"></script>
+<script src="js/app.js?v=67"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js" defer></script>
 <script src="js/config.js?v=2" defer></script>
-<script src="js/auth.js?v=2" defer></script>
+<script src="js/auth.js?v=5" defer></script>
 <!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
 <script src="js/vendor/gsap.min.js" defer></script>
 <script src="js/vendor/ScrollTrigger.min.js" defer></script>
 <!-- Lenis smooth scroll — butter-smooth scrolling on desktop (self-hosted) -->
 <script src="js/vendor/lenis.min.js" defer></script>
-<script src="js/glg-animations.js?v=3" defer></script>
+<script src="js/glg-animations.js?v=8" defer></script>
 </body>
 </html>

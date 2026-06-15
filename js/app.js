@@ -25,6 +25,23 @@ const GATE_BACK_LABELS = {
 /* rAF handles for carousel loops — keyed by carousel element id */
 const _carouselRAF = {};
 
+/* ── Perf: stop carousel loops when they're not on screen ──
+   The auto-scroll loops wrote a transform EVERY frame even when the Works
+   page was hidden (or the tab was in the background) — pure wasted work.
+   Pause them off-Works and when the tab is hidden; resume on return. */
+function pauseCarousels() {
+  Object.keys(_carouselRAF).forEach(id => {
+    if (_carouselRAF[id]) { cancelAnimationFrame(_carouselRAF[id]); _carouselRAF[id] = null; }
+  });
+}
+document.addEventListener('glg:page-changed', e => {
+  if ((e.detail && e.detail.name) !== 'works') pauseCarousels();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseCarousels();
+  else if (document.getElementById('page-works')?.classList.contains('active')) buildCarousels();
+});
+
 /* ── Currency locale map ── */
 const LANG_LOCALE = {
   fr:'fr-FR', en:'en-US', es:'es-ES', de:'de-DE',
@@ -117,6 +134,18 @@ const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
 function setHTML(id, html) { const e = $(id); if(e) e.innerHTML = html; }
 function setText(id, txt) { const e = $(id); if(e) e.textContent = txt; }
+/* ── Asset cache-busting ──────────────────────────────────────────────
+   Visuels d'œuvres (covers/screenshots/logos) référencés SANS ?v= → le
+   navigateur les met en cache. Quand tu remplaces les placeholders par du
+   VRAI art (même chemin), bumpe ASSET_VER : tous les visuels se rafraîchissent
+   d'un coup, sans renommer un seul fichier. `av()` n'ajoute le suffixe qu'aux
+   chemins locaux (jamais aux URLs http/data déjà uniques). */
+const ASSET_VER = '2026a';
+function av(u) {
+  if (typeof u !== 'string' || !u) return u;
+  if (u.indexOf('?') !== -1 || /^(https?:|data:|blob:)/i.test(u)) return u;
+  return u + '?a=' + ASSET_VER;
+}
 /* "#ff6a00" → "255,106,0" (for rgba() with CSS var). Returns null if invalid. */
 function hexToRgb(hex) {
   if (typeof hex !== 'string') return null;
@@ -125,6 +154,44 @@ function hexToRgb(hex) {
   if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
   const n = parseInt(h, 16);
   return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+}
+
+/* ══════════════════════════════════════════
+   AGE-GATING (18+)
+   mature works → hidden from listings for logged-in MINORS,
+   gated behind an age confirmation for anonymous visitors,
+   unlocked automatically the day the user turns 18 (computed from DOB).
+   NB: client-side = UX only. Real enforcement would be server-side.
+══════════════════════════════════════════ */
+let _siteBuilt = false;
+function _currentUserAge() {
+  const p = _accountProfile; // kept current by refreshAccountUI()
+  if (!p) return null;       // not logged in / unknown age
+  if (p.birthdate) { const a = _ageFromDOB(p.birthdate); if (a != null) return a; }
+  return (p.age != null) ? p.age : null;
+}
+/* Hidden from every listing only for a logged-in user known to be < 18 */
+function isMatureHidden(item) {
+  if (!item || !item.mature) return false;
+  const age = _currentUserAge();
+  return age != null && age < 18;
+}
+function filterByAge(list) { return (list || []).filter(w => !isMatureHidden(w)); }
+/* Detail access: 'ok' | 'blocked' (logged-in minor) | 'gate' (anon, needs confirm) */
+function ageGateState(item) {
+  if (!item || !item.mature) return 'ok';
+  const age = _currentUserAge();
+  if (age != null) return age >= 18 ? 'ok' : 'blocked';
+  try { if (sessionStorage.getItem('glg_age_ok') === '1') return 'ok'; } catch (e) {}
+  return 'gate';
+}
+function confirmAdult() {
+  try { sessionStorage.setItem('glg_age_ok', '1'); } catch (e) {}
+}
+/* Rebuild the age-sensitive surfaces after an auth change */
+function _refreshAgeGated() {
+  if (!_siteBuilt) return;
+  try { buildFeaturedWork(); buildCarousels(); initWorksFilters(); } catch (e) {}
 }
 
 /* ══════════════════════════════════════════
@@ -188,6 +255,18 @@ function setGateWash(code) {
   }
 }
 
+/* Live system clock in the gate HUD (boot-screen feel). Runs only while the
+   gate is visible — stopped on selection / close to avoid a stray timer. */
+let _gateClockTimer = null;
+function _startGateClock() {
+  const el = $('gate-clock'); if (!el) return;
+  _stopGateClock();
+  const tick = () => { try { el.textContent = new Date().toLocaleTimeString('en-GB'); } catch (e) {} };
+  tick();
+  _gateClockTimer = setInterval(tick, 1000);
+}
+function _stopGateClock() { if (_gateClockTimer) { clearInterval(_gateClockTimer); _gateClockTimer = null; } }
+
 function buildGate() {
   const wrap = $('gate-langs');
   if (!wrap) return;
@@ -208,18 +287,21 @@ function buildGate() {
   wrap.innerHTML = LANG_GATE.map((l, i) => `
     <button class="gate-lang" data-code="${l.code}"
             onclick="selectLang('${l.code}')" aria-label="${l.label}"
-            style="touch-action:manipulation">
+            style="touch-action:manipulation;--gi:${i}">
       <img class="gate-flag-img"
            src="assets/img/flags/${l.code}.svg"
-           alt="${l.label}"
+           alt="${l.label}" decoding="async"
            onerror="this.style.opacity='0'">
       <div class="gate-lang-overlay"></div>
       <div class="gate-lang-info">
         <span class="gate-lang-name">${l.label}</span>
         <span class="gate-lang-code">${l.code.toUpperCase()}</span>
       </div>
+      <span class="gate-lang-go" aria-hidden="true">→</span>
     </button>
   `).join('');
+
+  _startGateClock(); // live system clock in the HUD
 
   // ── Hover: dim others + crossfade wash ──────────────────────────
   // mouseleave on the GRID CONTAINER — moving between buttons never fires
@@ -259,6 +341,7 @@ function buildGate() {
 
 function selectLang(code) {
   LANG = code;
+  _stopGateClock(); // gate is about to close
   document.documentElement.lang = code;
   document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
 
@@ -328,6 +411,13 @@ function selectLang(code) {
         }, 100);
       });
     });
+
+    // FAILSAFE — rAF is throttled/frozen when the tab is backgrounded, which
+    // would otherwise strand the loader on screen forever (catastrophic black
+    // screen). These plain timers fire regardless of paint state and guarantee
+    // the loader always clears. Idempotent with the rAF path above.
+    setTimeout(() => { loader.classList.add('fade'); }, 650);
+    setTimeout(() => { loader.style.display = 'none'; loader.classList.remove('show'); }, 2100);
   }, 2000);
 }
 
@@ -361,6 +451,8 @@ function reopenLangGate() {
     b.classList.remove('dimmed', 'selected');
   });
 
+  _startGateClock(); // resume live HUD clock
+
   // Show the back button only if a language was already chosen (not on first visit)
   if (_langSelected) {
     const btn = $('gate-back-btn');
@@ -383,6 +475,8 @@ function reopenLangGate() {
 function closeGateBack() {
   const gate = $('lang-gate');
   if (!gate) return;
+
+  _stopGateClock();
 
   // Hide back button immediately so it doesn't linger during fade-out
   gate.classList.remove('gate--has-back');
@@ -426,6 +520,15 @@ function autoTranslateFallback(code) {
     metaLang.content = '';
   }
 }
+
+/* Contact promise strip + direct-contact line — i18n (étaient codés en dur en EN) */
+const _CONTACT_PROMISE_T = {
+  resp:   { fr:'Réponse garantie', en:'Response guaranteed', es:'Respuesta garantizada', de:'Antwort garantiert', it:'Risposta garantita', ar:'رد مضمون', zh:'保证回复', ja:'返信保証', ru:'Гарантированный ответ', pl:'Gwarantowana odpowiedź' },
+  read:   { fr:'Messages lus', en:'Messages read', es:'Mensajes leídos', de:'Nachrichten gelesen', it:'Messaggi letti', ar:'الرسائل مقروءة', zh:'消息已读', ja:'メッセージ既読', ru:'Сообщения прочитаны', pl:'Wiadomości czytane' },
+  titles: { fr:'Titres en production', en:'Titles in production', es:'Títulos en producción', de:'Titel in Produktion', it:'Titoli in produzione', ar:'عناوين قيد الإنتاج', zh:'制作中的作品', ja:'制作中のタイトル', ru:'Тайтлов в работе', pl:'Tytuły w produkcji' },
+  direct: { fr:'Réponse sous 48h — chaque message est lu', en:'We reply within 48h — every message is read', es:'Respondemos en 48h — cada mensaje se lee', de:'Antwort in 48 Std. — jede Nachricht wird gelesen', it:'Rispondiamo entro 48h — ogni messaggio è letto', ar:'نرد خلال 48 ساعة — كل رسالة تُقرأ', zh:'48小时内回复——每条消息都会被阅读', ja:'48時間以内に返信 — すべてのメッセージに目を通します', ru:'Отвечаем в течение 48 ч — каждое сообщение прочитано', pl:'Odpowiadamy w 48h — każda wiadomość jest czytana' },
+};
+function _cpt(k){ const m=_CONTACT_PROMISE_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
 /* ══════════════════════════════════════════
    TRANSLATIONS — apply to static DOM
@@ -538,6 +641,12 @@ function applyTranslations() {
   setText('ci-lbl-bug',   t('ciLblBug')   || 'Bug Report');
   setText('ci-sub-bug',   t('ciSubBug')   || 'Players — report a recurring issue');
 
+  // Contact promise strip + direct-contact promise (were hardcoded EN → now i18n)
+  setText('cp-resp',    _cpt('resp'));
+  setText('cp-read',    _cpt('read'));
+  setText('cp-titles',  _cpt('titles'));
+  setText('cd-promise', _cpt('direct'));
+
   // Shop page
   setText('shop-eye',          t('shopEye')      || 'Under Construction');
   setHTML('shop-sub',          t('shopSub')       || 'Our shop is being assembled...');
@@ -563,6 +672,7 @@ function initSite() {
   buildPuzzleStrips();
   buildAboutPage();
   buildFeaturedWork();
+  buildRoadmap();
   initNav();
   initScrollProgress();
   initReveal();
@@ -571,7 +681,11 @@ function initSite() {
   initWorksFilters();
   initContactEnhancements();
   initAuthUI();
+  initA11y();
   applyWorksPageLabels();
+  // Initial SEO for the active page (re-runs on each language change via initSite)
+  updateSEO(document.querySelector('.nav-link.active')?.dataset.nav || 'home', null);
+  _siteBuilt = true; // enables age-gated re-render on auth changes
   // Touch swipe is now built into buildCarousel() — no separate init needed
   // Notify the GSAP animation layer that the site is ready
   document.dispatchEvent(new CustomEvent('glg:site-built'));
@@ -625,6 +739,8 @@ function showPage(name, itemId = null) {
     if (page) page.classList.add('active');
     /* Rebuild carousels once the works page is visible so scrollWidth is accurate */
     if (name === 'works') requestAnimationFrame(buildCarousels);
+    /* Build the member space (avatar/banner/wishlist) on demand */
+    if (name === 'profile') buildProfilePage();
   }
 
   // Update browser URL without reload
@@ -633,9 +749,72 @@ function showPage(name, itemId = null) {
 
   setTimeout(initReveal, 80);
 
+  // Per-page SEO (title, meta, OpenGraph, structured data)
+  updateSEO(name, (name === 'detail' && itemId) ? ALL_WORKS.find(i => i.id === itemId) : null);
+
   // Notify GSAP animation layer
   const activePage = itemId ? $('page-detail') : $('page-' + name);
   document.dispatchEvent(new CustomEvent('glg:page-changed', { detail: { name, el: activePage } }));
+}
+
+/* ══════════════════════════════════════════
+   SEO — per-page title / meta / OpenGraph / JSON-LD
+   Reuses already-translated DOM labels so it stays multilingual.
+══════════════════════════════════════════ */
+function _setMeta(attr, key, val) {
+  if (val == null) return;
+  let el = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if (!el) { el = document.createElement('meta'); el.setAttribute(attr, key); document.head.appendChild(el); }
+  el.setAttribute('content', val);
+}
+function updateSEO(name, item) {
+  const BASE = 'GEEKLEARN GAMES';
+  const origin = location.origin && location.origin !== 'null' ? location.origin : 'https://www.geeklearngames.com';
+  let title = BASE, desc = '', url = `${origin}/#${name}`, image = `${origin}/assets/img/brand/glg-logo-white.png`;
+
+  if (item) {
+    title = `${item.title} — ${BASE}`;
+    desc  = (getItemField(item, 'tagline') || (getItemField(item, 'description') || [])[0] || '').slice(0, 300);
+    url   = `${origin}/#detail/${item.id}`;
+    image = `${origin}/${item.cover}`;
+  } else {
+    const navBtn = document.querySelector(`.nav-link[data-nav="${name}"]`);
+    const lbl = navBtn ? navBtn.textContent.trim() : '';
+    title = lbl ? `${lbl} — ${BASE}` : BASE;
+    const descId = { home:'hero-desc', works:'works-desc', about:'about-desc', contact:'contact-desc', shop:'shop-sub' }[name];
+    desc = (descId && $(descId)?.textContent ? $(descId).textContent : '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  }
+
+  document.title = title;
+  _setMeta('name', 'description', desc);
+  _setMeta('property', 'og:title', title);
+  _setMeta('property', 'og:description', desc);
+  _setMeta('property', 'og:url', url);
+  _setMeta('property', 'og:image', image);
+  _setMeta('name', 'twitter:title', title);
+  _setMeta('name', 'twitter:description', desc);
+
+  // Structured data for a specific work (rich results)
+  let ld = document.getElementById('glg-jsonld-work');
+  if (!item) { if (ld) ld.remove(); return; }
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': item.type === 'film' ? 'Movie' : 'VideoGame',
+    name: item.title,
+    description: ((getItemField(item, 'description') || [])[0] || getItemField(item, 'tagline') || '').slice(0, 500),
+    image: `${origin}/${item.cover}`,
+    inLanguage: LANG,
+    datePublished: String(item.year || ''),
+    publisher: { '@type': 'Organization', name: BASE, url: origin },
+  };
+  if (item.type !== 'film') {
+    data.gamePlatform = (item.platforms || []).map(p => PLATS[p]?.name).filter(Boolean);
+  }
+  if (item.basePrice) {
+    data.offers = { '@type': 'Offer', price: item.basePrice, priceCurrency: 'EUR', availability: 'https://schema.org/PreOrder' };
+  }
+  if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'glg-jsonld-work'; document.head.appendChild(ld); }
+  ld.textContent = JSON.stringify(data);
 }
 
 // Handle browser back/forward
@@ -646,6 +825,8 @@ window.addEventListener('popstate', e => {
     $$('.page').forEach(p => p.classList.remove('active'));
     const page = $('page-' + state.page);
     if (page) page.classList.add('active');
+    if (state.page === 'profile') buildProfilePage();
+    if (state.page === 'works') requestAnimationFrame(buildCarousels);
   }
 });
 
@@ -657,23 +838,55 @@ function showWorksTab() {
 /* ══════════════════════════════════════════
    MARQUEE
 ══════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────
+   SEAMLESS MARQUEE — measured, gap-proof, constant speed
+   ──────────────────────────────────────────────────────────
+   Builds the track as TWO identical halves and animates
+   translateX(0 → -50%): the loop point is therefore always
+   pixel-perfect. Each half is repeated enough times to exceed
+   the container width, so no empty gap ever appears (the old
+   bug on wide screens). Duration is derived from the measured
+   half-width so the speed (px/s) stays constant on every page.
+────────────────────────────────────────────────────────── */
+function _seamlessMarquee(track, baseHTML, pxPerSec) {
+  if (!track || !baseHTML) return;
+  pxPerSec = pxPerSec || 50;
+  const container = track.parentElement;
+  const cw = (container && container.clientWidth) || window.innerWidth || 1280;
+  // Measure one base set (animation off so the measurement is stable)
+  track.style.animation = 'none';
+  track.innerHTML = baseHTML;
+  const baseW = track.scrollWidth || cw;
+  // Repeat so ONE half comfortably exceeds the container (+1 safety copy)
+  const k = Math.max(2, Math.ceil(cw / baseW) + 1);
+  let half = '';
+  for (let i = 0; i < k; i++) half += baseHTML;
+  track.innerHTML = half + half;                 // two identical halves
+  const halfW = (track.scrollWidth / 2) || cw;
+  track.style.setProperty('--mq-dur', Math.max(8, halfW / pxPerSec).toFixed(1) + 's');
+  void track.offsetWidth;                         // reflow → clean restart
+  track.style.animation = '';
+}
+
+function _marqueeBaseHTML(words) {
+  return words.map(w => `<span class="marquee-item"><span class="marquee-dot"></span>${w}</span>`).join('');
+}
+
 function buildMarquee() {
   const words = t('marqueeWords') || ['GeekLearn Games','Interactive Films','Video Games','Est. 2026','France','Games That Teach','Games That Move','Games That Haunt'];
-  // Perfect seamless loop: use an EVEN number of copies so that
-  // translateX(-50%) lands exactly at the visual start of the second half,
-  // which is identical to the first half — zero visible jump.
-  const approxItemW = 160; // px per word item (including padding + dot)
-  const vw = window.innerWidth || 1280;
-  let half = Math.max(1, Math.ceil(vw / (words.length * approxItemW)));
-  const copies = half * 2; // always even → -50% = perfect loop point
-
-  let html = '';
-  for (let i = 0; i < copies; i++) {
-    words.forEach(w => { html += `<span class="marquee-item"><span class="marquee-dot"></span>${w}</span>`; });
-  }
-  const track = $('marquee-track');
-  if (track) track.innerHTML = html;
+  _seamlessMarquee($('marquee-track'), _marqueeBaseHTML(words), 45);
 }
+
+/* Re-fill marquees on resize so a widened window never reveals a gap (debounced). */
+let _marqueeResizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_marqueeResizeT);
+  _marqueeResizeT = setTimeout(() => {
+    buildMarquee();
+    const dpTrack = document.querySelector('.dp-marquee-track');
+    if (dpTrack && dpTrack._mqBase) _seamlessMarquee(dpTrack, dpTrack._mqBase, 50);
+  }, 200);
+}, { passive: true });
 
 /* ══════════════════════════════════════════
    CAROUSELS — 4 cards always visible, infinite
@@ -684,8 +897,8 @@ let _buildCarouselsTimer = null;
 function buildCarousels() {
   clearTimeout(_buildCarouselsTimer);
   _buildCarouselsTimer = setTimeout(() => {
-    buildCarousel('films-carousel', FILMS, FILM_LABELS[LANG] || 'Interactive Film');
-    buildCarousel('games-carousel', GAMES, GAME_LABELS[LANG] || 'Video Game');
+    buildCarousel('films-carousel', filterByAge(FILMS), FILM_LABELS[LANG] || 'Interactive Film');
+    buildCarousel('games-carousel', filterByAge(GAMES), GAME_LABELS[LANG] || 'Video Game');
   }, 0);
 }
 
@@ -857,13 +1070,14 @@ function cardHTML(item, typeLabel) {
   const tint = item.tint || '#ffffff';
   const tintRgb = hexToRgb(tint) || '255,255,255';
   return `
-    <div class="c-card" data-g="${item.glow}" style="--tint:${tint};--tint-rgb:${tintRgb}" onclick="showPage('detail','${item.id}')">
+    <div class="c-card" data-g="${item.glow}" style="--tint:${tint};--tint-rgb:${tintRgb}" role="button" tabindex="0" aria-label="${item.title}" onclick="showPage('detail','${item.id}')">
       <div class="c-card-pw">
-        <img src="${item.cover}" alt="${item.title}" loading="lazy"
+        <img src="${av(item.cover)}" alt="${item.title}" loading="lazy" decoding="async"
              onerror="this.style.background='#111';this.style.display='block'">
         <div class="c-card-title-bg" aria-hidden="true">${item.title}</div>
         <div class="c-card-tintwash" aria-hidden="true"></div>
       </div>
+      <button class="c-wish ${wishHas(item.id)?'on':''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" aria-label="${_wt('add')}" title="${_wt('add')}" onclick="event.stopPropagation();toggleWish('${item.id}',this)">${_HEART_SVG}</button>
       <span class="c-badge ${item.status}">${getStatusLabel(item)}</span>
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
@@ -899,8 +1113,8 @@ function initWorksFilters() {
   }
   bar.innerHTML = `
     <button class="works-filter active" data-f="all">${L('all')}</button>
-    <button class="works-filter" data-f="films">${L('films')}<span class="works-filter-count">${FILMS.length}</span></button>
-    <button class="works-filter" data-f="games">${L('games')}<span class="works-filter-count">${GAMES.length}</span></button>`;
+    <button class="works-filter" data-f="films">${L('films')}<span class="works-filter-count">${filterByAge(FILMS).length}</span></button>
+    <button class="works-filter" data-f="games">${L('games')}<span class="works-filter-count">${filterByAge(GAMES).length}</span></button>`;
   bar.querySelectorAll('.works-filter').forEach(btn => {
     btn.addEventListener('click', () => {
       bar.querySelectorAll('.works-filter').forEach(b => b.classList.toggle('active', b === btn));
@@ -926,33 +1140,145 @@ const _FEATURED_LABELS = {
   eyebrow: { fr:'À la une', en:'Featured', es:'Destacado', de:'Im Fokus', ar:'مميّز', zh:'焦点', ja:'注目', ru:'В центре', pl:'Wyróżnione', it:'In evidenza' },
   cta:     { fr:'Découvrir', en:'Discover', es:'Descubrir', de:'Entdecken', ar:'اكتشف', zh:'探索', ja:'詳しく', ru:'Подробнее', it:'Scopri', pl:'Odkryj' },
 };
+/* Rotating cinematic spotlight of the studio's titles — launcher-style. */
+let _fheroTimer = null;
 function buildFeaturedWork() {
   const home = $('page-home'); if (!home) return;
-  // Pick the featured item: first available, else first overall
-  const item = ALL_WORKS.find(w => w.status === 'available') || ALL_WORKS[0];
-  if (!item) return;
-  let host = $('featured-work');
+  const items = filterByAge(ALL_WORKS).slice(0, 8); // showcase titles (max 8, age-aware)
+  if (!items.length) return;
+  let host = $('featured-hero');
   if (!host) {
     host = document.createElement('section');
-    host.id = 'featured-work';
-    const anchor = home.querySelector('.showcase-section');
-    if (anchor) anchor.insertAdjacentElement('afterend', host);
-    else return;
+    host.id = 'featured-hero';
+    host.className = 'fhero';
+    host.setAttribute('aria-roledescription', 'carousel');
+    host.setAttribute('aria-label', _FEATURED_LABELS.eyebrow[LANG] || 'Featured');
+    // The brand slogan hero stays the landing; the featured spotlight sits BELOW it
+    const heroSec = home.querySelector('.hero');
+    if (heroSec) heroSec.insertAdjacentElement('afterend', host);
+    else home.prepend(host);
   }
+  document.querySelector('#page-home .hero')?.classList.remove('hero--replaced'); // ensure brand hero visible
   const eye = _FEATURED_LABELS.eyebrow[LANG] || _FEATURED_LABELS.eyebrow.en;
   const cta = _FEATURED_LABELS.cta[LANG] || _FEATURED_LABELS.cta.en;
-  const tag = getItemField(item, 'tagline');
+  const trailer = t('trailerBtn') || 'Trailer';
   host.innerHTML = `
-    <div class="ft-media" aria-hidden="true">
-      <img src="${item.cover}" alt="" loading="lazy" onerror="this.style.display='none'">
-      <div class="ft-media-grad"></div>
+    <div class="fhero-stage">
+      ${items.map((item, i) => `
+        <article class="fhero-slide ${i === 0 ? 'active' : ''}" data-i="${i}"
+                 style="--tint:${item.tint || '#fff'};--tint-rgb:${hexToRgb(item.tint || '#ffffff') || '255,255,255'}"
+                 aria-hidden="${i === 0 ? 'false' : 'true'}">
+          <div class="fhero-bg" data-bg="${av(item.cover)}"></div>
+          <div class="fhero-scrim"></div>
+          <div class="fhero-content">
+            <div class="fhero-eyebrow"><span class="fhero-eyebrow-dash"></span>${eye} · ${getCatLabel(item)} · ${item.year}</div>
+            <h2 class="fhero-title">${item.title}</h2>
+            <p class="fhero-tagline">${getItemField(item, 'tagline')}</p>
+            <div class="fhero-cta">
+              <button class="btn btn-primary btn-lg" onclick="showPage('detail','${item.id}')">${cta} →</button>
+              <button class="btn btn-outline btn-lg" onclick="openTrailerModal('${item.id}')">▶ ${trailer}</button>
+            </div>
+          </div>
+        </article>`).join('')}
     </div>
-    <div class="ft-body reveal">
-      <div class="ft-eyebrow"><span class="ft-eyebrow-dash"></span>${eye}</div>
-      <h2 class="ft-title">${item.title}</h2>
-      <p class="ft-tagline">${tag}</p>
-      <div class="ft-meta">${getCatLabel(item)} · ${item.year}</div>
-      <button class="btn btn-primary btn-lg" onclick="showPage('detail','${item.id}')">${cta} →</button>
+    <button class="fhero-arrow fhero-prev" aria-label="${_at ? _at('back') : 'Prev'}">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+    <button class="fhero-arrow fhero-next" aria-label="Next">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+    <div class="fhero-dots" role="tablist" aria-label="${eye}">
+      ${items.map((it, i) => `<button class="fhero-dot ${i === 0 ? 'active' : ''}" data-i="${i}" role="tab" aria-selected="${i === 0 ? 'true' : 'false'}" aria-label="${it.title}"></button>`).join('')}
+    </div>`;
+  _initFheroRotation(host);
+}
+
+function _initFheroRotation(host) {
+  if (_fheroTimer) { clearInterval(_fheroTimer); _fheroTimer = null; }
+  const slides = host.querySelectorAll('.fhero-slide');
+  const dots   = host.querySelectorAll('.fhero-dot');
+  if (slides.length <= 1) return;
+  const motion = !window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let idx = 0;
+  // Lazy-load slide backgrounds: only the current + next are fetched (perf for heavy key-art)
+  const setBg = i => {
+    const b = slides[i]?.querySelector('.fhero-bg');
+    if (b && !b.style.backgroundImage && b.dataset.bg) b.style.backgroundImage = `url('${b.dataset.bg}')`;
+  };
+  const go = n => {
+    idx = (n + slides.length) % slides.length;
+    setBg(idx); setBg((idx + 1) % slides.length);
+    slides.forEach((s, i) => { s.classList.toggle('active', i === idx); s.setAttribute('aria-hidden', i === idx ? 'false' : 'true'); });
+    dots.forEach((d, i) => { d.classList.toggle('active', i === idx); d.setAttribute('aria-selected', i === idx ? 'true' : 'false'); });
+  };
+  setBg(0); setBg(1 % slides.length); // initial
+  const start = () => { if (motion && !_fheroTimer) _fheroTimer = setInterval(() => go(idx + 1), 6000); };
+  const stop  = () => { if (_fheroTimer) { clearInterval(_fheroTimer); _fheroTimer = null; } };
+  const restart = () => { stop(); start(); };
+  host.querySelector('.fhero-next').addEventListener('click', () => { go(idx + 1); restart(); });
+  host.querySelector('.fhero-prev').addEventListener('click', () => { go(idx - 1); restart(); });
+  dots.forEach(d => d.addEventListener('click', () => { go(+d.dataset.i); restart(); }));
+  host.addEventListener('mouseenter', stop);
+  host.addEventListener('mouseleave', start);
+  start();
+}
+
+/* ══════════════════════════════════════════
+   HOME — ROADMAP / RELEASE SLATE (timeline cinématique des 8 titres)
+   Trie les œuvres par date de sortie ; respecte l'age-gating.
+══════════════════════════════════════════ */
+const _MONTHS = { january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12 };
+function _workSortKey(item) {
+  const ys = String(item.year || '');
+  const y = (ys.match(/\d{4}/) || ['9999'])[0];
+  const mm = ys.toLowerCase().match(/(january|february|march|april|may|june|july|august|september|october|november|december)/);
+  return parseInt(y, 10) * 100 + (mm ? _MONTHS[mm[1]] : 0);
+}
+const _ROADMAP_T = {
+  eye:   { fr:'Feuille de route', en:'Release slate', es:'Calendario de lanzamientos', de:'Roadmap', it:'Roadmap', ar:'خريطة الإصدارات', zh:'发行计划', ja:'リリース予定', ru:'План релизов', pl:'Plan wydań' },
+  title: { fr:'CE QUI ARRIVE', en:"WHAT'S COMING", es:'LO QUE VIENE', de:'WAS KOMMT', it:'COSA ARRIVA', ar:'ما هو قادم', zh:'即将到来', ja:'これから', ru:'ЧТО ВПЕРЕДИ', pl:'CO NADCHODZI' },
+  sub:   { fr:'Huit mondes en chantier — voici quand ils ouvriront leurs portes.', en:'Eight worlds in the making — here is when they open their doors.', es:'Ocho mundos en construcción — aquí es cuando abren sus puertas.', de:'Acht Welten in Arbeit — hier öffnen sie ihre Türen.', it:'Otto mondi in lavorazione — ecco quando apriranno le porte.', ar:'ثمانية عوالم قيد الإنشاء — إليك موعد فتح أبوابها.', zh:'八个正在打造的世界——它们将于何时开启大门。', ja:'制作中の8つの世界——その扉が開く時。', ru:'Восемь миров в разработке — вот когда они откроют двери.', pl:'Osiem światów w budowie — oto kiedy otworzą drzwi.' },
+  cta:   { fr:'Voir la fiche', en:'View page', es:'Ver ficha', de:'Ansehen', it:'Scheda', ar:'عرض', zh:'查看', ja:'詳しく', ru:'Открыть', pl:'Zobacz' },
+};
+function buildRoadmap() {
+  const home = $('page-home'); if (!home) return;
+  const items = filterByAge(ALL_WORKS).slice().sort((a, b) => _workSortKey(a) - _workSortKey(b));
+  if (!items.length) return;
+  let host = $('home-roadmap');
+  if (!host) {
+    host = document.createElement('section');
+    host.id = 'home-roadmap';
+    host.className = 'glg-roadmap glg-pattern';
+    const cta = home.querySelector('.glg-cta-band');
+    if (cta && cta.parentElement) cta.parentElement.insertBefore(host, cta);
+    else home.querySelector('.page-footer-slot')?.before(host);
+  }
+  const L = m => m[LANG] || m.en;
+  host.innerHTML = `
+    <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:70s"></div>
+    <div class="rm-head">
+      <div class="section-eye reveal" style="justify-content:center">${L(_ROADMAP_T.eye)}</div>
+      <h2 class="rm-title reveal">${L(_ROADMAP_T.title)}</h2>
+      <p class="rm-sub reveal">${L(_ROADMAP_T.sub)}</p>
+    </div>
+    <div class="rm-track">
+      <span class="rm-spine" aria-hidden="true"></span>
+      ${items.map((it, i) => {
+        const tint = it.tint || '#ffffff';
+        const rgb  = hexToRgb(tint) || '255,255,255';
+        return `
+        <button class="rm-node ${i % 2 ? 'rm-node--r reveal reveal-right' : 'rm-node--l reveal reveal-left'}" style="--tint:${tint};--tint-rgb:${rgb}"
+                onclick="showPage('detail','${it.id}')" aria-label="${it.title} — ${it.year}">
+          <span class="rm-dot" aria-hidden="true"></span>
+          <span class="rm-card">
+            <span class="rm-date">${it.year}</span>
+            <span class="rm-type">${getCatLabel(it)}</span>
+            <span class="rm-name">${it.title}</span>
+            <span class="rm-tag">${getItemField(it, 'tagline')}</span>
+            <span class="rm-go">${L(_ROADMAP_T.cta)} <span class="rm-go-arr">→</span></span>
+          </span>
+        </button>`;
+      }).join('')}
     </div>`;
 }
 
@@ -1041,7 +1367,7 @@ function memberCardHTML(member, isLeft, index) {
   const photoBlock = `
     <div class="cm-photo">
       ${member.photo
-        ? `<img src="${member.photo}" alt="${member.alias || member.name} ${member.nameLine2 || ''}" loading="lazy" onerror="this.style.display='none'">`
+        ? `<img src="${av(member.photo)}" alt="${member.alias || member.name} ${member.nameLine2 || ''}" loading="lazy" onerror="this.style.display='none'">`
         : `<div class="cm-photo-init">${initials}</div>`
       }
       <div class="cm-photo-grad"></div>
@@ -1102,7 +1428,7 @@ function buildAwards() {
     <div class="award-card">
       <div class="award-card-img">
         ${a.photo
-          ? `<img src="${a.photo}" alt="${a.event}" loading="lazy">`
+          ? `<img src="${av(a.photo)}" alt="${a.event}" loading="lazy">`
           : `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--s3),var(--s2))"></div>`
         }
       </div>
@@ -1173,11 +1499,50 @@ function initDpSticky() {
   _dpStickyObs.observe(hero);
 }
 
+/* ── 18+ gate screens (anonymous confirm / minor block) ── */
+const _AGE_T = {
+  title:  { fr:'Contenu 18+', en:'18+ Content', es:'Contenido +18', de:'18+ Inhalt', it:'Contenuto 18+' },
+  q:      { fr:"Ce titre est réservé aux personnes majeures (18 ans et plus). Confirmes-tu avoir 18 ans ou plus ?", en:'This title is rated 18+. Please confirm you are 18 or older.', es:'Este título es solo para mayores de 18. ¿Confirmas que tienes 18 años o más?', de:'Dieser Titel ist ab 18. Bestätigst du, dass du 18 oder älter bist?', it:'Questo titolo è 18+. Confermi di avere almeno 18 anni?' },
+  yes:    { fr:"Oui, j'ai 18 ans ou plus", en:"Yes, I'm 18 or older", es:'Sí, tengo 18 o más', de:'Ja, ich bin 18 oder älter', it:'Sì, ho almeno 18 anni' },
+  no:     { fr:'Non, retour', en:'No, go back', es:'No, volver', de:'Nein, zurück', it:'No, indietro' },
+  blocked:{ fr:"Ce contenu n'est pas disponible.", en:'This content is not available.', es:'Este contenido no está disponible.', de:'Dieser Inhalt ist nicht verfügbar.', it:'Questo contenuto non è disponibile.' },
+  back:   { fr:'Retour aux œuvres', en:'Back to works', es:'Volver a las obras', de:'Zurück zu den Werken', it:'Torna alle opere' },
+};
+function _aget(k) { const m = _AGE_T[k]; return m ? (m[LANG] || m.en) : k; }
+function _matureBlockedHTML() {
+  return `<div class="age-block"><div class="age-block-inner">
+      <div class="age-badge-18">18+</div>
+      <p class="age-block-msg">${_aget('blocked')}</p>
+      <button class="btn btn-outline btn-lg" onclick="showPage('works')">${_aget('back')}</button>
+    </div></div>`;
+}
+function _ageGateHTML(item) {
+  return `<div class="age-gate" style="--tint:${item.tint || '#fff'}"><div class="age-gate-inner">
+      <div class="age-badge-18">18+</div>
+      <h2 class="age-gate-title">${_aget('title')}</h2>
+      <p class="age-gate-q">${_aget('q')}</p>
+      <div class="age-gate-actions">
+        <button class="btn btn-primary btn-lg" id="age-yes">${_aget('yes')}</button>
+        <button class="btn btn-outline btn-lg" id="age-no">${_aget('no')}</button>
+      </div>
+    </div></div>`;
+}
+function _wireAgeGate(item) {
+  $('age-yes')?.addEventListener('click', () => { confirmAdult(); buildDetail(item.id); });
+  $('age-no')?.addEventListener('click', () => showPage('works'));
+}
+
 function buildDetail(id) {
   const item = ALL_WORKS.find(i => i.id === id);
   if (!item) return;
 
   const container        = $('page-detail');
+
+  // ── 18+ age gate ────────────────────────────────────────────────
+  const gate = ageGateState(item);
+  if (gate === 'blocked') { container.innerHTML = _matureBlockedHTML(); return; }
+  if (gate === 'gate')    { container.innerHTML = _ageGateHTML(item); _wireAgeGate(item); return; }
+
   // Per-work colour identity: the ONLY page allowed to break monochrome.
   container.style.setProperty('--tint', item.tint || '#ffffff');
   const tintRGB = hexToRgb(item.tint || '#ffffff');
@@ -1197,13 +1562,13 @@ function buildDetail(id) {
     `<span class="dp-mq-item">${t('infoStatus')} <b>${localStatus}</b></span><span class="dp-mq-dot">✦</span>`,
     `<span class="dp-mq-item">${t('infoPrice')} <b class="price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</b></span><span class="dp-mq-dot">✦</span>`,
   ].join('');
-  const mqTrack = mqItems + mqItems; // duplicate for seamless loop
+  // One base set; _seamlessMarquee() fills + duplicates it after render (gap-proof loop)
 
   container.innerHTML = `
 
     <!-- ──────── HERO ──────── -->
     <div class="dp-hero">
-      <div class="dp-hero-bg" style="background-image:url('${item.cover}')"></div>
+      <div class="dp-hero-bg" style="background-image:url('${av(item.cover)}')"></div>
       <div class="dp-hero-vignette"></div>
       <div class="dp-hero-tint" style="background:${item.tint}"></div>
 
@@ -1222,10 +1587,11 @@ function buildDetail(id) {
           ${localStatus}
         </div>
         ${item.logo
-          ? `<img class="dp-hero-logo" src="${item.logo}" alt="${item.title}">`
+          ? `<img class="dp-hero-logo" src="${av(item.logo)}" alt="${item.title}">`
           : `<h1 class="dp-hero-title">${item.title}</h1>`
         }
         <p class="dp-hero-tagline">${localTagline}</p>
+        ${_workTagsHTML(item)}
         <div class="dp-hero-cta">
           <button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">
             ${t('buyNow')} — ${localPrice}
@@ -1255,104 +1621,108 @@ function buildDetail(id) {
 
     <!-- ──────── MARQUEE INFO STRIP ──────── -->
     <div class="dp-marquee-strip" aria-hidden="true">
-      <div class="dp-marquee-track">${mqTrack}</div>
+      <div class="dp-marquee-track">${mqItems}</div>
     </div>
 
-    <!-- ──────── STORY ──────── -->
-    <div class="dp-story reveal">
-      <p class="dp-story-pull">&ldquo;${localTagline}&rdquo;</p>
-      <div class="dp-story-body">
-        <div>
-          <div class="dp-sec-label">${t('aboutHead')}</div>
-          <p class="dp-story-p">${localDescription[0] || ''}</p>
-        </div>
-        <div>
-          <p class="dp-story-p" style="margin-top:clamp(36px,4vw,52px)">${localDescription[1] || ''}</p>
-        </div>
-      </div>
-    </div>
+    <!-- ──────── STORE LAYOUT — media (left) · buy panel (right) ──────── -->
+    <div class="dp-store">
+      <div class="dp-store-main">
 
-    <!-- ──────── KEY FEATURES ──────── -->
-    <div class="dp-features">
-      <div class="dp-sec-label reveal">${t('featuresHead')}</div>
-      <div class="dp-features-list">
-        ${localFeatures.map((f, i) => `
-          <div class="dp-feat-item reveal" style="transition-delay:${i * 0.04}s">
-            <span class="dp-feat-num">${String(i + 1).padStart(2, '0')}</span>
-            <span class="dp-feat-text">${f}</span>
-          </div>`).join('')}
-      </div>
-    </div>
-
-    <!-- ──────── SCREENSHOTS ──────── -->
-    <div class="dp-ss reveal">
-      <div class="dp-sec-label">${t('ssHead')}</div>
-      <div class="dp-ss-main">
-        <div class="dp-ss-viewport">
-          <div class="dp-ss-track" id="dp-ss-track-${item.id}">
-            ${item.screenshots.map((ss, idx) => `
-              <div class="dp-ss-slide">
-                <img src="${ss}" alt="Screenshot ${idx + 1}" loading="lazy"
-                     onclick="openLightbox('${item.id}',${idx})"
-                     onerror="this.parentElement.style.background='var(--s2)'">
-              </div>`).join('')}
+        <!-- Media gallery -->
+        <div class="dp-ss reveal">
+          <div class="dp-sec-label">${t('ssHead')}</div>
+          <div class="dp-ss-main">
+            <div class="dp-ss-viewport">
+              <div class="dp-ss-track" id="dp-ss-track-${item.id}">
+                ${item.screenshots.map((ss, idx) => `
+                  <div class="dp-ss-slide">
+                    <img src="${av(ss)}" alt="Screenshot ${idx + 1}" loading="lazy" decoding="async"
+                         onclick="openLightbox('${item.id}',${idx})"
+                         onerror="this.closest('.dp-ss-slide').classList.add('dp-ss-ph')">
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div class="dp-ss-nav">
+              <button class="dp-ss-prev" onclick="dpSsNav('${item.id}',-1)" aria-label="Previous screenshot">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <span class="dp-ss-counter" id="dp-ss-counter-${item.id}">1 / ${item.screenshots.length}</span>
+              <button class="dp-ss-next" onclick="dpSsNav('${item.id}',1)" aria-label="Next screenshot">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="dp-ss-nav">
-          <button class="dp-ss-prev" onclick="dpSsNav('${item.id}',-1)" aria-label="Previous screenshot">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
-          <span class="dp-ss-counter" id="dp-ss-counter-${item.id}">1 / ${item.screenshots.length}</span>
-          <button class="dp-ss-next" onclick="dpSsNav('${item.id}',1)" aria-label="Next screenshot">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-      </div>
-      <div class="dp-ss-thumbs" id="dp-ss-thumbs-${item.id}">
-        ${item.screenshots.map((ss, i) => `
-          <button class="dp-ss-thumb ${i === 0 ? 'active' : ''}" onclick="dpSsGoTo('${item.id}',${i})" aria-label="Screenshot ${i + 1}">
-            <img src="${ss}" alt="" loading="lazy">
-          </button>`).join('')}
-      </div>
-    </div>
-
-    <!-- ──────── GET THE GAME ──────── -->
-    <div class="dp-buy reveal">
-      <div class="dp-buy-inner">
-        <div class="dp-buy-cover">
-          <img class="dp-buy-cover-img" src="${item.cover}" alt="${item.title}">
-        </div>
-        <div class="dp-buy-plats">
-          <div class="dp-sec-label">${t('platHead')}</div>
-          <div class="dp-plat-list">
-            ${item.platforms.map(p => `
-              <button class="dp-plat-btn" onclick="openBuyModal('${item.id}')">
-                <div class="dp-plat-ico" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
-                <div>
-                  <div class="dp-plat-name">${PLATS[p].name}</div>
-                  <div class="dp-plat-cta-lbl">${PLATS[p].cta}</div>
-                </div>
-                <svg class="dp-plat-arr" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
+          <div class="dp-ss-thumbs" id="dp-ss-thumbs-${item.id}">
+            ${item.screenshots.map((ss, i) => `
+              <button class="dp-ss-thumb ${i === 0 ? 'active' : ''}" onclick="dpSsGoTo('${item.id}',${i})" aria-label="Screenshot ${i + 1}">
+                <img src="${av(ss)}" alt="" loading="lazy" onerror="this.closest('.dp-ss-thumb').classList.add('dp-ss-ph')">
               </button>`).join('')}
           </div>
         </div>
-        <div class="dp-price-card">
-          ${item.logo
-            ? `<img class="dp-price-logo" src="${item.logo}" alt="${item.title}">`
-            : `<div class="dp-price-title">${item.title}</div>`
-          }
-          <div class="dp-price-num price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</div>
-          <div class="dp-price-status">${localStatus}</div>
-          <button class="dp-buy-btn" onclick="openBuyModal('${item.id}')">
-            ${t('buyNow')}
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </button>
+
+        <!-- About -->
+        <div class="dp-story reveal">
+          <p class="dp-story-pull">&ldquo;${localTagline}&rdquo;</p>
+          <div class="dp-sec-label">${t('aboutHead')}</div>
+          <p class="dp-story-p">${localDescription[0] || ''}</p>
+          ${localDescription[1] ? `<p class="dp-story-p">${localDescription[1]}</p>` : ''}
         </div>
+
+        <!-- Key features -->
+        <div class="dp-features">
+          <div class="dp-sec-label reveal">${t('featuresHead')}</div>
+          <div class="dp-features-list">
+            ${localFeatures.map((f, i) => `
+              <div class="dp-feat-item reveal" style="transition-delay:${i * 0.04}s">
+                <span class="dp-feat-num">${String(i + 1).padStart(2, '0')}</span>
+                <span class="dp-feat-text">${f}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Trophies teaser (store-style) -->
+        ${dpTrophySectionHTML(item)}
+
       </div>
+
+      <!-- Sticky buy panel (store-style) -->
+      <aside class="dp-store-side">
+        <div class="dp-buybox reveal">
+          <div class="dp-buybox-cover"><img src="${av(item.cover)}" alt="${item.title}" loading="lazy" onerror="this.parentElement.style.display='none'"></div>
+          ${item.logo
+            ? `<img class="dp-buybox-logo" src="${av(item.logo)}" alt="${item.title}">`
+            : `<div class="dp-buybox-title">${item.title}</div>`}
+          <div class="dp-buybox-meta">${localCat} · ${item.year}</div>
+          <div class="dp-buybox-status"><span class="dp-buybox-dot"></span>${localStatus}</div>
+          <div class="dp-buybox-price price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</div>
+          <button class="btn btn-primary dp-buybox-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} →</button>
+          <button class="dp-buybox-trailer" onclick="openTrailerModal('${item.id}')">▶ ${t('trailerBtn')}</button>
+          <button class="dp-buybox-wish ${wishHas(item.id)?'on':''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)">
+            <span class="dp-wish-ico">${_HEART_SVG}</span>
+            <span class="dp-wish-label" data-wish-label>${wishHas(item.id)?_wt('inList'):_wt('add')}</span>
+          </button>
+          <div class="dp-buybox-sec">
+            <div class="dp-sec-label">${t('platHead')}</div>
+            <div class="dp-buybox-plats">
+              ${item.platforms.map(p => `
+                <button class="dp-buybox-plat" onclick="openBuyModal('${item.id}')" title="${PLATS[p].cta}">
+                  <span class="dp-buybox-plat-ico" style="background:${PLATS[p].bg}">${PLATS[p].icon}</span>
+                  <span class="dp-buybox-plat-name">${PLATS[p].name}</span>
+                  <svg class="dp-buybox-plat-arr" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>`).join('')}
+            </div>
+          </div>
+          <div class="dp-buybox-facts">
+            <div class="dp-fact"><span>${t('infoStudio') || 'Studio'}</span><b>GEEKLEARN GAMES</b></div>
+            <div class="dp-fact"><span>${t('infoType') || 'Type'}</span><b>${localCat}</b></div>
+            <div class="dp-fact"><span>${t('infoYear') || 'Year'}</span><b>${item.year}</b></div>
+            ${_gameTrophySummary(item.id) ? `<div class="dp-fact dp-fact--btn" role="button" tabindex="0" onclick="openTrophyList('${item.id}')"><span>${_tt('section')}</span><b>${_gameTrophySummary(item.id).total} · ${_gameTrophySummary(item.id).tiers.platinum} ${_tt('platinum')} →</b></div>` : ''}
+            <div class="dp-fact"><span>${_dx('players')}</span><b>${_dx('solo')}</b></div>
+            <div class="dp-fact"><span>${_dx('languages')}</span><b>10</b></div>
+            <div class="dp-fact"><span>${_dx('rating')}</span><b>${item.mature ? _dx('ratingAdult') : _dx('ratingTeen')}</b></div>
+          </div>
+        </div>
+      </aside>
     </div>
 
     <!-- ──────── SYSTEM REQUIREMENTS ──────── -->
@@ -1375,6 +1745,10 @@ function buildDetail(id) {
 
   // Init screenshot carousel state
   dpSsStates[item.id] = { index: 0, total: item.screenshots.length };
+
+  // Seamless, gap-proof meta marquee (measured fill + constant speed)
+  const _dpmq = container.querySelector('.dp-marquee-track');
+  if (_dpmq) { _dpmq._mqBase = mqItems; _seamlessMarquee(_dpmq, mqItems, 50); }
 
   // Init sticky bar (observe hero)
   initDpSticky();
@@ -1400,21 +1774,50 @@ const _RELATED_LABELS = {
   de:'Das könnte dir gefallen', ar:'قد يعجبك أيضاً', zh:'你可能也喜欢',
   ja:'こちらもおすすめ', ru:'Вам может понравиться', pl:'Może ci się spodobać', it:'Potrebbe piacerti',
 };
+const _RELATED_SUB = {
+  fr:'D’autres univers signés GEEKLEARN GAMES.', en:'More universes crafted by GEEKLEARN GAMES.',
+  es:'Más universos de GEEKLEARN GAMES.', de:'Weitere Welten von GEEKLEARN GAMES.',
+  it:'Altri universi firmati GEEKLEARN GAMES.',
+};
+const _RELATED_ALL  = { fr:'Tout voir', en:'View all', es:'Ver todo', de:'Alle ansehen', it:'Vedi tutto' };
+const _RELATED_VIEW = { fr:'Voir la fiche', en:'View page', es:'Ver ficha', de:'Ansehen', it:'Scheda' };
+const _rl = (m) => m[LANG] || m.en;
+
 function relatedWorksHTML(item) {
-  const related = ALL_WORKS.filter(w => w.type === item.type && w.id !== item.id).slice(0, 4);
+  const related = ALL_WORKS.filter(w => w.type === item.type && w.id !== item.id && !isMatureHidden(w)).slice(0, 4);
   if (!related.length) return '';
-  const label = _RELATED_LABELS[LANG] || _RELATED_LABELS.en;
   return `
-    <div class="dp-related reveal">
-      <div class="dp-sec-label">${label}</div>
-      <div class="dp-related-grid">
-        ${related.map(w => `
-          <div class="dp-rel-card" onclick="showPage('detail','${w.id}')" style="--tint:${w.tint || '#fff'}">
-            <img src="${w.cover}" alt="${w.title}" loading="lazy" onerror="this.style.display='none'">
-            <div class="dp-rel-name">${w.title}</div>
-          </div>`).join('')}
+    <section class="dp-related reveal">
+      <div class="dp-related-head">
+        <div class="dp-related-head-l">
+          <div class="dp-sec-label">${_rl(_RELATED_LABELS)}</div>
+          <p class="dp-related-sub">${_rl(_RELATED_SUB)}</p>
+        </div>
+        <button class="dp-related-all" onclick="showPage('works')">${_rl(_RELATED_ALL)} <span aria-hidden="true">→</span></button>
       </div>
-    </div>`;
+      <div class="dp-related-grid">
+        ${related.map(w => {
+          const tint = w.tint || '#ffffff';
+          const tintRgb = hexToRgb(tint) || '255,255,255';
+          return `
+          <article class="dp-rel-card" style="--tint:${tint};--tint-rgb:${tintRgb}" role="button" tabindex="0" aria-label="${w.title}" onclick="showPage('detail','${w.id}')">
+            <div class="dp-rel-cover">
+              <img src="${av(w.cover)}" alt="${w.title}" loading="lazy" decoding="async" onerror="this.closest('.dp-rel-cover').classList.add('no-img');this.remove()">
+              <span class="dp-rel-type">${getCatLabel(w)}</span>
+              <button class="c-wish ${wishHas(w.id)?'on':''}" data-wish="${w.id}" aria-pressed="${wishHas(w.id)}" aria-label="${_wt('add')}" title="${_wt('add')}" onclick="event.stopPropagation();toggleWish('${w.id}',this)">${_HEART_SVG}</button>
+              <span class="dp-rel-go">${_rl(_RELATED_VIEW)}<span class="dp-rel-go-arr" aria-hidden="true">→</span></span>
+            </div>
+            <div class="dp-rel-foot">
+              <h3 class="dp-rel-name">${w.title}</h3>
+              <div class="dp-rel-sub2">
+                <span class="dp-rel-status ${w.status}"><span class="dp-rel-dot"></span>${getStatusLabel(w)}</span>
+                <span class="dp-rel-price price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span>
+              </div>
+            </div>
+          </article>`;
+        }).join('')}
+      </div>
+    </section>`;
 }
 
 /* ══════════════════════════════════════════
@@ -1569,13 +1972,13 @@ function footerHTML() {
   return `
   <footer>
     <div class="footer-inner">
-      <div>
+      <div class="footer-col">
         <div class="footer-logo">
           <img src="assets/img/brand/glg-logo-white.png" alt="GLG" onerror="this.style.display='none'">
         </div>
         <p class="footer-brand-desc">${t('footerDesc')}</p>
       </div>
-      <div>
+      <div class="footer-col">
         <div class="footer-col-title">${t('footerNavTitle')}</div>
         <div class="footer-links">
           <button onclick="showPage('home')">${nav[0]}</button>
@@ -1585,13 +1988,13 @@ function footerHTML() {
           <button onclick="showPage('contact')">${nav[4]}</button>
         </div>
       </div>
-      <div>
+      <div class="footer-col">
         <div class="footer-col-title">${t('footerWorksTitle')}</div>
         <div class="footer-links">
           ${ALL_WORKS.map(w => `<button onclick="showPage('detail','${w.id}')">${w.title}</button>`).join('')}
         </div>
       </div>
-      <div>
+      <div class="footer-col">
         <div class="footer-col-title">${t('footerFollowTitle')}</div>
         <div class="footer-socials-row">
           <a href="https://x.com/geeklearngames" target="_blank" rel="noopener" class="footer-soc-btn" title="X / Twitter" aria-label="X Twitter">
@@ -1654,16 +2057,30 @@ function initScrollProgress() {
    REVEAL
 ══════════════════════════════════════════ */
 let _revealObs = null;
+/* Reveal a single element for good: mark visible + strip any inline opacity/transform
+   a GSAP tween may have stranded on it (gsap.from on a .reveal element captures the
+   CSS opacity:0 as its "natural" state, so it could otherwise stay invisible). */
+function _revealShow(el) {
+  el.classList.add('visible');
+  el.style.removeProperty('opacity');
+  el.style.removeProperty('transform');
+}
 function initReveal() {
   if (!_revealObs) {
     _revealObs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add('visible'); _revealObs.unobserve(e.target); }
-      });
-    }, { threshold: 0.06, rootMargin: '0px 0px -28px 0px' });
+      entries.forEach(e => { if (e.isIntersecting) { _revealShow(e.target); _revealObs.unobserve(e.target); } });
+    }, { threshold: 0.02, rootMargin: '0px 0px -20px 0px' });
   }
-  // Observe any .reveal elements not yet visible (safe to call multiple times)
-  $$('.reveal:not(.visible)').forEach(el => _revealObs.observe(el));
+  // Scope to the ACTIVE page. Elements already on screen are revealed immediately
+  // (the IntersectionObserver is unreliable for display:none → block transitions,
+  // which is what stranded text after navigating between sections). Off-screen
+  // ones are observed for the on-scroll reveal.
+  const scope = document.querySelector('.page.active') || document;
+  scope.querySelectorAll('.reveal:not(.visible)').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.top < window.innerHeight && r.bottom > 0) _revealShow(el);
+    else _revealObs.observe(el);
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -1957,11 +2374,99 @@ function initContactEnhancements() {
 }
 
 /* ══════════════════════════════════════════
+   ACCESSIBILITY — skip link + keyboard activation
+══════════════════════════════════════════ */
+const _SKIP_LABELS = { fr:'Aller au contenu', en:'Skip to content', es:'Ir al contenido', de:'Zum Inhalt springen', ar:'انتقل إلى المحتوى', zh:'跳到内容', ja:'本文へスキップ', ru:'К содержимому', pl:'Przejdź do treści', it:'Vai al contenuto' };
+let _a11yBound = false;
+function initA11y() {
+  const skip = $('skip-link');
+  if (skip) skip.textContent = _SKIP_LABELS[LANG] || _SKIP_LABELS.en;
+  if (_a11yBound) return;
+  _a11yBound = true;
+  skip?.addEventListener('click', e => {
+    e.preventDefault();
+    const p = document.querySelector('.page.active');
+    if (p) { p.setAttribute('tabindex', '-1'); p.focus(); }
+  });
+  // Keyboard activation (Enter/Space) for clickable, non-button tiles
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target;
+    if (el && el.matches && el.matches('.c-card, .dp-rel-card')) { e.preventDefault(); el.click(); }
+  });
+}
+
+/* ══════════════════════════════════════════
    ACCOUNTS — UI (Supabase)
    Nav button + auth modal (login / signup / profile)
    Data layer lives in js/auth.js → window.GLG_AUTH
 ══════════════════════════════════════════ */
 /* i18n (FR/EN robustes ; repli EN pour les autres langues — extensible) */
+/* ══════════════════════════════════════════
+   WISHLIST — liste de souhaits (compte + invité)
+   ──────────────────────────────────────────
+   • Connecté → persistée dans profiles.wishlist (Supabase)
+   • Invité   → localStorage (fusionnée au compte à la connexion)
+   Cache mémoire `_wishlist` + événement `glg:wishlist-changed`.
+══════════════════════════════════════════ */
+const _WISH_KEY = 'glg_wishlist';
+let _wishlist = [];
+
+const _WISH_T = {
+  add:       { fr:'Ajouter à ma liste',  en:'Add to wishlist' },
+  inList:    { fr:'Dans ma liste',       en:'In your wishlist' },
+  title:     { fr:'Liste de souhaits',   en:'Wishlist' },
+  empty:     { fr:'Ta liste de souhaits est vide.', en:'Your wishlist is empty.' },
+  emptyCta:  { fr:'Parcourir les œuvres', en:'Browse the works' },
+  remove:    { fr:'Retirer de la liste', en:'Remove from list' },
+};
+function _wt(k){ const m=_WISH_T[k]; if(!m) return k; return m[LANG]||m.en; }
+
+const _HEART_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" class="wish-heart"><path d="M12 20.3l-1.36-1.24C5.4 14.36 2 11.28 2 7.5 2 4.92 4.02 3 6.5 3c1.54 0 3.04.74 3.96 1.92L12 6.6l1.54-1.68C14.46 3.74 15.96 3 17.5 3 19.98 3 22 4.92 22 7.5c0 3.78-3.4 6.86-8.64 11.58L12 20.3z" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linejoin="round"/></svg>`;
+
+function _wishLoadLocal(){ try{ const v=JSON.parse(localStorage.getItem(_WISH_KEY)||'[]'); return Array.isArray(v)?v.filter(x=>typeof x==='string'):[]; }catch(e){ return []; } }
+function _wishSaveLocal(){ try{ localStorage.setItem(_WISH_KEY, JSON.stringify(_wishlist)); }catch(e){} }
+_wishlist = _wishLoadLocal(); // seed from local cache immediately (before auth resolves)
+function wishGet(){ return _wishlist.slice(); }
+function wishHas(id){ return _wishlist.indexOf(id) !== -1; }
+function wishCount(){ return _wishlist.length; }
+function _wishEmit(){ document.dispatchEvent(new CustomEvent('glg:wishlist-changed',{detail:{list:_wishlist.slice()}})); }
+
+/* Add/remove a work; persists to Supabase when logged in, always mirrors locally. */
+async function wishToggle(id){
+  if(!id) return false;
+  const i = _wishlist.indexOf(id);
+  const adding = i === -1;
+  if(adding) _wishlist.push(id); else _wishlist.splice(i,1);
+  _wishSaveLocal();
+  _wishEmit();
+  if(_accountProfile && window.GLG_AUTH?.isConfigured?.()){
+    const snap = _wishlist.slice();
+    try{ const r = await GLG_AUTH.updateProfile({ wishlist: snap }); if(r && r.ok && _accountProfile) _accountProfile.wishlist = snap; }catch(e){}
+  }
+  return adding;
+}
+
+/* Called from UI controls (card heart / detail button / remove). */
+async function toggleWish(id, el){
+  if(el){ el.classList.add('wish-anim'); setTimeout(()=>el.classList.remove('wish-anim'),420); }
+  await wishToggle(id);
+}
+
+/* Refresh every wishlist control in the DOM after a change (no full rebuild). */
+function _refreshWishButtons(){
+  document.querySelectorAll('[data-wish]').forEach(b=>{
+    const on = wishHas(b.getAttribute('data-wish'));
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+    const lbl = b.querySelector('[data-wish-label]');
+    if(lbl) lbl.textContent = on ? _wt('inList') : _wt('add');
+  });
+  const pp = document.getElementById('page-profile');
+  if(pp && pp.classList.contains('active')) _renderProfileWishlist();
+}
+document.addEventListener('glg:wishlist-changed', _refreshWishButtons);
+
 const _AUTH_T = {
   account:{fr:'Compte',en:'Account'}, signIn:{fr:'Se connecter',en:'Sign in'},
   signUp:{fr:'Créer un compte',en:'Create account'}, myAccount:{fr:'Mon compte',en:'My account'},
@@ -2010,8 +2515,43 @@ const _AUTH_T = {
   imgSize:{fr:'Image trop lourde (max 2 Mo).',en:'Image too large (max 2 MB).'},
   imgRejected:{fr:'Image refusée par la modération.',en:'Image rejected by moderation.'},
   imgUploaded:{fr:'Avatar mis à jour ✓',en:'Avatar updated ✓'},
+  dobLbl:{fr:'Date de naissance',en:'Date of birth'},
+  dayLbl:{fr:'Jour',en:'Day'}, monthLbl:{fr:'Mois',en:'Month'}, yearLbl:{fr:'Année',en:'Year'},
+  showPw:{fr:'Afficher le mot de passe',en:'Show password'}, hidePw:{fr:'Masquer le mot de passe',en:'Hide password'},
+  dobInvalid:{fr:'Date de naissance invalide.',en:'Invalid date of birth.'},
 };
 function _at(k){ const m=_AUTH_T[k]; if(!m) return k; return m[LANG]||m.en; }
+
+/* Localised month names for the date-of-birth selector (fallback EN). */
+const _AUTH_MONTHS = {
+  fr:['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
+  en:['January','February','March','April','May','June','July','August','September','October','November','December'],
+  es:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+  de:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
+  it:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'],
+};
+const _EYE_SVG = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>`;
+const _EYE_OFF_SVG = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true"><path d="M3 3l18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.6 6.2A10.8 10.8 0 0112 6c6.5 0 10 7 10 7a18 18 0 01-3.2 3.9M6.3 6.4A18 18 0 002 13s3.5 7 10 7a10.6 10.6 0 004.2-.85" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+/* Compute age (years) from an ISO birthdate string. */
+function _ageFromDOB(iso){
+  if(!iso) return null;
+  const b = new Date(iso + 'T00:00:00'); if (isNaN(b)) return null;
+  const n = new Date(); let a = n.getFullYear() - b.getFullYear();
+  const m = n.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
+  return a;
+}
+/* Wire an eye toggle button to a password input. */
+function _wirePwEye(btnId, inputId){
+  const btn = $(btnId), inp = $(inputId); if(!btn||!inp) return;
+  btn.addEventListener('click', () => {
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.innerHTML = show ? _EYE_OFF_SVG : _EYE_SVG;
+    btn.setAttribute('aria-label', show ? _at('hidePw') : _at('showPw'));
+    btn.classList.toggle('on', show);
+  });
+}
 
 let _authUIInit = false;
 function initAuthUI() {
@@ -2056,7 +2596,7 @@ function _buildAccountButton() {
     else openAuthModal('login');
   });
   const langBtn = $('nav-lang-btn');
-  if (langBtn) nav.insertBefore(btn, langBtn);
+  if (langBtn) langBtn.insertAdjacentElement('afterend', btn); // account sits after language, before CONTACT cta
   else nav.appendChild(btn);
   _buildAccountMenu();
 }
@@ -2077,8 +2617,8 @@ function _buildAccountMenu() {
     const act = e.target.closest('.acct-menu-item')?.dataset.act;
     if (!act) return;
     closeAccountMenu();
-    if (act === 'profile') openAuthModal();
-    else if (act === 'options') { openAuthModal(); }
+    if (act === 'profile') showPage('profile');
+    else if (act === 'options') openAuthModal();
     else if (act === 'logout') { await GLG_AUTH.signOut(); refreshAccountUI(); }
   });
   // Close on outside click / escape
@@ -2160,13 +2700,22 @@ function _loginFormHTML() {
       <label class="auth-field"><span>${_at('email')}</span>
         <input type="email" id="al-email" autocomplete="email" required></label>
       <label class="auth-field"><span>${_at('password')}</span>
-        <input type="password" id="al-pass" autocomplete="current-password" required></label>
+        <div class="auth-pw">
+          <input type="password" id="al-pass" autocomplete="current-password" required>
+          <button type="button" class="auth-pw-eye" id="al-pass-eye" aria-label="${_at('showPw')}" tabindex="-1">${_EYE_SVG}</button>
+        </div></label>
       <p class="auth-err" id="al-err" hidden></p>
       <button type="submit" class="btn btn-primary auth-submit" id="al-submit">${_at('submitLogin')}</button>
       <p class="auth-switch">${_at('noAccount')} <button type="button" class="auth-link" onclick="_authTab='signup';renderAuthModal()">${_at('signUp')}</button></p>
     </form>`;
 }
 function _signupFormHTML() {
+  const pad = n => String(n).padStart(2, '0');
+  const dayOpts = Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${pad(i + 1)}</option>`).join('');
+  const months = _AUTH_MONTHS[LANG] || _AUTH_MONTHS.en;
+  const monthOpts = months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  const yNow = new Date().getFullYear();
+  const yearOpts = Array.from({ length: 88 }, (_, i) => { const y = yNow - 13 - i; return `<option value="${y}">${y}</option>`; }).join(''); // 13–100 yrs
   return `
     <form id="auth-signup" novalidate>
       <label class="auth-field"><span>${_at('username')}</span>
@@ -2175,7 +2724,10 @@ function _signupFormHTML() {
       <label class="auth-field"><span>${_at('email')}</span>
         <input type="email" id="as-email" autocomplete="email" required></label>
       <label class="auth-field"><span>${_at('password')}</span>
-        <input type="password" id="as-pass" autocomplete="new-password" required>
+        <div class="auth-pw">
+          <input type="password" id="as-pass" autocomplete="new-password" required>
+          <button type="button" class="auth-pw-eye" id="as-pass-eye" aria-label="${_at('showPw')}" tabindex="-1">${_EYE_SVG}</button>
+        </div>
         <span class="auth-meter" aria-hidden="true"><i id="as-meter"></i></span>
         <span class="auth-hint" id="as-pass-hint"></span></label>
       <div class="auth-field"><span>${_at('gender')}</span>
@@ -2185,8 +2737,13 @@ function _signupFormHTML() {
           <label><input type="radio" name="as-gender" value="other"><span>${_at('other')}</span></label>
         </div>
         <input type="text" id="as-gender-other" class="auth-gender-other" placeholder="${_at('specify')}" maxlength="60" hidden></div>
-      <label class="auth-field"><span>${_at('age')}</span>
-        <input type="number" id="as-age" min="13" max="120" required></label>
+      <div class="auth-field"><span>${_at('dobLbl')}</span>
+        <div class="auth-dob">
+          <select id="as-day" required aria-label="${_at('dayLbl')}"><option value="" disabled selected>${_at('dayLbl')}</option>${dayOpts}</select>
+          <select id="as-month" required aria-label="${_at('monthLbl')}"><option value="" disabled selected>${_at('monthLbl')}</option>${monthOpts}</select>
+          <select id="as-year" required aria-label="${_at('yearLbl')}"><option value="" disabled selected>${_at('yearLbl')}</option>${yearOpts}</select>
+        </div>
+        <span class="auth-hint" id="as-dob-hint"></span></div>
       <label class="auth-consent"><input type="checkbox" id="as-consent"><span>${_at('consent')}</span></label>
       <p class="auth-err" id="as-err" hidden></p>
       <button type="submit" class="btn btn-primary auth-submit" id="as-submit">${_at('submitSignup')}</button>
@@ -2199,6 +2756,7 @@ function _hideErr(id) { const e = $(id); if (e) e.hidden = true; }
 
 function _wireLogin() {
   const form = $('auth-login'); if (!form) return;
+  _wirePwEye('al-pass-eye', 'al-pass');
   form.addEventListener('submit', async e => {
     e.preventDefault();
     _hideErr('al-err');
@@ -2217,6 +2775,7 @@ function _wireLogin() {
 
 function _wireSignup() {
   const form = $('auth-signup'); if (!form) return;
+  _wirePwEye('as-pass-eye', 'as-pass');
 
   // Gender "other" → reveal specify input
   form.querySelectorAll('input[name="as-gender"]').forEach(r =>
@@ -2256,11 +2815,19 @@ function _wireSignup() {
     if (!window.GLG_AUTH?.isConfigured?.()) { _showErr('as-err', _at('notConfigured')); return; }
     if (!$('as-consent').checked) { _showErr('as-err', _at('consentReq')); return; }
     const gender = form.querySelector('input[name="as-gender"]:checked')?.value;
+    // Date of birth → validate a real calendar date + minimum age
+    const d = +$('as-day').value, mo = +$('as-month').value, y = +$('as-year').value;
+    if (!d || !mo || !y) { _showErr('as-err', _at('dobInvalid')); return; }
+    const bd = new Date(y, mo - 1, d);
+    if (bd.getFullYear() !== y || bd.getMonth() !== mo - 1 || bd.getDate() !== d) { _showErr('as-err', _at('dobInvalid')); return; }
+    const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const age = _ageFromDOB(iso);
+    if (age == null || age < 13) { _showErr('as-err', _at('ageMin')); return; }
     const btn = $('as-submit'); const orig = btn.textContent;
     btn.disabled = true; btn.textContent = _at('working');
     const r = await GLG_AUTH.signUp({
       username: $('as-user').value, email: $('as-email').value, password: $('as-pass').value,
-      gender, genderOther: $('as-gender-other').value, age: $('as-age').value,
+      gender, genderOther: $('as-gender-other').value, birthdate: iso, age,
     });
     btn.disabled = false; btn.textContent = orig;
     if (!r.ok) {
@@ -2350,6 +2917,13 @@ function getPresetAvatars() {
   return (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).map(w => ({ id: w.id, label: w.title, src: w.cover }));
 }
 
+/* After a picker action: go back to the edit modal, or — if launched from
+   the member-space page — just close the overlay and refresh the page. */
+function _pickerReturn(){
+  if (document.getElementById('page-profile')?.classList.contains('active')) { closeAuthModal(); buildProfilePage(); }
+  else renderAuthModal();
+}
+
 async function openAvatarPicker() {
   const m = $('glg-auth-modal'); if (!m) return;
   const presets = getPresetAvatars();
@@ -2374,18 +2948,19 @@ async function openAvatarPicker() {
       </label>
       <p class="auth-err" id="apick-err" hidden></p>
     </div>`;
-  $('apick-back').addEventListener('click', renderAuthModal);
+  if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+  $('apick-back')?.addEventListener('click', _pickerReturn);
   m.querySelectorAll('.avatar-cell').forEach(c => c.addEventListener('click', async () => {
     _hideErr('apick-err');
     const r = await GLG_AUTH.updateProfile({ avatar_url: c.dataset.src });
-    if (r.ok) { await refreshAccountUI(); renderAuthModal(); }
+    if (r.ok) { await refreshAccountUI(); _pickerReturn(); }
     else _showErr('apick-err', r.code === 'notConfigured' ? _at('notConfigured') : _at('fail'));
   }));
   $('apick-file').addEventListener('change', async e => {
     const file = e.target.files?.[0]; if (!file) return;
     _hideErr('apick-err');
     const r = await GLG_AUTH.uploadAvatar(file);
-    if (r.ok) { await refreshAccountUI(); renderAuthModal(); return; }
+    if (r.ok) { await refreshAccountUI(); _pickerReturn(); return; }
     const map = { mod_off:_at('modOff'), type:_at('imgType'), size:_at('imgSize'),
       rejected:_at('imgRejected'), notConfigured:_at('notConfigured') };
     _showErr('apick-err', map[r.code] || _at('fail'));
@@ -2393,27 +2968,634 @@ async function openAvatarPicker() {
 }
 
 async function refreshAccountUI() {
-  const btn = $('nav-account-btn'); if (!btn) return;
-  const avaEl  = btn.querySelector('.nav-account-ava');
-  const nameEl = btn.querySelector('.nav-account-name');
   let user = null;
   if (window.GLG_AUTH?.isConfigured?.()) user = await GLG_AUTH.getUser();
-  if (user) {
-    const p = await GLG_AUTH.getProfile();
+  let p = null;
+  if (user) p = await GLG_AUTH.getProfile();
+
+  /* ── Wishlist : synchro + fusion invité→compte ────────── */
+  if (user && p) {
+    const localIds = _wishLoadLocal();
+    const base = Array.isArray(p.wishlist) ? p.wishlist.filter(Boolean) : [];
+    const merged = Array.from(new Set([...base, ...localIds]));
+    if (merged.length !== base.length && window.GLG_AUTH?.isConfigured?.()) {
+      const r = await GLG_AUTH.updateProfile({ wishlist: merged });
+      if (r && r.ok) p.wishlist = merged; else p.wishlist = base;
+    } else {
+      p.wishlist = base;
+    }
     _accountProfile = p;
-    const name = p?.username || user.email?.split('@')[0] || '';
-    btn.classList.add('is-auth');
-    if (avaEl)  avaEl.innerHTML = _avatarDiscHTML(p, user);
-    if (nameEl) nameEl.textContent = name;
-    btn.title = _at('myAccount');
+    _wishlist = (p.wishlist || []).slice();
+    _wishSaveLocal();
   } else {
     _accountProfile = null;
-    closeAccountMenu();
-    btn.classList.remove('is-auth');
-    if (avaEl)  avaEl.innerHTML = _ACCOUNT_ICON;
-    if (nameEl) nameEl.textContent = '';
-    btn.title = _at('account');
+    _wishlist = _wishLoadLocal();
   }
+  _wishEmit();
+
+  /* ── Bouton de compte dans la nav ─────────────────────── */
+  const btn = $('nav-account-btn');
+  if (btn) {
+    const avaEl  = btn.querySelector('.nav-account-ava');
+    const nameEl = btn.querySelector('.nav-account-name');
+    if (user) {
+      const name = p?.username || user.email?.split('@')[0] || '';
+      btn.classList.add('is-auth');
+      if (avaEl)  avaEl.innerHTML = _avatarDiscHTML(p, user);
+      if (nameEl) nameEl.textContent = name;
+      btn.title = _at('myAccount');
+    } else {
+      closeAccountMenu();
+      btn.classList.remove('is-auth');
+      if (avaEl)  avaEl.innerHTML = _ACCOUNT_ICON;
+      if (nameEl) nameEl.textContent = '';
+      btn.title = _at('account');
+    }
+  }
+
+  _refreshAgeGated(); // re-render age-sensitive listings when the user (age) changes
+  // Keep the member space live if it is the active page
+  if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
+}
+
+/* ══════════════════════════════════════════
+   PUBLIC PROFILE / MEMBER SPACE  (#page-profile)
+   Bannière + avatar + identité + stats + wishlist.
+══════════════════════════════════════════ */
+const _PP_T = {
+  signedOutH:{fr:'Espace membre',en:'Member space'},
+  signedOutP:{fr:'Connecte-toi pour accéder à ton profil, ta liste de souhaits et tes préférences — synchronisés sur tous tes appareils.',en:'Sign in to access your profile, wishlist and preferences — synced across all your devices.'},
+  signIn:{fr:'Se connecter',en:'Sign in'},
+  createAcc:{fr:'Créer un compte',en:'Create account'},
+  edit:{fr:'Modifier le profil',en:'Edit profile'},
+  editBanner:{fr:'Bannière',en:'Banner'},
+  statWish:{fr:'Souhaits',en:'Wishlist'},
+  statMember:{fr:'Membre depuis',en:'Member since'},
+  statLib:{fr:'Bibliothèque',en:'Library'},
+  soon:{fr:'Bientôt',en:'Soon'},
+  defaultBanner:{fr:'Par défaut',en:'Default'},
+  pickBanner:{fr:'Choisir une bannière',en:'Choose a banner'},
+  years:{fr:'ans',en:'yrs'},
+};
+function _ppt(k){ const m=_PP_T[k]; if(!m) return k; return m[LANG]||m.en; }
+
+async function buildProfilePage(){
+  const host = $('page-profile'); if(!host) return;
+  const configured = !!window.GLG_AUTH?.isConfigured?.();
+  const user = configured ? await GLG_AUTH.getUser() : null;
+
+  /* ── Visiteur non connecté ── */
+  if(!user){
+    host.innerHTML = `
+      <section class="pp-signed-out">
+        <div class="pp-so-inner reveal">
+          <div class="pp-so-badge">${_ACCOUNT_ICON}</div>
+          <h1 class="pp-so-title">${_ppt('signedOutH')}</h1>
+          <p class="pp-so-desc">${_ppt('signedOutP')}</p>
+          <div class="pp-so-actions">
+            <button class="btn btn-primary" onclick="openAuthModal('login')">${_ppt('signIn')}</button>
+            <button class="btn btn-outline" onclick="openAuthModal('signup')">${_ppt('createAcc')}</button>
+          </div>
+          ${wishCount() ? `<div class="pp-section pp-so-wish"><div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count" id="pp-wish-count">${wishCount()}</span></div><div class="pp-wish-grid" id="pp-wish-grid"></div></div>` : ''}
+        </div>
+      </section>
+      ${footerHTML()}`;
+    _renderProfileWishlist();
+    setTimeout(initReveal, 60);
+    return;
+  }
+
+  /* ── Membre connecté ── */
+  const p = (await GLG_AUTH.getProfile()) || {};
+  const name  = p.username || user.email?.split('@')[0] || '—';
+  const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
+  const gLabel = p.gender==='male' ? _at('male') : p.gender==='female' ? _at('female') : (p.gender_other || _at('other'));
+  const banner = p.banner_url;
+
+  host.innerHTML = `
+    <section class="pp">
+      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url('${banner}')"`:''}>
+        <div class="pp-banner-scrim"></div>
+        <button class="pp-banner-edit" onclick="openBannerPicker()" title="${_ppt('editBanner')}" aria-label="${_ppt('pickBanner')}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <span>${_ppt('editBanner')}</span>
+        </button>
+      </div>
+
+      <div class="pp-head">
+        <button class="pp-avatar" onclick="openAvatarPicker()" title="${_at('avatarChange')}" aria-label="${_at('avatarChange')}">
+          ${_avatarDiscHTML(p, user)}
+          <span class="pp-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </button>
+        <div class="pp-id">
+          <h1 class="pp-name">${name}</h1>
+          <div class="pp-badges">
+            <span class="pp-badge">${gLabel}</span>
+            ${p.age?`<span class="pp-badge">${p.age} ${_ppt('years')}</span>`:''}
+            <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
+          </div>
+        </div>
+        <div class="pp-actions">
+          <button class="btn btn-outline pp-edit-btn" onclick="openAuthModal()">${_ppt('edit')}</button>
+        </div>
+      </div>
+
+      <div class="pp-stats">
+        <div class="pp-stat"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></div>
+        <div class="pp-stat"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></div>
+        <div class="pp-stat"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></div>
+        <div class="pp-stat pp-stat--soon"><b>0</b><span>${_ppt('statLib')} · ${_ppt('soon')}</span></div>
+      </div>
+
+      <div class="pp-section pp-trophy-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('level')}</h2></div>
+        <div id="pp-trophy-showcase" class="pp-trophy-showcase"></div>
+      </div>
+
+      <div class="pp-section pp-link-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_lt('title')}</h2></div>
+        <div class="pp-link-rows">${_platformSectionHTML(p.linked_accounts)}</div>
+      </div>
+
+      <div class="pp-section pp-friends-section">
+        <div class="pp-sec-head">
+          <h2 class="pp-sec-title">${_ft('title')}</h2>
+          <span class="pp-sec-count" id="pp-friends-count">0</span>
+          <button class="pp-add-friend" onclick="openFriendSearch()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <span>${_ft('addFriend')}</span>
+          </button>
+        </div>
+        <div id="pp-friends-body" class="pp-friends-body"></div>
+      </div>
+
+      <div class="pp-section pp-tg-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('byGame')}</h2></div>
+        <div id="pp-trophy-games" class="pp-tg-grid"></div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count" id="pp-wish-count">${wishCount()}</span></div>
+        <div class="pp-wish-grid" id="pp-wish-grid"></div>
+      </div>
+    </section>
+    ${footerHTML()}`;
+  _renderProfileWishlist();
+  refreshFriendsUI();
+  refreshTrophiesUI();
+  setTimeout(initReveal, 60);
+}
+
+/* Render (or re-render) the wishlist grid inside the member space. */
+function _renderProfileWishlist(){
+  const grid = document.getElementById('pp-wish-grid'); if(!grid) return;
+  const ids  = wishGet();
+  const works = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => ids.includes(w.id) && !isMatureHidden(w));
+  const cntEl = document.getElementById('pp-wish-count'); if(cntEl) cntEl.textContent = works.length;
+  const statEl = document.getElementById('pp-stat-wish'); if(statEl) statEl.textContent = works.length;
+  if(!works.length){
+    grid.innerHTML = `<div class="pp-wish-empty"><div class="pp-wish-empty-heart">${_HEART_SVG}</div><p>${_wt('empty')}</p><button class="btn btn-outline" onclick="showPage('works')">${_wt('emptyCta')}</button></div>`;
+    return;
+  }
+  grid.innerHTML = works.map(w=>{
+    const tint = w.tint || '#ffffff'; const tintRgb = hexToRgb(tint) || '255,255,255';
+    return `<div class="pp-wish-card" style="--tint:${tint};--tint-rgb:${tintRgb}">
+      <button class="pp-wish-remove" data-wish="${w.id}" aria-label="${_wt('remove')}" title="${_wt('remove')}" onclick="event.stopPropagation();toggleWish('${w.id}',this)">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <div class="pp-wish-cover" role="button" tabindex="0" aria-label="${w.title}" onclick="showPage('detail','${w.id}')">
+        <img src="${av(w.cover)}" alt="${w.title}" loading="lazy" onerror="this.style.opacity=0">
+        <span class="pp-wish-status ${w.status}">${getStatusLabel(w)}</span>
+      </div>
+      <div class="pp-wish-info">
+        <div class="pp-wish-name">${w.title}</div>
+        <div class="pp-wish-meta">${w.year} · <span class="price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   AMIS / CONTACTS  (style Steam/Epic)
+   UI câblée sur GLG_AUTH.{searchUsers,friendRequest,friendRespond,
+   friendRemove,friendsList}. Tout passe par des RPC sécurisées (RLS).
+   Conçu pour migrer tel quel dans un futur launcher.
+══════════════════════════════════════════ */
+const _FRIEND_T = {
+  title:      { fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
+  add:        { fr:'Ajouter', en:'Add', es:'Añadir', de:'Hinzufügen', it:'Aggiungi', ar:'إضافة', zh:'添加', ja:'追加', ru:'Добавить', pl:'Dodaj' },
+  addFriend:  { fr:'Ajouter un ami', en:'Add a friend', es:'Añadir un amigo', de:'Freund hinzufügen', it:'Aggiungi un amico', ar:'إضافة صديق', zh:'添加好友', ja:'フレンドを追加', ru:'Добавить друга', pl:'Dodaj znajomego' },
+  searchPh:   { fr:'Rechercher un pseudo…', en:'Search a username…', es:'Buscar un usuario…', de:'Benutzernamen suchen…', it:'Cerca un nome…', ar:'ابحث عن اسم…', zh:'搜索用户名…', ja:'ユーザー名を検索…', ru:'Поиск по имени…', pl:'Szukaj nazwy…' },
+  incoming:   { fr:'Demandes reçues', en:'Friend requests', es:'Solicitudes', de:'Anfragen', it:'Richieste', ar:'الطلبات الواردة', zh:'好友请求', ja:'受信したリクエスト', ru:'Входящие запросы', pl:'Zaproszenia' },
+  outgoing:   { fr:'En attente', en:'Pending', es:'Pendientes', de:'Ausstehend', it:'In attesa', ar:'قيد الانتظار', zh:'等待中', ja:'保留中', ru:'Ожидание', pl:'Oczekujące' },
+  accept:     { fr:'Accepter', en:'Accept', es:'Aceptar', de:'Annehmen', it:'Accetta', ar:'قبول', zh:'接受', ja:'承認', ru:'Принять', pl:'Akceptuj' },
+  decline:    { fr:'Refuser', en:'Decline', es:'Rechazar', de:'Ablehnen', it:'Rifiuta', ar:'رفض', zh:'拒绝', ja:'拒否', ru:'Отклонить', pl:'Odrzuć' },
+  remove:     { fr:'Retirer', en:'Remove', es:'Quitar', de:'Entfernen', it:'Rimuovi', ar:'إزالة', zh:'移除', ja:'削除', ru:'Удалить', pl:'Usuń' },
+  cancel:     { fr:'Annuler', en:'Cancel', es:'Cancelar', de:'Abbrechen', it:'Annulla', ar:'إلغاء', zh:'取消', ja:'キャンセル', ru:'Отмена', pl:'Anuluj' },
+  pending:    { fr:'Envoyée', en:'Sent', es:'Enviada', de:'Gesendet', it:'Inviata', ar:'أُرسلت', zh:'已发送', ja:'送信済み', ru:'Отправлено', pl:'Wysłano' },
+  friendTag:  { fr:'Ami', en:'Friend', es:'Amigo', de:'Freund', it:'Amico', ar:'صديق', zh:'好友', ja:'フレンド', ru:'Друг', pl:'Znajomy' },
+  empty:      { fr:'Aucun ami pour l’instant. Ajoute des contacts pour bâtir ton réseau.', en:'No friends yet. Add contacts to build your network.', es:'Aún no tienes amigos. Añade contactos para crear tu red.', de:'Noch keine Freunde. Füge Kontakte hinzu, um dein Netzwerk aufzubauen.', it:'Ancora nessun amico. Aggiungi contatti per creare la tua rete.', ar:'لا أصدقاء بعد. أضف جهات اتصال لبناء شبكتك.', zh:'还没有好友。添加联系人来建立你的网络。', ja:'まだフレンドがいません。連絡先を追加してネットワークを築きましょう。', ru:'Пока нет друзей. Добавьте контакты, чтобы создать свою сеть.', pl:'Brak znajomych. Dodaj kontakty, aby zbudować sieć.' },
+  searchEmpty:{ fr:'Aucun utilisateur trouvé.', en:'No user found.', es:'No se encontró ningún usuario.', de:'Kein Benutzer gefunden.', it:'Nessun utente trovato.', ar:'لم يُعثر على مستخدم.', zh:'未找到用户。', ja:'ユーザーが見つかりません。', ru:'Пользователь не найден.', pl:'Nie znaleziono użytkownika.' },
+  searchHint: { fr:'Tape au moins 2 caractères.', en:'Type at least 2 characters.', es:'Escribe al menos 2 caracteres.', de:'Mindestens 2 Zeichen eingeben.', it:'Digita almeno 2 caratteri.', ar:'اكتب حرفين على الأقل.', zh:'请至少输入 2 个字符。', ja:'2文字以上入力してください。', ru:'Введите минимум 2 символа.', pl:'Wpisz co najmniej 2 znaki.' },
+  statFriends:{ fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
+  needAcc:    { fr:'Connecte-toi pour gérer tes amis.', en:'Sign in to manage your friends.', es:'Inicia sesión para gestionar tus amigos.', de:'Melde dich an, um deine Freunde zu verwalten.', it:'Accedi per gestire i tuoi amici.', ar:'سجّل الدخول لإدارة أصدقائك.', zh:'登录以管理好友。', ja:'ログインしてフレンドを管理。', ru:'Войдите, чтобы управлять друзьями.', pl:'Zaloguj się, aby zarządzać znajomymi.' },
+};
+function _ft(k){ const m=_FRIEND_T[k]; if(!m) return k; return m[LANG]||m.en; }
+
+const _XSVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+
+/* Avatar disc for an arbitrary user {username, avatar_url} */
+function _userAvatarHTML(u){
+  const init = (u.username || '?').trim().charAt(0).toUpperCase();
+  if (u.avatar_url) return `<img class="ava-img" src="${u.avatar_url}" alt="" loading="lazy" onerror="this.remove()"><span class="ava-init ava-init--fallback">${init}</span>`;
+  return `<span class="ava-init">${init}</span>`;
+}
+
+let _friendsCache = { friends:[], incoming:[], outgoing:[] };
+/* (Re)load + render the friends section inside the member space. */
+async function refreshFriendsUI(){
+  const body = document.getElementById('pp-friends-body');
+  if (!body) return;
+  if (!window.GLG_AUTH?.isConfigured?.()){ body.innerHTML = `<p class="pp-friends-note">${_ft('needAcc')}</p>`; return; }
+  const r = await GLG_AUTH.friendsList();
+  _friendsCache = { friends:r.friends||[], incoming:r.incoming||[], outgoing:r.outgoing||[] };
+  const cnt = document.getElementById('pp-friends-count'); if (cnt) cnt.textContent = _friendsCache.friends.length;
+  const stat = document.getElementById('pp-stat-friends'); if (stat) stat.textContent = _friendsCache.friends.length;
+
+  let html = '';
+  if (_friendsCache.incoming.length){
+    html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('incoming')} <span class="pp-fr-badge">${_friendsCache.incoming.length}</span></div><div class="pp-fr-reqs">` +
+      _friendsCache.incoming.map(u => `
+        <div class="pp-fr-req">
+          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+          <span class="pp-fr-name">${escHtml(u.username||'')}</span>
+          <span class="pp-fr-actions">
+            <button class="pp-fr-accept" onclick="friendAccept('${u.id}')">${_ft('accept')}</button>
+            <button class="pp-fr-decline" onclick="friendDecline('${u.id}')" aria-label="${_ft('decline')}" title="${_ft('decline')}">${_XSVG}</button>
+          </span>
+        </div>`).join('') + `</div></div>`;
+  }
+
+  html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('title')} <span class="pp-fr-badge">${_friendsCache.friends.length}</span></div>`;
+  if (_friendsCache.friends.length){
+    html += `<div class="pp-friends-grid">` + _friendsCache.friends.map(u => `
+        <div class="pp-friend-card">
+          <span class="pp-friend-ava">${_userAvatarHTML(u)}<span class="pp-friend-dot" aria-hidden="true"></span></span>
+          <span class="pp-friend-name">${escHtml(u.username||'')}</span>
+          <button class="pp-friend-remove" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('remove')}" title="${_ft('remove')}">${_XSVG}</button>
+        </div>`).join('') + `</div>`;
+  } else {
+    html += `<p class="pp-friends-note">${_ft('empty')}</p>`;
+  }
+  html += `</div>`;
+
+  if (_friendsCache.outgoing.length){
+    html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('outgoing')} <span class="pp-fr-badge">${_friendsCache.outgoing.length}</span></div><div class="pp-fr-reqs">` +
+      _friendsCache.outgoing.map(u => `
+        <div class="pp-fr-req pp-fr-req--out">
+          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+          <span class="pp-fr-name">${escHtml(u.username||'')}</span>
+          <span class="pp-fr-pending">${_ft('pending')}</span>
+          <button class="pp-fr-decline" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('cancel')}" title="${_ft('cancel')}">${_XSVG}</button>
+        </div>`).join('') + `</div></div>`;
+  }
+  body.innerHTML = html;
+}
+async function friendAccept(id){ if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, true); } refreshFriendsUI(); }
+async function friendDecline(id){ if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, false); } refreshFriendsUI(); }
+async function friendRemoveUI(id){ if(window.GLG_AUTH?.friendRemove){ await GLG_AUTH.friendRemove(id); } refreshFriendsUI(); }
+
+/* ── Friend search modal (reuses the auth modal shell) ── */
+let _frSearchTimer = null;
+function openFriendSearch(){
+  const m = $('glg-auth-modal'); if(!m) return;
+  m.innerHTML = `
+    <div class="auth-box auth-box--wide fr-modal" role="dialog" aria-modal="true" aria-label="${_ft('addFriend')}">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">${_XSVG}</button>
+      <h3 class="auth-picker-title">${_ft('addFriend')}</h3>
+      <div class="fr-search-row">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input id="fr-search-input" type="text" autocomplete="off" spellcheck="false" placeholder="${_ft('searchPh')}" aria-label="${_ft('searchPh')}">
+      </div>
+      <div id="fr-search-results" class="fr-search-results"><p class="pp-friends-note">${_ft('searchHint')}</p></div>
+    </div>`;
+  if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+  const inp = $('fr-search-input');
+  if (inp){
+    inp.addEventListener('input', () => { clearTimeout(_frSearchTimer); _frSearchTimer = setTimeout(() => _friendSearchDo(inp.value), 280); });
+    inp.focus();
+  }
+}
+async function _friendSearchDo(q){
+  const box = $('fr-search-results'); if(!box) return;
+  const v = (q||'').trim();
+  if (v.length < 2){ box.innerHTML = `<p class="pp-friends-note">${_ft('searchHint')}</p>`; return; }
+  if (!window.GLG_AUTH?.isConfigured?.()){ box.innerHTML = `<p class="pp-friends-note">${_at('notConfigured')}</p>`; return; }
+  const r = await GLG_AUTH.searchUsers(v);
+  const rows = r.results || [];
+  if (!rows.length){ box.innerHTML = `<p class="pp-friends-note">${_ft('searchEmpty')}</p>`; return; }
+  box.innerHTML = rows.map(u => {
+    let action;
+    if (u.relation === 'friends')      action = `<span class="fr-res-tag">${_ft('friendTag')}</span>`;
+    else if (u.relation === 'outgoing')action = `<span class="fr-res-tag fr-res-tag--muted">${_ft('pending')}</span>`;
+    else if (u.relation === 'incoming')action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('accept')}</button>`;
+    else                               action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('add')}</button>`;
+    return `<div class="fr-res">
+      <span class="fr-res-ava">${_userAvatarHTML(u)}</span>
+      <span class="fr-res-name">${escHtml(u.username||'')}</span>
+      ${action}
+    </div>`;
+  }).join('');
+}
+async function friendAdd(id, btn){
+  if (btn){ btn.disabled = true; }
+  let res = null;
+  if (window.GLG_AUTH?.friendRequest){ const r = await GLG_AUTH.friendRequest(id); res = r.result; }
+  if (btn){
+    const span = document.createElement('span');
+    span.className = 'fr-res-tag fr-res-tag--muted';
+    span.textContent = res === 'friends' ? _ft('friendTag') : _ft('pending');
+    btn.replaceWith(span);
+  }
+  refreshFriendsUI(); // keep the profile section in sync in the background
+}
+
+/* ══════════════════════════════════════════
+   TROPHÉES / SUCCÈS  (style PlayStation)
+   Définitions = data.js TROPHIES. Déblocages = base (RLS).
+   Platine auto quand tous les autres trophées d'un jeu sont obtenus.
+══════════════════════════════════════════ */
+const _TROPHY_T = {
+  level:    { fr:'Niveau de trophées', en:'Trophy level', es:'Nivel de trofeos', de:'Trophäen-Level', it:'Livello trofei', ar:'مستوى الجوائز', zh:'奖杯等级', ja:'トロフィーレベル', ru:'Уровень трофеев', pl:'Poziom trofeów' },
+  section:  { fr:'Trophées', en:'Trophies', es:'Trofeos', de:'Trophäen', it:'Trofei', ar:'الجوائز', zh:'奖杯', ja:'トロフィー', ru:'Трофеи', pl:'Trofea' },
+  byGame:   { fr:'Trophées par jeu', en:'Trophies by title', es:'Trofeos por título', de:'Trophäen nach Titel', it:'Trofei per titolo', ar:'الجوائز حسب اللعبة', zh:'各作品奖杯', ja:'タイトル別トロフィー', ru:'Трофеи по тайтлам', pl:'Trofea wg tytułu' },
+  platinum: { fr:'Platine', en:'Platinum', es:'Platino', de:'Platin', it:'Platino', ar:'بلاتيني', zh:'白金', ja:'プラチナ', ru:'Платина', pl:'Platyna' },
+  gold:     { fr:'Or', en:'Gold', es:'Oro', de:'Gold', it:'Oro', ar:'ذهبي', zh:'金', ja:'ゴールド', ru:'Золото', pl:'Złoto' },
+  silver:   { fr:'Argent', en:'Silver', es:'Plata', de:'Silber', it:'Argento', ar:'فضي', zh:'银', ja:'シルバー', ru:'Серебро', pl:'Srebro' },
+  bronze:   { fr:'Bronze', en:'Bronze', es:'Bronce', de:'Bronze', it:'Bronzo', ar:'برونزي', zh:'铜', ja:'ブロンズ', ru:'Бронза', pl:'Brąz' },
+  hidden:   { fr:'Trophée caché', en:'Hidden trophy', es:'Trofeo oculto', de:'Verstecktes Trophäe', it:'Trofeo nascosto', ar:'جائزة مخفية', zh:'隐藏奖杯', ja:'隠しトロフィー', ru:'Скрытый трофей', pl:'Ukryte trofeum' },
+  hiddenD:  { fr:'Continue de jouer pour le révéler.', en:'Keep playing to reveal it.', es:'Sigue jugando para revelarlo.', de:'Spiele weiter, um es freizuschalten.', it:'Continua a giocare per rivelarlo.', ar:'واصل اللعب لكشفها.', zh:'继续游玩以解锁。', ja:'プレイを続けて解放しよう。', ru:'Продолжайте играть, чтобы открыть.', pl:'Graj dalej, aby odblokować.' },
+  none:     { fr:'Aucun trophée débloqué pour l’instant — tes jeux rempliront cet espace.', en:'No trophies unlocked yet — your games will fill this in.', es:'Aún no hay trofeos — tus juegos los llenarán.', de:'Noch keine Trophäen — deine Spiele füllen das.', it:'Ancora nessun trofeo — i tuoi giochi lo riempiranno.', ar:'لا جوائز بعد — ألعابك ستملؤها.', zh:'尚无奖杯——你的游戏将填满这里。', ja:'まだトロフィーなし——ゲームが埋めていきます。', ru:'Пока нет трофеев — ваши игры их заполнят.', pl:'Brak trofeów — twoje gry je wypełnią.' },
+  view:     { fr:'Voir les trophées', en:'View trophies', es:'Ver trofeos', de:'Trophäen ansehen', it:'Vedi trofei', ar:'عرض الجوائز', zh:'查看奖杯', ja:'トロフィーを見る', ru:'Смотреть трофеи', pl:'Zobacz trofea' },
+};
+function _tt(k){ const m=_TROPHY_T[k]; return m ? (m[LANG]||m.en) : k; }
+const _TROPHY_SVG = '<svg class="trophy-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v4a4 4 0 0 1-8 0V4z" fill="currentColor"/><path d="M8 5H5v1a3 3 0 0 0 3 3M16 5h3v1a3 3 0 0 1-3 3" stroke="currentColor" stroke-width="1.5"/><path d="M12 12v3" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 20l.6-3h3.8l.6 3z" fill="currentColor"/><path d="M8.5 20h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const _TIER_POINTS = { bronze:15, silver:30, gold:90, platinum:180 };
+const _TIER_ORDER  = { platinum:0, gold:1, silver:2, bronze:3 };
+let _achKeys = new Set();
+
+function computeTrophies(){
+  const counts = { bronze:0, silver:0, gold:0, platinum:0 };
+  const earned = { bronze:0, silver:0, gold:0, platinum:0 };
+  let points = 0; const byGame = [];
+  Object.keys(TROPHIES).forEach(gid => {
+    const work = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).find(w => w.id === gid);
+    if (!work || isMatureHidden(work)) return;       // respecte l'age-gating
+    const list = TROPHIES[gid];
+    const nonPlat = list.filter(x => x.tier !== 'platinum');
+    let gEarned = 0; const tiers = { bronze:0, silver:0, gold:0, platinum:0 };
+    list.forEach(tr => {
+      counts[tr.tier]++;
+      const isEarned = (tr.tier === 'platinum')
+        ? (nonPlat.length > 0 && nonPlat.every(x => _achKeys.has(gid + '/' + x.code)))
+        : _achKeys.has(gid + '/' + tr.code);
+      if (isEarned){ earned[tr.tier]++; tiers[tr.tier]++; gEarned++; points += _TIER_POINTS[tr.tier]; }
+    });
+    byGame.push({ gid, work, total:list.length, earned:gEarned, tiers,
+      pct: list.length ? Math.round(gEarned / list.length * 100) : 0 });
+  });
+  byGame.sort((a,b) => b.pct - a.pct || b.earned - a.earned);
+  const total = counts.bronze+counts.silver+counts.gold+counts.platinum;
+  const earnedTotal = earned.bronze+earned.silver+earned.gold+earned.platinum;
+  const level = Math.max(1, Math.floor(Math.sqrt(points / 45)) + (earned.platinum));
+  return { counts, earned, total, earnedTotal, points, level, byGame };
+}
+
+function _tierTileHTML(tier, earned, total){
+  return `<div class="pp-tier pp-tier--${tier}">
+      <span class="pp-tier-ico">${_TROPHY_SVG}</span>
+      <span class="pp-tier-count">${earned}<span class="pp-tier-total">/${total}</span></span>
+      <span class="pp-tier-label">${_tt(tier)}</span>
+    </div>`;
+}
+function trophyShowcaseHTML(d){
+  const pct = d.total ? Math.round(d.earnedTotal / d.total * 100) : 0;
+  return `
+    <div class="pp-trophy-level">
+      <div class="pp-tl-badge"><span class="pp-tl-num">${d.level}</span><span class="pp-tl-cup">${_TROPHY_SVG}</span></div>
+      <div class="pp-tl-meta">
+        <span class="pp-tl-title">${_tt('level')}</span>
+        <span class="pp-tl-sub">${d.earnedTotal} / ${d.total} · ${pct}%</span>
+        <span class="pp-tl-bar"><i style="width:${pct}%"></i></span>
+      </div>
+    </div>
+    <div class="pp-tiers">
+      ${_tierTileHTML('platinum', d.earned.platinum, d.counts.platinum)}
+      ${_tierTileHTML('gold',     d.earned.gold,     d.counts.gold)}
+      ${_tierTileHTML('silver',   d.earned.silver,   d.counts.silver)}
+      ${_tierTileHTML('bronze',   d.earned.bronze,   d.counts.bronze)}
+    </div>`;
+}
+function trophyGameCardHTML(g){
+  const tint = g.work.tint || '#ffffff'; const rgb = hexToRgb(tint) || '255,255,255';
+  const mini = ['platinum','gold','silver','bronze'].filter(t => g.tiers[t] > 0)
+    .map(t => `<span class="pp-tg-mini pp-tier--${t}">${_TROPHY_SVG}${g.tiers[t]}</span>`).join('');
+  return `<button class="pp-tg-card" style="--tint:${tint};--tint-rgb:${rgb}" onclick="openTrophyList('${g.gid}')" aria-label="${g.work.title}">
+      <span class="pp-tg-cover"><img src="${av(g.work.cover)}" alt="${g.work.title}" loading="lazy" onerror="this.style.opacity=0"></span>
+      <span class="pp-tg-body">
+        <span class="pp-tg-name">${g.work.title}</span>
+        <span class="pp-tg-stats">${g.earned}/${g.total} · ${g.pct}%</span>
+        <span class="pp-tg-mini-row">${mini || `<span class="pp-tg-none">${_tt('platinum')} · 0</span>`}</span>
+      </span>
+      <span class="pp-tg-ring" style="--pct:${g.pct}"><span class="pp-tg-ring-in">${g.pct}<small>%</small></span></span>
+    </button>`;
+}
+async function refreshTrophiesUI(){
+  if (window.GLG_AUTH?.isConfigured?.()){
+    try { const r = await GLG_AUTH.getAchievements(); _achKeys = new Set(r.keys || []); } catch(e){ _achKeys = new Set(); }
+  } else { _achKeys = new Set(); }
+  const d = computeTrophies();
+  const statT = document.getElementById('pp-stat-trophies'); if (statT) statT.textContent = d.earnedTotal;
+  const sc = document.getElementById('pp-trophy-showcase'); if (sc) sc.innerHTML = trophyShowcaseHTML(d);
+  const bg = document.getElementById('pp-trophy-games');
+  if (bg) bg.innerHTML = d.byGame.length ? d.byGame.map(trophyGameCardHTML).join('') : `<p class="pp-friends-note">${_tt('none')}</p>`;
+}
+/* Trophy list for one title (PS-style), opened in the shared modal. */
+function openTrophyList(gid){
+  const m = $('glg-auth-modal'); if(!m) return;
+  const work = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).find(w => w.id === gid);
+  const list = (TROPHIES[gid] || []).slice().sort((a,b) => _TIER_ORDER[a.tier]-_TIER_ORDER[b.tier]);
+  const nonPlat = list.filter(x => x.tier !== 'platinum');
+  const rows = list.map(tr => {
+    const earned = (tr.tier === 'platinum')
+      ? (nonPlat.length>0 && nonPlat.every(x => _achKeys.has(gid+'/'+x.code)))
+      : _achKeys.has(gid+'/'+tr.code);
+    const txt = _trophyTxt(tr);
+    const masked = tr.hidden && !earned;
+    return `<div class="tl-row ${earned?'is-earned':'is-locked'}">
+        <span class="tl-ico pp-tier--${tr.tier}">${_TROPHY_SVG}</span>
+        <span class="tl-body">
+          <span class="tl-name">${masked ? _tt('hidden') : escHtml(txt.t)}</span>
+          <span class="tl-desc">${masked ? _tt('hiddenD') : escHtml(txt.d)}</span>
+        </span>
+        <span class="tl-tier pp-tier--${tr.tier}">${_tt(tr.tier)}</span>
+      </div>`;
+  }).join('');
+  m.innerHTML = `
+    <div class="auth-box auth-box--wide tl-modal" role="dialog" aria-modal="true" aria-label="${work?work.title:''}">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">${_XSVG}</button>
+      <div class="tl-head" style="--tint:${work?.tint||'#fff'}">
+        <span class="tl-head-cover"><img src="${av(work?.cover||'')}" alt="" onerror="this.style.opacity=0"></span>
+        <span class="tl-head-id"><span class="tl-head-eyebrow">${_tt('section')}</span><span class="tl-head-name">${work?work.title:gid}</span></span>
+      </div>
+      <div class="tl-list">${rows}</div>
+    </div>`;
+  if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+}
+function _trophyTxt(tr){ return tr[LANG] || tr.en || { t:tr.code, d:'' }; }
+
+/* ── Fiches détail "magazine" : tags, facts, teaser trophées ───────────── */
+const _DPX_T = {
+  players:    { fr:'Joueurs', en:'Players', es:'Jugadores', de:'Spieler', it:'Giocatori', ar:'اللاعبون', zh:'玩家', ja:'プレイ人数', ru:'Игроки', pl:'Gracze' },
+  solo:       { fr:'Solo', en:'Single-player', es:'Un jugador', de:'Einzelspieler', it:'Giocatore singolo', ar:'لاعب واحد', zh:'单人', ja:'シングル', ru:'Одиночная', pl:'Jednoosobowa' },
+  languages:  { fr:'Langues', en:'Languages', es:'Idiomas', de:'Sprachen', it:'Lingue', ar:'اللغات', zh:'语言', ja:'言語', ru:'Языки', pl:'Języki' },
+  rating:     { fr:'Classification', en:'Rating', es:'Clasificación', de:'Einstufung', it:'Classificazione', ar:'التصنيف', zh:'分级', ja:'レーティング', ru:'Возраст', pl:'Klasyfikacja' },
+  ratingAdult:{ fr:'18+', en:'18+', es:'18+', de:'18+', it:'18+', ar:'+18', zh:'18+', ja:'18+', ru:'18+', pl:'18+' },
+  ratingTeen: { fr:'12+', en:'12+', es:'12+', de:'12+', it:'12+', ar:'+12', zh:'12+', ja:'12+', ru:'12+', pl:'12+' },
+};
+function _dx(k){ const m=_DPX_T[k]; return m ? (m[LANG]||m.en) : k; }
+
+function _workTagsHTML(item){
+  const ids = (typeof WORK_TAGS!=='undefined' && WORK_TAGS[item.id]) || [];
+  if (!ids.length) return '';
+  return `<div class="dp-tags">${ids.map(id => {
+    const l = (typeof TAG_LABELS!=='undefined') ? TAG_LABELS[id] : null;
+    return `<span class="dp-tag">${l ? (l[LANG]||l.en) : id}</span>`;
+  }).join('')}</div>`;
+}
+function _gameTrophySummary(gid){
+  const list = (typeof TROPHIES!=='undefined') ? TROPHIES[gid] : null;
+  if (!list || !list.length) return null;
+  const tiers = { platinum:0, gold:0, silver:0, bronze:0 };
+  list.forEach(t => { tiers[t.tier]++; });
+  return { total:list.length, tiers };
+}
+function dpTrophySectionHTML(item){
+  const s = _gameTrophySummary(item.id);
+  if (!s) return '';
+  const list = TROPHIES[item.id].slice().sort((a,b) => _TIER_ORDER[a.tier]-_TIER_ORDER[b.tier]);
+  const preview = list.slice(0,4).map(tr => {
+    const txt = _trophyTxt(tr); const masked = tr.hidden;
+    return `<div class="dp-tr-row">
+        <span class="dp-tr-ico pp-tier--${tr.tier}">${_TROPHY_SVG}</span>
+        <span class="dp-tr-body"><span class="dp-tr-name">${masked ? _tt('hidden') : escHtml(txt.t)}</span><span class="dp-tr-tier pp-tier--${tr.tier}">${_tt(tr.tier)}</span></span>
+      </div>`;
+  }).join('');
+  const counts = ['platinum','gold','silver','bronze'].filter(t => s.tiers[t])
+    .map(t => `<span class="dp-tr-count pp-tier--${t}">${_TROPHY_SVG}${s.tiers[t]}</span>`).join('');
+  return `<div class="dp-trophies reveal">
+      <div class="dp-sec-label">${_tt('section')}</div>
+      <div class="dp-tr-head">
+        <div class="dp-tr-counts">${counts}</div>
+        <button class="dp-tr-all" onclick="openTrophyList('${item.id}')">${_tt('view')} →</button>
+      </div>
+      <div class="dp-tr-list">${preview}</div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════
+   COMPTES LIÉS (Steam / Epic / PlayStation)
+   MVP fonctionnel : identifiant stocké sur le profil. L'import d'amis live
+   nécessite les API officielles + OAuth serveur (clés secrètes) → étape backend.
+══════════════════════════════════════════ */
+const _PLATFORMS = [
+  { key:'steam', name:'Steam',       icon:'assets/img/stores/steam.svg',       ph:'SteamID / vanity' },
+  { key:'epic',  name:'Epic Games',  icon:'assets/img/stores/epic.svg',        ph:'Epic username' },
+  { key:'psn',   name:'PlayStation', icon:'assets/img/stores/playstation.svg', ph:'PSN Online ID' },
+];
+const _LINK_T = {
+  title:  { fr:'Comptes liés', en:'Linked accounts', es:'Cuentas vinculadas', de:'Verknüpfte Konten', it:'Account collegati', ar:'الحسابات المرتبطة', zh:'已关联账号', ja:'連携アカウント', ru:'Привязанные аккаунты', pl:'Połączone konta' },
+  sub:    { fr:'Lie tes comptes pour retrouver tes amis et préparer ta bibliothèque.', en:'Link your accounts to find friends and prepare your library.', es:'Vincula tus cuentas para encontrar amigos.', de:'Verknüpfe Konten, um Freunde zu finden.', it:'Collega gli account per trovare amici.', ar:'اربط حساباتك للعثور على أصدقائك.', zh:'关联账号以查找好友。', ja:'アカウントを連携して友達を探そう。', ru:'Привяжите аккаунты, чтобы найти друзей.', pl:'Połącz konta, aby znaleźć znajomych.' },
+  link:   { fr:'Lier', en:'Link', es:'Vincular', de:'Verknüpfen', it:'Collega', ar:'ربط', zh:'关联', ja:'連携', ru:'Привязать', pl:'Połącz' },
+  unlink: { fr:'Délier', en:'Unlink', es:'Desvincular', de:'Trennen', it:'Scollega', ar:'فصل', zh:'取消关联', ja:'解除', ru:'Отвязать', pl:'Odłącz' },
+  save:   { fr:'Enregistrer', en:'Save', es:'Guardar', de:'Speichern', it:'Salva', ar:'حفظ', zh:'保存', ja:'保存', ru:'Сохранить', pl:'Zapisz' },
+  connected:{ fr:'Lié', en:'Linked', es:'Vinculado', de:'Verknüpft', it:'Collegato', ar:'مرتبط', zh:'已关联', ja:'連携済み', ru:'Привязан', pl:'Połączono' },
+};
+function _lt(k){ const m=_LINK_T[k]; return m ? (m[LANG]||m.en) : k; }
+let _linkedCache = {};
+function _platformSectionHTML(la){
+  _linkedCache = la || {};
+  return _PLATFORMS.map(pf => {
+    const val = (la && la[pf.key]) || '';
+    return `<div class="pp-link-row ${val?'is-linked':''}">
+        <span class="pp-link-ico"><img src="${pf.icon}" alt="${pf.name}" onerror="this.style.opacity=.4"></span>
+        <span class="pp-link-id"><span class="pp-link-name">${pf.name}</span>${val?`<span class="pp-link-handle">${escHtml(val)}</span>`:`<span class="pp-link-muted">${_lt('sub')==''?'':''}—</span>`}</span>
+        ${val
+          ? `<span class="pp-link-state">${_lt('connected')}</span><button class="pp-link-btn pp-link-btn--ghost" onclick="unlinkPlatform('${pf.key}')">${_lt('unlink')}</button>`
+          : `<button class="pp-link-btn" onclick="openLinkPlatform('${pf.key}')">${_lt('link')}</button>`}
+      </div>`;
+  }).join('');
+}
+function openLinkPlatform(key){
+  const pf = _PLATFORMS.find(p => p.key === key); if(!pf) return;
+  const m = $('glg-auth-modal'); if(!m) return;
+  m.innerHTML = `
+    <div class="auth-box fr-modal" role="dialog" aria-modal="true">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">${_XSVG}</button>
+      <div class="pp-link-modal-head"><span class="pp-link-ico pp-link-ico--lg"><img src="${pf.icon}" alt="${pf.name}" onerror="this.style.opacity=.4"></span><h3 class="auth-picker-title" style="margin:0">${pf.name}</h3></div>
+      <label class="auth-field" style="margin-top:16px"><span>${_lt('title')}</span>
+        <input id="pp-link-input" type="text" autocomplete="off" placeholder="${pf.ph}" value="${escHtml(_linkedCache[key]||'')}">
+      </label>
+      <p class="auth-notice" style="margin-top:4px">${_lt('sub')}</p>
+      <button class="btn btn-primary auth-submit" onclick="savePlatformLink('${key}')">${_lt('save')}</button>
+    </div>`;
+  if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+  setTimeout(() => $('pp-link-input')?.focus(), 60);
+}
+async function savePlatformLink(key){
+  const v = ($('pp-link-input')?.value || '').trim().slice(0, 64);
+  const la = { ..._linkedCache }; if (v) la[key] = v; else delete la[key];
+  if (window.GLG_AUTH?.updateProfile) await GLG_AUTH.updateProfile({ linked_accounts: la });
+  closeAuthModal(); buildProfilePage();
+}
+async function unlinkPlatform(key){
+  const la = { ..._linkedCache }; delete la[key];
+  if (window.GLG_AUTH?.updateProfile) await GLG_AUTH.updateProfile({ linked_accounts: la });
+  buildProfilePage();
+}
+
+/* Preset banners = each work's first screenshot (landscape) or its cover. */
+function getPresetBanners(){
+  const out = [];
+  (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).forEach(w=>{
+    const src = (Array.isArray(w.screenshots) && w.screenshots[0]) || w.cover;
+    if(src) out.push({ id:w.id, label:w.title, src });
+  });
+  return out;
+}
+
+async function openBannerPicker(){
+  const m = $('glg-auth-modal'); if(!m) return;
+  const presets = getPresetBanners();
+  m.innerHTML = `
+    <div class="auth-box auth-box--wide" role="dialog" aria-modal="true">
+      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <h3 class="auth-picker-title">${_ppt('pickBanner')}</h3>
+      <div class="banner-grid">
+        <button class="banner-cell banner-cell--none" data-src=""><span>${_ppt('defaultBanner')}</span></button>
+        ${presets.map(p=>`<button class="banner-cell" data-src="${p.src}" title="${p.label}"><img src="${p.src}" alt="${p.label}" loading="lazy" onerror="this.style.opacity=0"><span class="banner-cell-name">${p.label}</span></button>`).join('')}
+      </div>
+      <p class="auth-err" id="bpick-err" hidden></p>
+    </div>`;
+  if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+  m.querySelectorAll('.banner-cell').forEach(c => c.addEventListener('click', async () => {
+    _hideErr('bpick-err');
+    const r = await GLG_AUTH.updateProfile({ banner_url: c.dataset.src || null });
+    if(r.ok){ closeAuthModal(); await refreshAccountUI(); buildProfilePage(); }
+    else _showErr('bpick-err', r.code === 'notConfigured' ? _at('notConfigured') : _at('fail'));
+  }));
 }
 
 /* ══════════════════════════════════════════
@@ -2565,6 +3747,7 @@ function renderSearchResults(query) {
 
   // Match only against titles (English + localised if translated)
   const matches = ALL_WORKS.filter(item => {
+    if (isMatureHidden(item)) return false; // 18+ titles never surface for logged-in minors
     if (item.title.toLowerCase().includes(q)) return true;
     const localTitle = (item.i18n?.[LANG]?.title || '').toLowerCase();
     return localTitle && localTitle.includes(q);
@@ -2584,7 +3767,7 @@ function renderSearchResults(query) {
     return `
       <div class="search-result" onclick="closeSearch(); showPage('detail','${item.id}')">
         <div class="search-result-thumb">
-          <img src="${item.cover}" alt="" loading="lazy">
+          <img src="${av(item.cover)}" alt="" loading="lazy">
         </div>
         <div class="search-result-info">
           <div class="search-result-title">${hl}</div>
@@ -2776,6 +3959,19 @@ function initHeroParallax() {
   document.addEventListener('glg:page-changed', e => updateContentRef(e.detail?.name || ''));
   document.addEventListener('glg:site-built',   () => updateContentRef('home'));
 
+  // Idle-stopping rAF: only runs while there's motion to settle, then halts.
+  // (Previously it ran every frame forever — even off-home — for nothing.)
+  let _plxRAF = null;
+  function loopParallax() {
+    cx += (tx - cx) * .05;
+    cy += (ty - cy) * .05;
+    if (_content) _content.style.transform = `translate(${cx * -8}px,${cy * -5}px)`;
+    if (Math.abs(tx - cx) < .0006 && Math.abs(ty - cy) < .0006 &&
+        Math.abs(tx) < .0006 && Math.abs(ty) < .0006) { _plxRAF = null; return; } // settled → stop
+    _plxRAF = requestAnimationFrame(loopParallax);
+  }
+  function plxWake() { if (!_plxRAF && _content) _plxRAF = requestAnimationFrame(loopParallax); }
+
   document.addEventListener('mousemove', e => {
     if (!_content) return;
     const hero = _content.closest('.hero');
@@ -2785,18 +3981,10 @@ function initHeroParallax() {
         e.clientY < r.top  || e.clientY > r.bottom) return;
     tx = (e.clientX / window.innerWidth  - .5);
     ty = (e.clientY / window.innerHeight - .5);
+    plxWake();
   }, { passive: true });
 
-  document.addEventListener('mouseleave', () => { tx = 0; ty = 0; });
-
-  (function loopParallax() {
-    cx += (tx - cx) * .05;
-    cy += (ty - cy) * .05;
-    if ((Math.abs(cx) > .0005 || Math.abs(cy) > .0005) && _content) {
-      _content.style.transform = `translate(${cx * -8}px,${cy * -5}px)`;
-    }
-    requestAnimationFrame(loopParallax);
-  })();
+  document.addEventListener('mouseleave', () => { tx = 0; ty = 0; plxWake(); });
 }
 
 /* ── 3. Scroll parallax on home hero ────────────────── */
@@ -2988,7 +4176,7 @@ function initHeroCanvas() {
       const alpha = p.a * (.55 + .45 * Math.sin(p.ph));
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,215,90,${alpha.toFixed(3)})`;
+      ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`; // monochrome (was gold — brand coherence)
       ctx.fill();
     }
     _canvasRafId = requestAnimationFrame(draw);

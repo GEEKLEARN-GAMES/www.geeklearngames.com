@@ -1,8 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
-<rect width="600" height="900" fill="#0d0d0d"/>
-<rect x="0.5" y="0.5" width="599" height="899" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<line x1="0" y1="0" x2="600" y2="900" stroke="#181818" stroke-width="1"/>
-<line x1="600" y1="0" x2="0" y2="900" stroke="#181818" stroke-width="1"/>
-<text x="300" y="440" font-family="Georgia,serif" font-size="12" fill="#2a2a2a" text-anchor="middle" letter-spacing="4">REPLACE WITH IMAGE</text>
-<text x="300" y="462" font-family="Georgia,serif" font-size="10" fill="#1e1e1e" text-anchor="middle">hush-cover — 600×900px</text>
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0" stop-color="rgb(10,20,25)"/>
+      <stop offset="1" stop-color="rgb(6,6,8)"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.47" cy="0.16" r="0.87">
+      <stop offset="0" stop-color="rgba(0,212,255,0.3)"/>
+      <stop offset="0.42" stop-color="rgba(0,212,255,0.1)"/>
+      <stop offset="1" stop-color="rgba(0,212,255,0)"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.13" cy="0.6" r="0.4">
+      <stop offset="0" stop-color="rgba(76,225,255,0.1)"/>
+      <stop offset="1" stop-color="rgba(0,212,255,0)"/>
+    </radialGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.46" r="0.75">
+      <stop offset="0.45" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.62)"/>
+    </radialGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.5" stop-color="rgba(7,7,8,0)"/>
+      <stop offset="1" stop-color="rgba(7,7,8,0.78)"/>
+    </linearGradient>
+    <linearGradient id="mono" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(0,212,255,0)"/>
+      <stop offset="0.5" stop-color="rgba(0,212,255,0.5)"/>
+      <stop offset="1" stop-color="rgba(0,212,255,0)"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(0,212,255,0.06)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs>
+  <rect width="600" height="900" fill="url(#base)"/>
+  <rect width="600" height="900" fill="url(#glowB)"/>
+  <g transform="rotate(-14.5 300.0 450.0)"><rect x="242.13" y="-270.0" width="1.49" height="1440.0" fill="rgba(0,212,255,0.105)"/><rect x="507.61" y="-270.0" width="1.18" height="1440.0" fill="rgba(255,255,255,0.099)"/><rect x="438.63" y="-270.0" width="0.74" height="1440.0" fill="rgba(255,255,255,0.083)"/><rect x="413.2" y="-270.0" width="1.15" height="1440.0" fill="rgba(255,255,255,0.121)"/><rect x="136.45" y="-270.0" width="1.17" height="1440.0" fill="rgba(0,212,255,0.095)"/></g>
+  
+  <circle cx="251.27" cy="419.91" r="309.41" fill="none" stroke="rgba(0,212,255,0.22)" stroke-width="1.5"/><circle cx="251.27" cy="419.91" r="191.83" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <rect width="600" height="900" fill="url(#glowA)"/>
+  <circle cx="14.4" cy="334.7" r="2.19" fill="rgba(255,255,255,0.259)"/><circle cx="85.89" cy="436.22" r="1.49" fill="rgba(255,255,255,0.497)"/><circle cx="234.21" cy="81.07" r="2.31" fill="rgba(0,212,255,0.235)"/><circle cx="491.3" cy="725.87" r="1.15" fill="rgba(0,212,255,0.444)"/><circle cx="401.07" cy="753.29" r="1.06" fill="rgba(255,255,255,0.141)"/><circle cx="227.09" cy="799.76" r="0.8" fill="rgba(0,212,255,0.158)"/><circle cx="236.17" cy="808.87" r="2.29" fill="rgba(0,212,255,0.23)"/><circle cx="175.42" cy="808.37" r="2.41" fill="rgba(255,255,255,0.432)"/><circle cx="523.27" cy="627.32" r="2.14" fill="rgba(0,212,255,0.101)"/><circle cx="99.98" cy="493.82" r="1.82" fill="rgba(0,212,255,0.267)"/><circle cx="541.29" cy="77.08" r="2.3" fill="rgba(255,255,255,0.407)"/><circle cx="490.3" cy="146.88" r="1.13" fill="rgba(255,255,255,0.433)"/><circle cx="502.96" cy="738.65" r="2.19" fill="rgba(0,212,255,0.494)"/><circle cx="375.08" cy="317.76" r="1.21" fill="rgba(0,212,255,0.465)"/><circle cx="580.42" cy="737.91" r="0.76" fill="rgba(0,212,255,0.192)"/><circle cx="265.83" cy="38.97" r="0.96" fill="rgba(255,255,255,0.195)"/><circle cx="445.52" cy="506.61" r="1.61" fill="rgba(255,255,255,0.312)"/><circle cx="201.59" cy="370.33" r="1.85" fill="rgba(0,212,255,0.449)"/><circle cx="279.58" cy="496.37" r="2.11" fill="rgba(255,255,255,0.139)"/><circle cx="498.93" cy="689.2" r="1.2" fill="rgba(255,255,255,0.119)"/><circle cx="105.66" cy="241.39" r="2.15" fill="rgba(255,255,255,0.296)"/>
+  <rect width="600" height="900" fill="url(#scrim)"/>
+  <rect width="600" height="900" fill="url(#vig)"/>
+  <rect width="600" height="900" filter="url(#grain)" opacity="0.06"/>
+  <path d="M26 46 V26 H46" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M554 26 H574 V46" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M26 854 V874 H46" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/><path d="M554 874 H574 V854" stroke="rgba(255,255,255,0.14)" stroke-width="1" fill="none"/>
+  <rect x="0.5" y="0.5" width="599" height="899" fill="none" stroke="rgba(255,255,255,0.06)"/>
 </svg>

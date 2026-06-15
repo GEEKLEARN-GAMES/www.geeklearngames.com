@@ -4,6 +4,10 @@
    Loads after main.css. Overrides everything that needs it.
    Philosophy: depth through shadow · precision through spacing
                quality through texture · prestige through restraint
+   ───────────────────────────────────────────────────────────────
+   ⚠ COUCHE 2/3.  Ordre : main.css → glg-premium.css → glg-aaa.css.
+   N'ajoute PAS de nouveaux styles ici : mets-les dans css/glg-aaa.css
+   (couche finale, sections §N). Voir README → « Architecture CSS ».
 ═══════════════════════════════════════════════════════════════ */
 
 /* ────────────────────────────────────────────────────────────

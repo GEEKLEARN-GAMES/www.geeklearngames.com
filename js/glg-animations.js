@@ -153,6 +153,7 @@
     // Initial visible cards entrance
     document.querySelectorAll('.carousel-viewport').forEach(vp => {
       const cards = vp.querySelectorAll('.c-card');
+      if (!cards.length) return; // cards not built yet — skip (avoids empty-target warning)
       gsap.from(cards, {
         scrollTrigger: { trigger: vp, start: 'top 88%', once: true },
         y: 25, opacity: 0, duration: 0.45, ease: E2,
@@ -215,6 +216,7 @@
   ═══════════════════════════════════════════════════════════ */
   function animFooter() {
     if (!MOTION) return;
+    if (!document.querySelector('.footer-col')) return; // no footer on this page yet
 
     gsap.from('.footer-col', {
       scrollTrigger: { trigger: '.footer-inner', start: 'top 90%', once: true },
@@ -235,24 +237,108 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
+     SAFETY — kill triggers WITHOUT leaving elements hidden
+     ─────────────────────────────────────────────────────────
+     gsap.from() immediately sets its targets to opacity:0 (the
+     "from" state) and waits for the ScrollTrigger to fire. If the
+     user navigates away before scrolling that element into view,
+     the trigger is killed BEFORE it fires — and a plain .kill()
+     does NOT restore the inline styles, so the element stays
+     invisible forever. THIS is the "text/buttons disappear after
+     browsing a while" bug.
+     Reverting each tween before killing restores the natural state,
+     so the worst case becomes "visible, just not animated" — never
+     "stuck invisible".
+  ═══════════════════════════════════════════════════════════ */
+  function killTriggers() {
+    ScrollTrigger.getAll().forEach(t => {
+      const tween = t.animation;
+      // Force any reveal tween to its FINAL (fully-visible) state BEFORE killing.
+      // t.kill() kills the attached tween at its CURRENT value, so if we killed
+      // first an in-between fade would be frozen (e.g. opacity:0.49) — and a tween
+      // that never fired would freeze at opacity:0 (the "disappearing text" bug).
+      // progress(1) guarantees the element ends visible no matter what.
+      if (tween && typeof tween.progress === 'function') {
+        try { tween.progress(1); } catch (e) { /* noop */ }
+      }
+      t.kill();
+    });
+  }
+
+  /* Reveal-target selectors per page — used to GUARANTEE visibility on re-visits. */
+  const _PAGE_SELECTORS = {
+    home: ['.hero-eyebrow','.hero-slogan','.hero-desc','.hero-btns','.glg-stat-item','.showcase-header','.puz-strip-row','.glg-band-label','.studio-quote','.studio-body p','.studio-theme-item','#cta-eye','#cta-title','#cta-desc','#cta-btn1','#cta-btn2'],
+    works:   ['.works-cat-title','.works-cat-label','.c-card'],
+    about:   ['#about-title','#about-eye','#about-desc','.cm-card','.about-manifesto-quote'],
+    contact: ['.contact-hero-h','.contact-eye-lbl','.contact-hero-desc','.contact-promises','.contact-form-col','.contact-info-col'],
+  };
+
+  /* Force every reveal target on a page to its visible resting state (no animation). */
+  function ensurePageVisible(name) {
+    const sels = (_PAGE_SELECTORS[name] || []).filter(s => document.querySelector(s));
+    if (sels.length) { try { gsap.set(sels.join(','), { opacity: 1, x: 0, y: 0, clearProps: 'transform,willChange' }); } catch (e) {} }
+    if (document.querySelector('.footer-col')) { try { gsap.set('.footer-col', { opacity: 1, clearProps: 'transform,willChange' }); } catch (e) {} }
+    if (document.querySelector('.hero-scroll')) { try { gsap.set('.hero-scroll', { opacity: 0.35, clearProps: 'transform' }); } catch (e) {} }
+  }
+
+  /* ── FAILSAFE — nothing may ever stay invisible ──────────────────
+     A few seconds after a page is shown, any reveal target / .reveal
+     element still stranded at opacity ~0 (a ScrollTrigger that never
+     fired) is force-revealed. Pure safety net: when reveals fire
+     normally it's a no-op (elements are already visible).            */
+  let _failsafeT = null;
+  function scheduleRevealFailsafe(name) {
+    clearTimeout(_failsafeT);
+    _failsafeT = setTimeout(() => {
+      const page = document.getElementById('page-' + (name === 'detail' ? 'detail' : name)) ||
+                   document.querySelector('.page.active');
+      // 1) Known GSAP reveal selectors for this page
+      ensurePageVisible(name);
+      // 2) Any element carrying an inline opacity near 0 inside the active page
+      if (page) {
+        page.querySelectorAll('[style*="opacity"]').forEach(el => {
+          const o = parseFloat(el.style.opacity);
+          if (!isNaN(o) && o < 0.05 && !el.matches('.hero-scroll')) {
+            el.style.removeProperty('opacity');
+            el.style.removeProperty('transform');
+          }
+        });
+        // 3) CSS .reveal class fallback (in case the observer missed them)
+        page.querySelectorAll('.reveal:not(.visible)').forEach(el => {
+          const r = el.getBoundingClientRect();
+          if (r.top < window.innerHeight * 1.4) el.classList.add('visible');
+        });
+      }
+    }, 1600);
+  }
+
+  /* Animate a page's reveals the FIRST time it's shown; afterwards just keep it visible.
+     Re-hiding on every visit is what let rapid navigation strand elements at opacity:0,
+     so we never re-hide — content can only ever end up visible. */
+  const _animDone = {};
+  function runPageAnims(name) {
+    if (_animDone[name]) { ensurePageVisible(name); return; }
+    _animDone[name] = true;
+    if (name === 'home') {
+      animHero(); animStats(); animShowcase(); animGLGBand(); animStudio(); animCTA();
+    } else if (name === 'works')   { animWorks(); }
+    else if (name === 'about')     { animAbout(); }
+    else if (name === 'contact')   { animContact(); }
+    // 'detail' has no scroll-reveal tweens of its own (page-enter handles it)
+    animFooter();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
      INIT ALL — called once site DOM is built
   ═══════════════════════════════════════════════════════════ */
   function initAll() {
-    // Kill stale triggers
-    ScrollTrigger.getAll().forEach(t => t.kill());
-
+    killTriggers();
     setTimeout(() => {
-      animHero();
-      animStats();
-      animShowcase();
-      animGLGBand();
-      animStudio();
-      animCTA();
-      animWorks();
-      animAbout();
-      animContact();
-      animFooter();
+      const active = document.querySelector('.page.active');
+      const name = active ? active.id.replace('page-', '') : 'home';
+      runPageAnims(name);
       ScrollTrigger.refresh();
+      scheduleRevealFailsafe(name);
     }, 120);
   }
 
@@ -274,16 +360,17 @@
       const { name, el } = e.detail || {};
       animPageEnter(el);
 
-      // Re-run page-specific animations with slight delay
+      // Re-run page-specific animations with slight delay.
+      // killTriggers() first reverts every tween so nothing is left
+      // stuck at opacity:0 from a trigger that never fired.
       setTimeout(() => {
-        ScrollTrigger.getAll().forEach(t => t.kill());
-        if (name === 'works')   animWorks();
-        if (name === 'about')   animAbout();
-        if (name === 'contact') animContact();
-        if (name === 'home')    { animStats(); animShowcase(); animStudio(); animCTA(); }
-        animFooter();
+        killTriggers();
+        runPageAnims(name);
         ScrollTrigger.refresh();
       }, 200);
+
+      // Safety net: guarantee no element stays invisible.
+      scheduleRevealFailsafe(name);
     });
   }
 
