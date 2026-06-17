@@ -719,7 +719,32 @@ function initNav() {
   });
 }
 
+/* ── Page-transition veil — "fade from black" launcher feel ──────────────
+   Couvre INSTANTANÉMENT la zone contenu avant le swap (aucune image n'est
+   peinte entre l'ancienne et la nouvelle page → zéro saut), puis se dissout
+   en révélant la nouvelle page. Sous la nav/modales (z-index). */
+let _veilEl = null;
+const _veilMotion = !window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+function _pageVeilCover() {
+  if (!_veilMotion) return;
+  if (!_veilEl) { _veilEl = document.createElement('div'); _veilEl.id = 'glg-veil'; _veilEl.setAttribute('aria-hidden','true'); document.body.appendChild(_veilEl); }
+  _veilEl.style.transition = 'none';
+  _veilEl.style.opacity = '1';
+  void _veilEl.offsetHeight;          // commit the opaque state before any paint
+  _veilEl.style.transition = '';
+}
+function _pageVeilReveal() {
+  if (!_veilMotion || !_veilEl) return;
+  // setTimeout (pas rAF) : fiable même si la frame est throttlée (onglet en
+  // arrière-plan). L'état final opacity:0 s'applique quoi qu'il arrive → jamais
+  // d'écran noir bloqué. Un 2ᵉ timer fait office de filet de sécurité.
+  setTimeout(() => { if (_veilEl) _veilEl.style.opacity = '0'; }, 40);
+  setTimeout(() => { if (_veilEl) _veilEl.style.opacity = '0'; }, 650);
+}
+
 function showPage(name, itemId = null) {
+  _pageVeilCover();   // hide the swap behind a veil → smooth cross-fade
+
   // Reset hero-content styles left by scroll/mouse parallax to avoid visual seams
   const prevHeroContent = document.querySelector('.page.active .hero-content');
   if (prevHeroContent) { prevHeroContent.style.opacity = ''; prevHeroContent.style.transform = ''; }
@@ -755,6 +780,8 @@ function showPage(name, itemId = null) {
   // Notify GSAP animation layer
   const activePage = itemId ? $('page-detail') : $('page-' + name);
   document.dispatchEvent(new CustomEvent('glg:page-changed', { detail: { name, el: activePage } }));
+
+  _pageVeilReveal();  // dissolve the veil → the new page fades up into view
 }
 
 /* ══════════════════════════════════════════
@@ -897,173 +924,29 @@ let _buildCarouselsTimer = null;
 function buildCarousels() {
   clearTimeout(_buildCarouselsTimer);
   _buildCarouselsTimer = setTimeout(() => {
-    buildCarousel('films-carousel', filterByAge(FILMS), FILM_LABELS[LANG] || 'Interactive Film');
-    buildCarousel('games-carousel', filterByAge(GAMES), GAME_LABELS[LANG] || 'Video Game');
+    buildWorksGrid('films-carousel', filterByAge(FILMS), FILM_LABELS[LANG] || 'Interactive Film');
+    buildWorksGrid('games-carousel', filterByAge(GAMES), GAME_LABELS[LANG] || 'Video Game');
   }, 0);
 }
 
-function buildCarousel(id, items, typeLabel) {
+/* ── OUR WORKS — grille de store (remplace l'auto-scroll infini) ─────────
+   Choix AAA : un catalogue que l'utilisateur PARCOURT (Steam/Epic/PS), pas
+   un bandeau qui défile. Plus premium, accessible, et net sur mobile.
+   Réutilise cardHTML + les filtres. Aucune boucle rAF. */
+function buildWorksGrid(id, items, typeLabel) {
   const el = $(id);
   if (!el) return;
-
-  /* ── Cancel any previous rAF loop for this carousel ── */
-  if (_carouselRAF[id]) {
-    cancelAnimationFrame(_carouselRAF[id]);
-    _carouselRAF[id] = null;
-  }
-
-  /*
-   * RTL-safety: force direction:ltr on the overflow container (.carousel-viewport).
-   */
-  if (el.parentElement) el.parentElement.style.direction = 'ltr';
-
-  /*
-   * Direction: films scroll LEFT (-1), games scroll RIGHT (+1).
-   * Speed: px per frame at 60 fps → ~33 px/s at 0.55.
-   */
-  const dir   = (id === 'games-carousel') ? 1 : -1;
-  const speed = 0.55;
-
-  /* ── Build enough copies so the track is always wider than the viewport ── */
-  const vw    = window.innerWidth || 1280;
-  const cardW = Math.min(200, Math.max(130, vw * 0.16)) + 10;
-  const setW  = items.length * cardW;
-  let setsNeeded = Math.max(4, Math.ceil((vw * 2.5) / setW + 1));
-  if (setsNeeded % 2 !== 0) setsNeeded++;
-
-  let html = '';
-  for (let i = 0; i < setsNeeded; i++) {
-    items.forEach(item => { html += cardHTML(item, typeLabel); });
-  }
-  el.innerHTML = html;
-
-  const measuredW  = el.scrollWidth;
-  const actualSetW = measuredW > 0 ? measuredW / setsNeeded : setW;
-
-  let pos = (dir === 1) ? -actualSetW : 0;
-  el.style.transform = `translateX(${pos}px)`;
-
-  /*
-   * HOVER BUG FIX — mobile/touch:
-   * On touch screens, :hover gets "stuck" on the last-touched element and never
-   * clears until something else is touched.  This froze the carousel indefinitely.
-   * Fix: only use :hover pause on real pointer devices (mouse + fine pointer).
-   * Touch devices always scroll — swipe handling is managed below.
-   */
-  const hasPreciseHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
-
-  function tick() {
-    if (!hasPreciseHover || !el.matches(':hover')) {
-      pos += dir * speed;
-      if (dir < 0 && pos <= -actualSetW) pos += actualSetW;
-      if (dir > 0 && pos >= 0)           pos -= actualSetW;
-      el.style.transform = `translateX(${pos}px)`;
-    }
-    _carouselRAF[id] = requestAnimationFrame(tick);
-  }
-
-  _carouselRAF[id] = requestAnimationFrame(tick);
-
-  /*
-   * TOUCH SWIPE — integrated here so we have direct access to pos/tick/actualSetW.
-   * Replaces the broken initCarouselTouch() which targeted non-existent CSS classes
-   * and tried to restart a CSS animation that was never running.
-   *
-   * Guards:
-   *  - el._touchBound: listeners are added only once; el._cs carries mutable state
-   *    that the persistent listeners read on every call (survives carousel rebuilds).
-   */
-  if (!el._cs) el._cs = {};
-  el._cs.pos      = pos;
-  el._cs.setW     = actualSetW;
-  el._cs.dir      = dir;
-  el._cs.getTick  = () => tick; // getter so momentum handler always uses latest tick
-
-  if (!el._touchBound) {
-    el._touchBound = true;
-
-    let dragging   = false;
-    let startX     = 0;
-    let startPos   = 0;
-    let velX       = 0;
-    let lastX      = 0;
-    let lastT      = 0;
-    let momRAF     = null;
-
-    el.addEventListener('touchstart', e => {
-      /* Cancel any in-progress momentum */
-      if (momRAF) { cancelAnimationFrame(momRAF); momRAF = null; }
-      /* Pause the auto-scroll loop while finger is on screen */
-      if (_carouselRAF[id]) { cancelAnimationFrame(_carouselRAF[id]); _carouselRAF[id] = null; }
-
-      startX   = e.touches[0].clientX;
-      startPos = el._cs.pos;  // capture live position
-      lastX    = startX;
-      lastT    = Date.now();
-      velX     = 0;
-      dragging = true;
-    }, { passive: true });
-
-    el.addEventListener('touchmove', e => {
-      if (!dragging) return;
-      const now = Date.now();
-      const cx  = e.touches[0].clientX;
-      const dt  = now - lastT;
-      if (dt > 0) velX = (cx - lastX) / dt; // px/ms rolling sample
-      lastX = cx;
-      lastT = now;
-
-      const cs  = el._cs;
-      let np = startPos + (cx - startX);
-      /* Seamless loop wrap */
-      while (np > 0)        np -= cs.setW;
-      while (np < -cs.setW) np += cs.setW;
-      cs.pos = np;
-      pos    = np; // keep closure in sync for when tick resumes
-      el.style.transform = `translateX(${np}px)`;
-    }, { passive: true });
-
-    el.addEventListener('touchend', () => {
-      if (!dragging) return;
-      dragging = false;
-
-      const cs      = el._cs;
-      const velPF   = velX * 16.67;  // px/ms → px/frame @60fps
-      const THRESH  = 0.35;
-      const FRICTION = 0.90;          // ~0.45 s deceleration arc
-
-      if (Math.abs(velPF) > THRESH) {
-        /* ── Momentum phase ── */
-        let v = velPF;
-        function momentum() {
-          v  *= FRICTION;
-          let np = cs.pos + v;
-          while (np > 0)        np -= cs.setW;
-          while (np < -cs.setW) np += cs.setW;
-          cs.pos = np;
-          pos    = np;
-          el.style.transform = `translateX(${np}px)`;
-
-          if (Math.abs(v) > THRESH) {
-            momRAF = requestAnimationFrame(momentum);
-          } else {
-            /* Momentum ended — hand back to the auto-scroll loop */
-            momRAF = null;
-            _carouselRAF[id] = requestAnimationFrame(el._cs.getTick());
-          }
-        }
-        momRAF = requestAnimationFrame(momentum);
-      } else {
-        /* No meaningful velocity — resume auto-scroll immediately */
-        _carouselRAF[id] = requestAnimationFrame(el._cs.getTick());
-      }
-    }, { passive: true });
-  }
-
-  /* Sync state object every rebuild so persistent touch handler sees fresh values */
-  el._cs.pos  = pos;
-  el._cs.setW = actualSetW;
+  if (_carouselRAF[id]) { cancelAnimationFrame(_carouselRAF[id]); _carouselRAF[id] = null; }
+  const vp = el.parentElement;
+  if (vp) { vp.classList.add('works-grid-vp'); vp.style.direction = 'ltr'; }
+  el.classList.add('works-grid');
+  el.style.transform = 'none';
+  el.innerHTML = items.map(item => cardHTML(item, typeLabel)).join('');
 }
+
+/* buildCarousel() — RETIRÉ. OUR WORKS utilise désormais buildWorksGrid()
+   (grille de store curatée, plus premium qu'un auto-scroll infini).
+   L'ancien moteur (rAF + swipe + momentum) reste dans l'historique git si besoin. */
 
 function cardHTML(item, typeLabel) {
   // --tint = per-work accent colour, revealed only on hover (rest of Works page stays monochrome)
@@ -2876,6 +2759,9 @@ async function _profileHTML() {
           <label class="auth-field"><span>${_at('age')}</span>
             <input type="number" id="ap-age" min="13" max="120" value="${p?.age ?? ''}"></label>
         </div>
+        <label class="auth-field"><span>${_ppt('bioLabel')}</span>
+          <textarea id="ap-bio" maxlength="280" rows="3" placeholder="${_ppt('bioPh')}" style="resize:none;font-family:var(--f-body,sans-serif)">${p?.bio ? escHtml(p.bio) : ''}</textarea>
+        </label>
         <p class="auth-err" id="ap-err" hidden></p>
         <button type="submit" class="btn btn-primary auth-submit" id="ap-save">${_at('save')}</button>
       </form>
@@ -2895,12 +2781,14 @@ function _wireProfile() {
     btn.disabled = true; btn.textContent = _at('working');
     const r = await GLG_AUTH.updateProfile({
       username: $('ap-user').value, gender: $('ap-gender').value, age: $('ap-age').value,
+      bio: ($('ap-bio')?.value || '').trim(),
     });
     btn.disabled = false;
     if (!r.ok) { btn.textContent = orig; _showErr('ap-err', r.code==='taken'?_at('uTaken'):_at('fail')); return; }
     btn.textContent = _at('saved');
     setTimeout(() => { btn.textContent = orig; }, 2000);
     refreshAccountUI();
+    if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
   });
   $('ap-logout')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); });
   $('ap-delete')?.addEventListener('click', async () => {
@@ -3002,7 +2890,7 @@ async function refreshAccountUI() {
       const name = p?.username || user.email?.split('@')[0] || '';
       btn.classList.add('is-auth');
       if (avaEl)  avaEl.innerHTML = _avatarDiscHTML(p, user);
-      if (nameEl) nameEl.textContent = name;
+      if (nameEl) nameEl.innerHTML = escHtml(name) + _verifiedTag(name);
       btn.title = _at('myAccount');
     } else {
       closeAccountMenu();
@@ -3036,6 +2924,9 @@ const _PP_T = {
   defaultBanner:{fr:'Par défaut',en:'Default'},
   pickBanner:{fr:'Choisir une bannière',en:'Choose a banner'},
   years:{fr:'ans',en:'yrs'},
+  addBio:{fr:'+ Ajouter une bio',en:'+ Add a bio'},
+  bioLabel:{fr:'Bio',en:'Bio'},
+  bioPh:{fr:'Parle de toi en quelques mots…',en:'Tell the world about you…'},
 };
 function _ppt(k){ const m=_PP_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -3088,12 +2979,13 @@ async function buildProfilePage(){
           <span class="pp-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
         </button>
         <div class="pp-id">
-          <h1 class="pp-name">${name}</h1>
+          <h1 class="pp-name">${name}${_verifiedTag(name,'glg-verified--lg')}</h1>
           <div class="pp-badges">
             <span class="pp-badge">${gLabel}</span>
             ${p.age?`<span class="pp-badge">${p.age} ${_ppt('years')}</span>`:''}
             <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
           </div>
+          ${p.bio ? `<p class="pp-bio">${escHtml(p.bio)}</p>` : `<button class="pp-bio-add" onclick="openAuthModal()">${_ppt('addBio')}</button>`}
         </div>
         <div class="pp-actions">
           <button class="btn btn-outline pp-edit-btn" onclick="openAuthModal()">${_ppt('edit')}</button>
@@ -3204,6 +3096,17 @@ function _ft(k){ const m=_FRIEND_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
 const _XSVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 
+/* ── Compte officiel / vérifié (créateur) ──────────────────────────────
+   Pseudo unique en base → check par pseudo sûr. Badge monochrome (sceau
+   blanc + coche sombre), au ton du site. */
+const VERIFIED_USERS = ['geeklearn'];
+function _isVerified(username){ return !!username && VERIFIED_USERS.includes(String(username).trim().toLowerCase()); }
+const _VERIFIED_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.6l2.3 1.7 2.8-.4 1 2.7 2.5 1.3-.5 2.8L21.8 12l-1.7 2.3.5 2.8-2.5 1.3-1 2.7-2.8-.4L12 22.4l-2.3-1.7-2.8.4-1-2.7-2.5-1.3.5-2.8L2.2 12l1.7-2.3-.5-2.8 2.5-1.3 1-2.7 2.8.4z" fill="currentColor"/><path d="M8 12.3l2.7 2.7 5-5.5" stroke="#0a0a0a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function _verifiedTag(username, cls){
+  if (!_isVerified(username)) return '';
+  return `<span class="glg-verified ${cls||''}" title="Compte officiel · GEEKLEARN GAMES" aria-label="Compte vérifié">${_VERIFIED_SVG}</span>`;
+}
+
 /* Avatar disc for an arbitrary user {username, avatar_url} */
 function _userAvatarHTML(u){
   const init = (u.username || '?').trim().charAt(0).toUpperCase();
@@ -3228,7 +3131,7 @@ async function refreshFriendsUI(){
       _friendsCache.incoming.map(u => `
         <div class="pp-fr-req">
           <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
-          <span class="pp-fr-name">${escHtml(u.username||'')}</span>
+          <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
           <span class="pp-fr-actions">
             <button class="pp-fr-accept" onclick="friendAccept('${u.id}')">${_ft('accept')}</button>
             <button class="pp-fr-decline" onclick="friendDecline('${u.id}')" aria-label="${_ft('decline')}" title="${_ft('decline')}">${_XSVG}</button>
@@ -3241,7 +3144,7 @@ async function refreshFriendsUI(){
     html += `<div class="pp-friends-grid">` + _friendsCache.friends.map(u => `
         <div class="pp-friend-card">
           <span class="pp-friend-ava">${_userAvatarHTML(u)}<span class="pp-friend-dot" aria-hidden="true"></span></span>
-          <span class="pp-friend-name">${escHtml(u.username||'')}</span>
+          <span class="pp-friend-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
           <button class="pp-friend-remove" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('remove')}" title="${_ft('remove')}">${_XSVG}</button>
         </div>`).join('') + `</div>`;
   } else {
@@ -3254,7 +3157,7 @@ async function refreshFriendsUI(){
       _friendsCache.outgoing.map(u => `
         <div class="pp-fr-req pp-fr-req--out">
           <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
-          <span class="pp-fr-name">${escHtml(u.username||'')}</span>
+          <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
           <span class="pp-fr-pending">${_ft('pending')}</span>
           <button class="pp-fr-decline" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('cancel')}" title="${_ft('cancel')}">${_XSVG}</button>
         </div>`).join('') + `</div></div>`;
@@ -3302,7 +3205,7 @@ async function _friendSearchDo(q){
     else                               action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('add')}</button>`;
     return `<div class="fr-res">
       <span class="fr-res-ava">${_userAvatarHTML(u)}</span>
-      <span class="fr-res-name">${escHtml(u.username||'')}</span>
+      <span class="fr-res-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
       ${action}
     </div>`;
   }).join('');
@@ -3583,9 +3486,15 @@ async function openBannerPicker(){
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
       <h3 class="auth-picker-title">${_ppt('pickBanner')}</h3>
+      <div class="auth-picker-label">${_at('customLabel')}</div>
+      <label class="avatar-upload avatar-upload--banner">
+        <input type="file" id="bpick-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        <span>＋ ${_at('uploadBtn')}</span>
+      </label>
+      <div class="auth-picker-label">${_at('presetsLabel')}</div>
       <div class="banner-grid">
         <button class="banner-cell banner-cell--none" data-src=""><span>${_ppt('defaultBanner')}</span></button>
-        ${presets.map(p=>`<button class="banner-cell" data-src="${p.src}" title="${p.label}"><img src="${p.src}" alt="${p.label}" loading="lazy" onerror="this.style.opacity=0"><span class="banner-cell-name">${p.label}</span></button>`).join('')}
+        ${presets.map(p=>`<button class="banner-cell" data-src="${av(p.src)}" title="${p.label}"><img src="${av(p.src)}" alt="${p.label}" loading="lazy" onerror="this.style.opacity=0"><span class="banner-cell-name">${p.label}</span></button>`).join('')}
       </div>
       <p class="auth-err" id="bpick-err" hidden></p>
     </div>`;
@@ -3596,6 +3505,16 @@ async function openBannerPicker(){
     if(r.ok){ closeAuthModal(); await refreshAccountUI(); buildProfilePage(); }
     else _showErr('bpick-err', r.code === 'notConfigured' ? _at('notConfigured') : _at('fail'));
   }));
+  $('bpick-file')?.addEventListener('change', async e => {
+    const file = e.target.files?.[0]; if(!file) return;
+    _hideErr('bpick-err');
+    _showErr('bpick-err', '…'); document.getElementById('bpick-err')?.classList.add('ok');
+    const r = await GLG_AUTH.uploadBanner(file);
+    document.getElementById('bpick-err')?.classList.remove('ok');
+    if(r.ok){ closeAuthModal(); await refreshAccountUI(); buildProfilePage(); return; }
+    const map = { type:_at('imgType'), size:_at('imgSize'), rejected:_at('imgRejected'), notConfigured:_at('notConfigured'), notAuth:_at('notConfigured') };
+    _showErr('bpick-err', map[r.code] || _at('fail'));
+  });
 }
 
 /* ══════════════════════════════════════════

@@ -1485,3 +1485,147 @@ input[type="number"], textarea{ cursor:text; }
   .puz-strip-img::after{ animation:none !important; opacity:0 !important; }
   .puz-strip-row .puz-strip::before{ animation:none !important; }
 }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §30 · OUR WORKS — grille de store (remplace l'auto-scroll infini)
+   Catalogue curaté que l'utilisateur parcourt, façon Steam/Epic/PS.
+─────────────────────────────────────────────────────────────────────── */
+.carousel-viewport.works-grid-vp{
+  overflow:visible !important;
+  -webkit-mask:none !important; mask:none !important;
+  padding:6px 0 0 !important; touch-action:auto;
+}
+.carousel-viewport.works-grid-vp::before,
+.carousel-viewport.works-grid-vp::after{ display:none !important; }
+.carousel-track.works-grid{
+  display:grid !important;
+  /* auto-FIT + cap de largeur + centrage → 4 cartes restent centrées (plus de vide à droite) */
+  grid-template-columns:repeat(auto-fit, minmax(190px,228px));
+  justify-content:center;
+  gap:clamp(16px,2vw,28px);
+  width:100% !important;
+  max-width:1200px;
+  margin:0 auto !important;
+  transform:none !important;
+  padding:0 clamp(16px,5vw,40px);
+  will-change:auto;
+}
+.works-grid .c-card{ width:100% !important; margin-right:0 !important; }
+/* La section n'a plus besoin de masquer un track qui défile → on laisse respirer
+   l'ombre/lift au survol des cartes. */
+.works-cat-section:has(.works-grid){ overflow:visible; }
+/* Entrée en fondu douce des cartes (l'opacité est gérée par GSAP animWorks ;
+   ici on garantit une transition propre au survol/au repos) */
+.works-grid .c-card{ transition:transform .42s var(--ease,cubic-bezier(.16,1,.3,1)), box-shadow .42s, border-color .42s !important; }
+@media(max-width:680px){
+  .carousel-track.works-grid{ grid-template-columns:repeat(2,1fr); gap:12px; padding:0 clamp(14px,4vw,24px); }
+}
+@media(max-width:380px){
+  .carousel-track.works-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §31 · LANGUAGE GATE — retrait du scanline (jugé inutile) + entrée plus fluide
+─────────────────────────────────────────────────────────────────────── */
+.gate-scan{ display:none !important; animation:none !important; }   /* la ligne qui descend → supprimée */
+/* Entrée d'ensemble : léger fondu + montée du bloc, transitions plus douces */
+#lang-gate:not(.out){ animation:gateRise .9s cubic-bezier(.16,1,.3,1) both; }
+@keyframes gateRise{ from{ opacity:0; } to{ opacity:1; } }
+/* Drapeaux : entrée un poil plus ample et fluide */
+.gate-lang{ animation-duration:.62s !important; animation-timing-function:cubic-bezier(.16,1,.3,1) !important; }
+@media(prefers-reduced-motion:reduce){ #lang-gate:not(.out){ animation:none !important; } }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §32 · CONTACT — disposition plus dense, "panneau" premium, ambiance
+─────────────────────────────────────────────────────────────────────── */
+/* Le formulaire vit dans un panneau défini (fini le texte flottant dans le vide) */
+.contact-form-col{
+  background:linear-gradient(180deg,rgba(20,20,22,.45),rgba(11,11,12,.35));
+  border:1px solid var(--border,rgba(255,255,255,.08)) !important;
+  border-radius:14px;
+  margin:clamp(20px,3vw,40px);
+  padding:clamp(28px,3.5vw,46px) !important;
+}
+.contact-info-col{ padding:clamp(28px,3.5vw,46px) clamp(20px,4vw,52px) !important; }
+/* En-tête de colonne plus affirmé */
+.contact-form-eyebrow{ font-size:.56rem !important; letter-spacing:.34em !important; color:rgba(255,255,255,.5) !important; margin-bottom:28px !important; position:relative; padding-bottom:14px; }
+.contact-form-eyebrow::after{ content:''; position:absolute; left:0; bottom:0; width:34px; height:2px; background:rgba(255,255,255,.4); }
+/* Halo ambiant doux derrière la zone contact (cohérent avec le reste) */
+.contact-layout{ position:relative; }
+.contact-layout::before{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(ellipse 60% 50% at 78% 18%, rgba(120,150,230,.05), transparent 60%);
+}
+.contact-layout > *{ position:relative; z-index:1; }
+/* Carte contact direct : un cran plus présente */
+.contact-direct-card{ border-radius:12px !important; padding:30px 28px !important; }
+.c-main-email{ font-size:clamp(.95rem,2vw,1.2rem) !important; }
+/* Hero contact : un peu plus compact pour réduire le vide */
+.contact-hero{ padding-bottom:clamp(36px,5vh,64px) !important; }
+@media(min-width:901px){
+  /* Aligne visuellement les deux colonnes (panneau form + infos) */
+  .contact-layout{ align-items:start; gap:clamp(8px,1vw,20px); }
+}
+@media(max-width:900px){
+  .contact-form-col{ margin:clamp(14px,4vw,24px); }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §33 · BADGE VÉRIFIÉ (créateur) + upload bannière
+─────────────────────────────────────────────────────────────────────── */
+.glg-verified{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:.72em; height:.72em; margin-left:.32em; vertical-align:baseline;
+  color:#fff; flex-shrink:0; position:relative; top:.02em;
+  filter:drop-shadow(0 0 5px rgba(255,255,255,.5));
+  animation:vBadgeIn .5s cubic-bezier(.2,.8,.2,1) both;
+}
+.glg-verified svg{ width:100%; height:100%; display:block; }
+.glg-verified--lg{ width:.62em; height:.62em; margin-left:.28em; filter:drop-shadow(0 0 8px rgba(255,255,255,.55)); }
+@keyframes vBadgeIn{ from{ opacity:0; transform:scale(.4) rotate(-25deg); } to{ opacity:1; transform:none; } }
+/* Dans la nav (petit) + listes d'amis : taille fixe lisible */
+.nav-account-name .glg-verified, .pp-fr-name .glg-verified, .pp-friend-name .glg-verified, .fr-res-name .glg-verified{
+  width:13px; height:13px; top:0; vertical-align:-2px;
+}
+.pp-name{ display:inline-flex; align-items:center; flex-wrap:wrap; }
+@media(prefers-reduced-motion:reduce){ .glg-verified{ animation:none; } }
+
+/* Upload bannière : réutilise .avatar-upload, pleine largeur agréable */
+.avatar-upload--banner{ margin-bottom:6px; }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §34 · TRANSITION DE PAGE — voile "fondu" (feel launcher)
+   Couvre instantanément, puis se dissout : le swap est invisible, la
+   nouvelle page apparaît en fondu. Sous la nav (700), au-dessus du contenu.
+─────────────────────────────────────────────────────────────────────── */
+#glg-veil{
+  position:fixed; inset:0; z-index:600; pointer-events:none; opacity:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(20,22,30,.6), transparent 70%),
+    var(--bg, #080808);
+  transition:opacity .52s cubic-bezier(.4,0,.2,1);
+  will-change:opacity;
+}
+@media(prefers-reduced-motion:reduce){ #glg-veil{ display:none !important; } }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §35 · PROFIL — bio
+─────────────────────────────────────────────────────────────────────── */
+.pp-bio{
+  margin-top:14px; max-width:60ch;
+  font-family:var(--f-body,sans-serif); font-size:.92rem; line-height:1.6;
+  color:rgba(255,255,255,.7); white-space:pre-line; word-break:break-word;
+}
+.pp-bio-add{
+  margin-top:14px; background:none; border:1px dashed var(--bmd,rgba(255,255,255,.16));
+  color:rgba(255,255,255,.55); cursor:pointer; padding:8px 14px; border-radius:3px;
+  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.14em; text-transform:uppercase;
+  transition:border-color .25s, color .25s, background .25s;
+}
+.pp-bio-add:hover{ border-color:rgba(255,255,255,.4); color:#fff; background:rgba(255,255,255,.03); }

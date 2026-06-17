@@ -351,6 +351,9 @@ grant execute on function public.grant_achievement(text, text) to authenticated;
 -- d'amis live nécessite les API officielles + OAuth côté serveur (clés secrètes).
 alter table public.profiles add column if not exists linked_accounts jsonb not null default '{}'::jsonb;
 
+-- ── BIO publique (présentation du membre) ───────────────────────────────
+alter table public.profiles add column if not exists bio text;
+
 -- ════════════════════════════════════════════════════════════════════════
 --  FIN. Après exécution : Project Settings → API → copier URL + anon key
 --  dans js/config.js.

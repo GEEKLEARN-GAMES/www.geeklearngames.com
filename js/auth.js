@@ -216,6 +216,9 @@
     if (fields.linked_accounts !== undefined && fields.linked_accounts && typeof fields.linked_accounts === 'object') {
       allowed.linked_accounts = fields.linked_accounts;
     }
+    if (fields.bio !== undefined) {
+      allowed.bio = (fields.bio == null) ? null : String(fields.bio).slice(0, 280);  // bio publique, plafonnée
+    }
     if (fields.age          != null) {
       const av = validateAge(fields.age);
       if (!av.ok) return { ok: false, field: 'age', code: av.code };
@@ -246,33 +249,39 @@
     }
   }
 
-  /* ── Upload d'un avatar personnalisé ─────────────────────
-     Garde-fous client (type/poids/dimensions) + modération
-     obligatoire avant stockage. */
-  const AVA_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-  const AVA_MAX   = 2 * 1024 * 1024; // 2 Mo
-  async function uploadAvatar(file) {
+  /* ── Upload d'image perso (avatar / bannière) ────────────
+     Garde-fous client (type/poids). Modération = OPTIONNELLE :
+     appliquée uniquement si `moderationEndpoint` est configuré
+     (sinon upload direct — l'utilisateur a activé la fonctionnalité). */
+  const IMG_TYPES   = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+  const AVA_MAX     = 3 * 1024 * 1024;  // 3 Mo (avatar)
+  const BANNER_MAX  = 6 * 1024 * 1024;  // 6 Mo (bannière)
+  async function _uploadImage(file, kind) {
     if (!_ready) return { ok: false, code: 'notConfigured' };
     if (!file) return { ok: false, code: 'noFile' };
-    if (!AVA_TYPES.includes(file.type)) return { ok: false, code: 'type' };
-    if (file.size > AVA_MAX) return { ok: false, code: 'size' };
+    if (!IMG_TYPES.includes(file.type)) return { ok: false, code: 'type' };
+    if (file.size > (kind === 'banner' ? BANNER_MAX : AVA_MAX)) return { ok: false, code: 'size' };
 
-    // Modération obligatoire (fail-safe)
-    const mod = await moderateImage(file);
-    if (!mod.ok) return { ok: false, code: mod.code === 'not_configured' ? 'mod_off' : 'rejected' };
+    // Modération uniquement si un endpoint IA est configuré (sinon on autorise)
+    if ((window.GLG_SUPABASE || {}).moderationEndpoint) {
+      const mod = await moderateImage(file);
+      if (!mod.ok) return { ok: false, code: 'rejected' };
+    }
 
     const user = await getUser();
     if (!user) return { ok: false, code: 'notAuth' };
     const ext  = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-    const path = `${user.id}/avatar.${ext}`;
+    const path = `${user.id}/${kind}.${ext}`;
     const { error: upErr } = await _client.storage.from('avatars')
       .upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) return { ok: false, code: 'upload', error: upErr };
     const { data } = _client.storage.from('avatars').getPublicUrl(path);
     const publicUrl = data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : null;
-    if (publicUrl) await updateProfile({ avatar_url: publicUrl });
+    if (publicUrl) await updateProfile(kind === 'banner' ? { banner_url: publicUrl } : { avatar_url: publicUrl });
     return { ok: true, url: publicUrl };
   }
+  async function uploadAvatar(file) { return _uploadImage(file, 'avatar'); }
+  async function uploadBanner(file) { return _uploadImage(file, 'banner'); }
 
   /* ── Suppression de compte (droit à l'oubli, RGPD) ─────── */
   // Utilise une RPC SECURITY DEFINER `delete_user` (voir db/schema.sql)
@@ -374,7 +383,7 @@
     checkUsernameAvailable,
     signUp, signIn, signOut,
     getSession, getUser, getProfile, updateProfile, deleteAccount,
-    uploadAvatar, moderateImage,
+    uploadAvatar, uploadBanner, moderateImage,
     searchUsers, friendRequest, friendRespond, friendRemove, friendsList,
     getAchievements, grantAchievement,
     onChange,
