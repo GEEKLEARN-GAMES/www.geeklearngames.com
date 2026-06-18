@@ -198,8 +198,18 @@
     if (fields.username != null) {
       const uv = validateUsername(fields.username);
       if (!uv.ok) return { ok: false, field: 'username', code: uv.code };
-      const avail = await checkUsernameAvailable(uv.value);
-      if (avail.ok && !avail.available) return { ok: false, field: 'username', code: 'taken' };
+      // BUGFIX : ne PAS vérifier la disponibilité si le pseudo est INCHANGÉ
+      // (sinon `username_available` le voit pris « par soi-même » → bloque
+      // toute modif de bio/avatar/etc. alors que rien n'a changé).
+      let unchanged = false;
+      try {
+        const { data: cur } = await _client.from('profiles').select('username').eq('id', user.id).single();
+        unchanged = cur && (cur.username || '').toLowerCase() === uv.value.toLowerCase();
+      } catch (e) { /* en cas d'échec on retombe sur la vérif normale */ }
+      if (!unchanged) {
+        const avail = await checkUsernameAvailable(uv.value);
+        if (avail.ok && !avail.available) return { ok: false, field: 'username', code: 'taken' };
+      }
       allowed.username = uv.value;
     }
     if (fields.gender       != null) allowed.gender = fields.gender;
@@ -326,6 +336,19 @@
     if (error) return { ok: false, code: 'network', error };
     return { ok: true, result: data };
   }
+  /* Profil PUBLIC d'un autre joueur (champs publics uniquement, RLS-safe).
+     RPC `public_profile(uid)` (SECURITY DEFINER, voir db/schema.sql) :
+     renvoie id, username, avatar_url, banner_url, bio, created_at +
+     compteurs (trophées, amis). Zéro donnée privée (email, âge, etc.). */
+  async function getPublicProfile(uid) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    if (!uid)    return { ok: false, code: 'noTarget' };
+    const { data, error } = await _client.rpc('public_profile', { uid });
+    if (error) return { ok: false, code: 'network', error };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return { ok: false, code: 'notfound' };
+    return { ok: true, profile: row };
+  }
   async function friendsList() {
     if (!_ready) return { ok: false, code: 'notConfigured', friends: [], incoming: [], outgoing: [] };
     const { data, error } = await _client.rpc('friends_list');
@@ -384,7 +407,7 @@
     signUp, signIn, signOut,
     getSession, getUser, getProfile, updateProfile, deleteAccount,
     uploadAvatar, uploadBanner, moderateImage,
-    searchUsers, friendRequest, friendRespond, friendRemove, friendsList,
+    searchUsers, friendRequest, friendRespond, friendRemove, friendsList, getPublicProfile,
     getAchievements, grantAchievement,
     onChange,
   };

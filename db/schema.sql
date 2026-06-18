@@ -312,6 +312,32 @@ revoke all on function public.friends_list() from public;
 grant execute on function public.friends_list() to authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
+--  PROFIL PUBLIC d'un autre joueur (style Steam) — champs PUBLICS uniquement
+--  ────────────────────────────────────────────────────────────────────────
+--  SECURITY DEFINER : contourne RLS mais n'expose QUE des champs publics
+--  (pseudo, avatar, bannière, bio, date d'inscription) + compteurs (trophées,
+--  amis). JAMAIS d'email, âge, birthdate, genre ou autre donnée privée.
+-- ════════════════════════════════════════════════════════════════════════
+create or replace function public.public_profile(uid uuid)
+returns table (
+  id uuid, username text, avatar_url text, banner_url text, bio text,
+  created_at timestamptz, trophy_count bigint, friend_count bigint,
+  wishlist jsonb, achievements text[]
+)
+language sql security definer set search_path = public as $$
+  select p.id, p.username, p.avatar_url, p.banner_url, p.bio, p.created_at,
+         (select count(*) from public.user_achievements ua where ua.user_id = p.id),
+         (select count(*) from public.friendships f
+            where f.status = 'accepted' and (f.requester = p.id or f.addressee = p.id)),
+         coalesce(p.wishlist, '[]'::jsonb),
+         coalesce((select array_agg(ua.ach_key) from public.user_achievements ua where ua.user_id = p.id), '{}')
+  from public.profiles p
+  where p.id = uid;
+$$;
+revoke all on function public.public_profile(uuid) from public;
+grant execute on function public.public_profile(uuid) to authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════
 --  TROPHÉES / SUCCÈS  (style PlayStation) — déblocages RÉELS
 --  ────────────────────────────────────────────────────────────────────────
 --  Les DÉFINITIONS de trophées vivent côté site (js/data.js → TROPHIES).

@@ -86,11 +86,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
-  <link rel="stylesheet" href="css/main.css?v=47">
+  <link rel="stylesheet" href="css/main.css?v=51">
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=27">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=34">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
@@ -187,37 +187,46 @@
       <span class="nav-logo-name">GEEKLEARN GAMES</span>
     </div>
   </div>
-  <div class="nav-links">
-    <button class="nav-link active" data-nav="home"    id="nl-home"    onclick="showPage('home')">Home</button>
-    <button class="nav-link"        data-nav="works"   id="nl-works"   onclick="showPage('works')">Our Works</button>
-    <button class="nav-link"        data-nav="shop"    id="nl-shop"    onclick="showPage('shop')">Shop</button>
-    <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
-  </div>
-  <!-- Right cluster — utilities → account → CONTACT cta -->
-  <!-- Desktop search -->
-  <button class="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search a title">
-    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-      <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </button>
-  <!-- Mobile-only search -->
-  <button class="nav-search-topbar" onclick="openSearch()" aria-label="Search">
-    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-      <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </button>
-  <button class="nav-burger" id="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-mobile">
-    <span></span><span></span><span></span>
-  </button>
-  <!-- Language flag: shows current lang, click to reopen the language gate -->
+  <!-- Language flag: stays right of the logo (left side). Click → language gate -->
   <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
     <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
   </button>
-  <!-- Account button injected here by app.js (after the language flag) -->
-  <!-- Primary CTA: Contact (rightmost on desktop; in burger menu on mobile) -->
-  <button class="nav-link nav-cta" data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
+  <!-- Right cluster (pushed far right): search · section links · notifications · account -->
+  <div class="nav-right">
+    <!-- Desktop search: first item of the right group -->
+    <button class="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search a title">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+        <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="nav-links">
+      <button class="nav-link active" data-nav="home"    id="nl-home"    onclick="showPage('home')">Home</button>
+      <button class="nav-link"        data-nav="works"   id="nl-works"   onclick="showPage('works')">Our Works</button>
+      <button class="nav-link"        data-nav="shop"    id="nl-shop"    onclick="showPage('shop')">Shop</button>
+      <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
+      <button class="nav-link"        data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
+    </div>
+    <!-- Mobile-only search -->
+    <button class="nav-search-topbar" onclick="openSearch()" aria-label="Search">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+        <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <!-- Notification bell (visible only when signed in; populated by app.js) -->
+    <button class="nav-notif-btn" id="nav-notif-btn" onclick="toggleNotifPanel(event)" aria-label="Notifications" title="Notifications" aria-haspopup="true">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M10 2.5a4.5 4.5 0 0 0-4.5 4.5c0 3.2-1 4.6-1.7 5.3-.3.3-.1.9.3.9h11.8c.4 0 .6-.6.3-.9-.7-.7-1.7-2.1-1.7-5.3A4.5 4.5 0 0 0 10 2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M8.4 16.2a1.8 1.8 0 0 0 3.2 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-notif-dot" id="nav-notif-dot" aria-hidden="true"></span>
+    </button>
+    <button class="nav-burger" id="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-mobile">
+      <span></span><span></span><span></span>
+    </button>
+    <!-- Account button injected into .nav-right by app.js (far right) -->
+  </div>
 </nav>
 <div class="nav-mobile" id="nav-mobile">
   <button class="nav-mobile-link" id="nml-home"    onclick="showPage('home')">Home</button>
@@ -733,16 +742,16 @@
 </script>
 <!-- Site data + core app -->
 <script src="js/data.js?v=6"></script>
-<script src="js/app.js?v=72"></script>
+<script src="js/app.js?v=78"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js" defer></script>
 <script src="js/config.js?v=2" defer></script>
-<script src="js/auth.js?v=7" defer></script>
+<script src="js/auth.js?v=9" defer></script>
 <!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
 <script src="js/vendor/gsap.min.js" defer></script>
 <script src="js/vendor/ScrollTrigger.min.js" defer></script>
 <!-- Lenis smooth scroll — butter-smooth scrolling on desktop (self-hosted) -->
 <script src="js/vendor/lenis.min.js" defer></script>
-<script src="js/glg-animations.js?v=8" defer></script>
+<script src="js/glg-animations.js?v=9" defer></script>
 </body>
 </html>

@@ -271,6 +271,15 @@ function buildGate() {
   const wrap = $('gate-langs');
   if (!wrap) return;
 
+  // ── Cinematic breathing aura (created once, sits behind everything) ──
+  const gateEl = $('lang-gate');
+  if (gateEl && !gateEl.querySelector('.gate-aura')) {
+    const aura = document.createElement('div');
+    aura.className = 'gate-aura';
+    aura.setAttribute('aria-hidden', 'true');
+    gateEl.insertBefore(aura, gateEl.firstChild);
+  }
+
   // ── Ambient colour wash (created once) ──────────────────────────
   if (!$('gate-wash')) {
     const gate = $('lang-gate');
@@ -742,7 +751,23 @@ function _pageVeilReveal() {
   setTimeout(() => { if (_veilEl) _veilEl.style.opacity = '0'; }, 650);
 }
 
+/* Saut instantané en haut de page — réinitialise Lenis (smooth-scroll) puis le
+   scroll natif. Appelé pendant une transition de page (sous le voile = invisible)
+   pour qu'on arrive TOUJOURS en haut, quelle que soit la position précédente. */
+function _scrollTopInstant() {
+  try {
+    if (window._lenis && typeof window._lenis.scrollTo === 'function') {
+      window._lenis.scrollTo(0, { immediate: true, force: true });
+    }
+  } catch (e) {}
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+}
+
 function showPage(name, itemId = null) {
+  // Quitter la page profil annule le mode "profil public d'un autre joueur"
+  if (name !== 'profile') _viewProfileId = null;
   _pageVeilCover();   // hide the swap behind a veil → smooth cross-fade
 
   // Reset hero-content styles left by scroll/mouse parallax to avoid visual seams
@@ -751,7 +776,10 @@ function showPage(name, itemId = null) {
 
   $$('.page').forEach(p => p.classList.remove('active'));
   $$('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === name));
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  // Toujours repartir du haut de la nouvelle page (sous le voile = invisible).
+  // Lenis pilote le scroll : un simple window.scrollTo serait écrasé par sa
+  // position interne → on réinitialise Lenis ET le scroll natif (fallback).
+  _scrollTopInstant();
   $('nav-mobile')?.classList.remove('open');
   $('nav-burger')?.classList.remove('open');
     $('nav-burger')?.setAttribute('aria-expanded', 'false');
@@ -854,6 +882,7 @@ window.addEventListener('popstate', e => {
     if (page) page.classList.add('active');
     if (state.page === 'profile') buildProfilePage();
     if (state.page === 'works') requestAnimationFrame(buildCarousels);
+    _scrollTopInstant();
   }
 });
 
@@ -1415,6 +1444,33 @@ function _wireAgeGate(item) {
   $('age-no')?.addEventListener('click', () => showPage('works'));
 }
 
+/* Ornements vectoriels latéraux du hero — donnent une identité (teinte) propre
+   à chaque fiche, façon HUD/key-art de store AAA. Décoratif, sous le texte. */
+function _dpHeroArtHTML(item) {
+  const tint = item.tint || '#ffffff';
+  return `
+    <div class="dp-hero-art" aria-hidden="true" style="color:${tint}">
+      <svg class="dp-art dp-art--l" viewBox="0 0 220 700" preserveAspectRatio="xMidYMid slice" fill="none">
+        <circle cx="-130" cy="350" r="300" stroke="currentColor" stroke-width="1.1" opacity=".30"/>
+        <circle cx="-130" cy="350" r="225" stroke="currentColor" stroke-width="1"   opacity=".18"/>
+        <line x1="62" y1="46" x2="62" y2="654" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <line x1="50" y1="130" x2="74" y2="130" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <line x1="50" y1="350" x2="74" y2="350" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <line x1="50" y1="570" x2="74" y2="570" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <circle cx="62" cy="350" r="6" stroke="currentColor" stroke-width="1.2" opacity=".75"/>
+        <rect x="40" y="408" width="9" height="9" stroke="currentColor" stroke-width="1.1" opacity=".5" transform="rotate(45 44 412)"/>
+      </svg>
+      <svg class="dp-art dp-art--r" viewBox="0 0 220 700" preserveAspectRatio="xMidYMid slice" fill="none">
+        <circle cx="350" cy="350" r="300" stroke="currentColor" stroke-width="1.1" opacity=".30"/>
+        <circle cx="350" cy="350" r="225" stroke="currentColor" stroke-width="1"   opacity=".18"/>
+        <circle cx="350" cy="350" r="150" stroke="currentColor" stroke-width=".8"  opacity=".12"/>
+        <line x1="158" y1="46" x2="158" y2="654" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <path d="M146 210h24M158 198v24" stroke="currentColor" stroke-width="1.1" opacity=".6"/>
+        <path d="M146 490h24M158 478v24" stroke="currentColor" stroke-width="1.1" opacity=".6"/>
+      </svg>
+    </div>`;
+}
+
 function buildDetail(id) {
   const item = ALL_WORKS.find(i => i.id === id);
   if (!item) return;
@@ -1454,6 +1510,7 @@ function buildDetail(id) {
       <div class="dp-hero-bg" style="background-image:url('${av(item.cover)}')"></div>
       <div class="dp-hero-vignette"></div>
       <div class="dp-hero-tint" style="background:${item.tint}"></div>
+      ${_dpHeroArtHTML(item)}
 
       <button class="dp-back" onclick="showPage('works')" aria-label="${t('detailBack')}">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1855,11 +1912,17 @@ function footerHTML() {
   return `
   <footer>
     <div class="footer-inner">
-      <div class="footer-col">
-        <div class="footer-logo">
-          <img src="assets/img/brand/glg-logo-white.png" alt="GLG" onerror="this.style.display='none'">
+      <div class="footer-col footer-brand">
+        <div class="footer-brand-frame">
+          <span class="fb-corner fb-tl" aria-hidden="true"></span>
+          <span class="fb-corner fb-tr" aria-hidden="true"></span>
+          <span class="fb-corner fb-bl" aria-hidden="true"></span>
+          <span class="fb-corner fb-br" aria-hidden="true"></span>
+          <div class="footer-logo">
+            <img src="assets/img/brand/glg-logo-white.png" alt="GLG" onerror="this.style.display='none'">
+          </div>
+          <p class="footer-brand-desc">${t('footerDesc')}</p>
         </div>
-        <p class="footer-brand-desc">${t('footerDesc')}</p>
       </div>
       <div class="footer-col">
         <div class="footer-col-title">${t('footerNavTitle')}</div>
@@ -2478,8 +2541,9 @@ function _buildAccountButton() {
     if (loggedIn) toggleAccountMenu();
     else openAuthModal('login');
   });
-  const langBtn = $('nav-lang-btn');
-  if (langBtn) langBtn.insertAdjacentElement('afterend', btn); // account sits after language, before CONTACT cta
+  // Le compte vit dans le cluster droit (.nav-right) → toujours tout à droite
+  const right = nav.querySelector('.nav-right');
+  if (right) right.appendChild(btn);
   else nav.appendChild(btn);
   _buildAccountMenu();
 }
@@ -2500,7 +2564,7 @@ function _buildAccountMenu() {
     const act = e.target.closest('.acct-menu-item')?.dataset.act;
     if (!act) return;
     closeAccountMenu();
-    if (act === 'profile') showPage('profile');
+    if (act === 'profile') { _viewProfileId = null; showPage('profile'); }
     else if (act === 'options') openAuthModal();
     else if (act === 'logout') { await GLG_AUTH.signOut(); refreshAccountUI(); }
   });
@@ -2812,6 +2876,43 @@ function _pickerReturn(){
   else renderAuthModal();
 }
 
+/* Lit un fichier image → recadre/redimensionne via canvas (ULTRA optimisé) →
+   renvoie une data-URL légère. Marche SANS bucket de stockage : la data-URL
+   est stockée dans profiles.avatar_url / banner_url (colonnes texte). C'est ce
+   qui rend l'avatar/bannière perso réellement fonctionnels tout de suite. */
+function _processImageFile(file, opts){
+  opts = opts || {};
+  const maxW = opts.maxW || 256, maxH = opts.maxH || 256, square = !!opts.square, quality = opts.quality || 0.85;
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('type'));
+    if (file.size > 12 * 1024 * 1024) return reject(new Error('size'));   // garde-fou source 12 Mo
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let tw, th, sx, sy, sw, sh;
+      if (square){
+        const side = Math.min(img.width, img.height);
+        sx = (img.width - side) / 2; sy = (img.height - side) / 2; sw = sh = side;
+        tw = th = Math.min(maxW, side) || maxW;
+      } else {
+        const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+        tw = Math.max(1, Math.round(img.width * ratio)); th = Math.max(1, Math.round(img.height * ratio));
+        sx = 0; sy = 0; sw = img.width; sh = img.height;
+      }
+      const c = document.createElement('canvas'); c.width = tw; c.height = th;
+      const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
+      let out;
+      try { out = c.toDataURL('image/webp', quality); if (!/^data:image\/webp/.test(out)) out = c.toDataURL('image/jpeg', quality); }
+      catch (e) { try { out = c.toDataURL('image/jpeg', quality); } catch (e2) { return reject(new Error('encode')); } }
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+    img.src = url;
+  });
+}
+
 async function openAvatarPicker() {
   const m = $('glg-auth-modal'); if (!m) return;
   const presets = getPresetAvatars();
@@ -2847,17 +2948,180 @@ async function openAvatarPicker() {
   $('apick-file').addEventListener('change', async e => {
     const file = e.target.files?.[0]; if (!file) return;
     _hideErr('apick-err');
-    const r = await GLG_AUTH.uploadAvatar(file);
-    if (r.ok) { await refreshAccountUI(); _pickerReturn(); return; }
-    const map = { mod_off:_at('modOff'), type:_at('imgType'), size:_at('imgSize'),
-      rejected:_at('imgRejected'), notConfigured:_at('notConfigured') };
-    _showErr('apick-err', map[r.code] || _at('fail'));
+    if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) { _showErr('apick-err', _at('imgType')); return; }
+    try {
+      // Recadrage carré + compression → data-URL (avatar net et léger, optimisé)
+      const dataUrl = await _processImageFile(file, { maxW: 256, maxH: 256, square: true, quality: 0.86 });
+      const r = await GLG_AUTH.updateProfile({ avatar_url: dataUrl });
+      if (r.ok) { await refreshAccountUI(); _pickerReturn(); return; }
+      const map = { notConfigured:_at('notConfigured'), notAuth:_at('notConfigured') };
+      _showErr('apick-err', map[r.code] || _at('fail'));
+    } catch (err) {
+      _showErr('apick-err', err.message === 'size' ? _at('imgSize') : err.message === 'type' ? _at('imgType') : _at('fail'));
+    } finally { e.target.value = ''; }
   });
 }
+
+/* ══════════════════════════════════════════════════════════
+   CENTRE DE NOTIFICATIONS (cloche nav)
+   Modèle local (localStorage, par utilisateur) alimenté par des
+   ÉVÉNEMENTS dérivés de l'état réel : demande d'ami reçue,
+   demande d'ami acceptée, jeu de la wishlist sorti. Conçu pour
+   recevoir aussi des events backend/realtime plus tard via add().
+══════════════════════════════════════════════════════════ */
+const _NOTIF_T = {
+  title:{fr:'Notifications',en:'Notifications'},
+  empty:{fr:'Aucune notification pour le moment.',en:'No notifications yet.'},
+  markAll:{fr:'Tout marquer comme lu',en:'Mark all as read'},
+  friendReq:{fr:'Nouvelle demande d’ami',en:'New friend request'},
+  friendReqB:{fr:'%s souhaite vous ajouter.',en:'%s wants to add you.'},
+  friendOk:{fr:'Demande d’ami acceptée',en:'Friend request accepted'},
+  friendOkB:{fr:'%s et vous êtes maintenant amis.',en:'%s and you are now friends.'},
+  release:{fr:'Disponible !',en:'Out now!'},
+  releaseB:{fr:'%s de votre liste de souhaits est sorti.',en:'%s from your wishlist is out.'},
+  welcome:{fr:'Bienvenue sur GEEKLEARN GAMES',en:'Welcome to GEEKLEARN GAMES'},
+  welcomeB:{fr:'Votre espace membre est prêt. Liez vos comptes et ajoutez des amis.',en:'Your member space is ready. Link your accounts and add friends.'},
+  now:{fr:'à l’instant',en:'just now'},
+};
+function _nt(k){ const m=_NOTIF_T[k]; return m ? (m[LANG]||m.en) : k; }
+
+const GLG_NOTIF = (function(){
+  let _uid = 'anon';
+  let _list = [];
+  let _seenFriends = null;   // baseline set (ids déjà amis) — null = pas encore initialisé
+  const KEY  = () => 'glg_notifs_' + _uid;
+  const SKEY = () => 'glg_friendseen_' + _uid;
+
+  function _load(){
+    try { _list = JSON.parse(localStorage.getItem(KEY()) || '[]') || []; } catch(e){ _list = []; }
+    try { const s = JSON.parse(localStorage.getItem(SKEY()) || 'null'); _seenFriends = Array.isArray(s) ? new Set(s) : null; } catch(e){ _seenFriends = null; }
+  }
+  function _save(){
+    try { localStorage.setItem(KEY(), JSON.stringify(_list.slice(0,60))); } catch(e){}
+    try { if (_seenFriends) localStorage.setItem(SKEY(), JSON.stringify([..._seenFriends])); } catch(e){}
+  }
+  function setUser(uid){ _uid = uid || 'anon'; _load(); }
+  function add(n){
+    if (!n || !n.id) return false;
+    if (_list.some(x => x.id === n.id)) return false;   // dédup stable
+    _list.unshift(Object.assign({ ts: Date.now(), read: false }, n));
+    _save(); _emit(); return true;
+  }
+  function getAll(){ return _list.slice(); }
+  function unread(){ return _list.filter(n => !n.read).length; }
+  function markAllRead(){ let ch=false; _list.forEach(n => { if(!n.read){ n.read=true; ch=true; } }); if(ch){ _save(); _emit(); } }
+  function clear(){ _list=[]; _save(); _emit(); }
+  function _emit(){ document.dispatchEvent(new CustomEvent('glg:notif-changed')); }
+
+  /* Dérive des notifs depuis l'état réel (idempotent grâce au dédup par id). */
+  function sync(opts){
+    opts = opts || {};
+    const friends  = opts.friends  || { friends:[], incoming:[], outgoing:[] };
+    const works    = opts.wishlistWorks || [];
+    // 1) Demandes d'ami reçues
+    (friends.incoming||[]).forEach(u => {
+      add({ id:'freq:'+u.id, type:'friend_request', icon:'friend',
+            title:_nt('friendReq'), body:_nt('friendReqB').replace('%s', u.username||'?'), data:{ uid:u.id } });
+    });
+    // 2) Demandes acceptées (nouvel ami apparu après le baseline)
+    const ids = (friends.friends||[]).map(u => u.id);
+    if (_seenFriends === null){ _seenFriends = new Set(ids); _save(); }   // 1er passage = baseline, pas de spam
+    else {
+      (friends.friends||[]).forEach(u => {
+        if (!_seenFriends.has(u.id)){
+          _seenFriends.add(u.id);
+          add({ id:'facc:'+u.id+':'+Date.now(), type:'friend_accepted', icon:'friend',
+                title:_nt('friendOk'), body:_nt('friendOkB').replace('%s', u.username||'?'), data:{ uid:u.id } });
+        }
+      });
+      _save();
+    }
+    // 3) Jeu de la wishlist sorti (statut "disponible/sorti")
+    works.forEach(w => {
+      const st = (w.status||'').toLowerCase();
+      if (/avail|released|out|sorti|disponible(?!.*bient)/.test(st) && !/coming|bient/.test(st)){
+        add({ id:'rel:'+w.id, type:'wishlist_release', icon:'release',
+              title:_nt('release'), body:_nt('releaseB').replace('%s', w.title||''), data:{ wid:w.id } });
+      }
+    });
+  }
+  return { setUser, add, getAll, unread, markAllRead, clear, sync };
+})();
+window.GLG_NOTIF = GLG_NOTIF;
+
+const _NOTIF_ICONS = {
+  friend:'<svg viewBox="0 0 20 20" fill="none"><circle cx="7.5" cy="6.5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 16c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 7v5M12.5 9.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  release:'<svg viewBox="0 0 20 20" fill="none"><path d="M10 2.5 12.2 7l4.8.5-3.6 3.3 1 4.7L10 13.2 5.6 15.5l1-4.7L3 7.5 7.8 7 10 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  system:'<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 6.2v4.3M10 13.3h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+};
+function _notifRelTime(ts){
+  const s = Math.round((Date.now()-ts)/1000);
+  if (s < 45) return _nt('now');
+  try {
+    const rtf = new Intl.RelativeTimeFormat(LANG||'en', { numeric:'auto' });
+    if (s < 3600) return rtf.format(-Math.round(s/60), 'minute');
+    if (s < 86400) return rtf.format(-Math.round(s/3600), 'hour');
+    return rtf.format(-Math.round(s/86400), 'day');
+  } catch(e){ return ''; }
+}
+function _refreshNotifBell(){
+  const dot = $('nav-notif-dot'); if (!dot) return;
+  const n = GLG_NOTIF.unread();
+  dot.textContent = n > 9 ? '9+' : (n || '');
+  dot.classList.toggle('on', n > 0);
+}
+function _renderNotifPanel(){
+  const panel = $('nav-notif-panel'); if (!panel) return;
+  const list = GLG_NOTIF.getAll();
+  const items = list.length ? list.map(n => `
+    <button class="notif-item ${n.read?'':'is-unread'}" data-id="${n.id}" data-type="${n.type}" data-uid="${n.data?.uid||''}" data-wid="${n.data?.wid||''}">
+      <span class="notif-ico notif-ico--${n.icon||'system'}">${_NOTIF_ICONS[n.icon]||_NOTIF_ICONS.system}</span>
+      <span class="notif-body">
+        <span class="notif-title">${escHtml(n.title||'')}</span>
+        <span class="notif-text">${escHtml(n.body||'')}</span>
+        <span class="notif-time">${_notifRelTime(n.ts)}</span>
+      </span>
+      ${n.read?'':'<span class="notif-unread-dot" aria-hidden="true"></span>'}
+    </button>`).join('') : `<div class="notif-empty">${_nt('empty')}</div>`;
+  panel.innerHTML = `
+    <div class="notif-head"><span class="notif-h-title">${_nt('title')}</span>${list.some(n=>!n.read)?`<button class="notif-markall" onclick="GLG_NOTIF.markAllRead()">${_nt('markAll')}</button>`:''}</div>
+    <div class="notif-list">${items}</div>`;
+  panel.querySelectorAll('.notif-item').forEach(it => it.addEventListener('click', () => {
+    const type = it.dataset.type, uid = it.dataset.uid;
+    closeNotifPanel();
+    if ((type==='friend_request'||type==='friend_accepted')){ showPage('profile'); }
+    else if (type==='wishlist_release' && it.dataset.wid){ showPage('detail', it.dataset.wid); }
+  }));
+}
+function toggleNotifPanel(e){
+  if (e) e.stopPropagation();
+  let panel = $('nav-notif-panel');
+  if (!panel){
+    panel = document.createElement('div');
+    panel.id = 'nav-notif-panel'; panel.className = 'notif-panel'; panel.setAttribute('role','dialog');
+    document.body.appendChild(panel);
+    document.addEventListener('click', ev => {
+      if (!$('nav-notif-panel')?.classList.contains('open')) return;
+      if (ev.target.closest('#nav-notif-panel') || ev.target.closest('#nav-notif-btn')) return;
+      closeNotifPanel();
+    });
+  }
+  if (panel.classList.contains('open')){ closeNotifPanel(); return; }
+  _renderNotifPanel();
+  const btn = $('nav-notif-btn'); const r = btn.getBoundingClientRect();
+  panel.style.top = (r.bottom + 10) + 'px';
+  panel.style.right = Math.max(12, window.innerWidth - r.right - 30) + 'px';
+  panel.classList.add('open');
+  // Vu → on marque comme lu après un court instant (le badge se vide)
+  setTimeout(() => { GLG_NOTIF.markAllRead(); }, 1400);
+}
+function closeNotifPanel(){ $('nav-notif-panel')?.classList.remove('open'); }
+document.addEventListener('glg:notif-changed', () => { _refreshNotifBell(); if ($('nav-notif-panel')?.classList.contains('open')) _renderNotifPanel(); });
 
 async function refreshAccountUI() {
   let user = null;
   if (window.GLG_AUTH?.isConfigured?.()) user = await GLG_AUTH.getUser();
+  _currentUserId = user ? user.id : null;   // sert à détecter "c'est vous" sur les profils publics
   let p = null;
   if (user) p = await GLG_AUTH.getProfile();
 
@@ -2901,9 +3165,36 @@ async function refreshAccountUI() {
     }
   }
 
+  /* ── Cloche de notifications : visible seulement connecté ── */
+  const bell = $('nav-notif-btn');
+  if (bell) {
+    if (user) {
+      bell.classList.add('is-auth');
+      GLG_NOTIF.setUser(user.id || user.email || 'anon');
+      _refreshNotifBell();
+      _syncNotifications();              // dérive les notifs (amis, sorties wishlist)
+    } else {
+      bell.classList.remove('is-auth');
+      closeNotifPanel();
+      GLG_NOTIF.setUser('anon');
+      _refreshNotifBell();
+    }
+  }
+
   _refreshAgeGated(); // re-render age-sensitive listings when the user (age) changes
   // Keep the member space live if it is the active page
   if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
+}
+
+/* Récupère amis + wishlist et alimente le centre de notifications. */
+async function _syncNotifications(){
+  if (!window.GLG_AUTH?.isConfigured?.()) return;
+  let friends = { friends:[], incoming:[], outgoing:[] };
+  try { const r = await GLG_AUTH.friendsList(); friends = { friends:r.friends||[], incoming:r.incoming||[], outgoing:r.outgoing||[] }; } catch(e){}
+  const ids = (typeof wishGet==='function') ? wishGet() : [];
+  const works = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => ids.includes(w.id));
+  try { GLG_NOTIF.sync({ friends, wishlistWorks: works }); } catch(e){}
+  _refreshNotifBell();
 }
 
 /* ══════════════════════════════════════════
@@ -2932,6 +3223,8 @@ function _ppt(k){ const m=_PP_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
 async function buildProfilePage(){
   const host = $('page-profile'); if(!host) return;
+  // Mode "profil public d'un autre joueur" (clic sur un ami / une recherche)
+  if (_viewProfileId){ return buildPublicProfilePage(_viewProfileId); }
   const configured = !!window.GLG_AUTH?.isConfigured?.();
   const user = configured ? await GLG_AUTH.getUser() : null;
 
@@ -3122,6 +3415,8 @@ async function refreshFriendsUI(){
   if (!window.GLG_AUTH?.isConfigured?.()){ body.innerHTML = `<p class="pp-friends-note">${_ft('needAcc')}</p>`; return; }
   const r = await GLG_AUTH.friendsList();
   _friendsCache = { friends:r.friends||[], incoming:r.incoming||[], outgoing:r.outgoing||[] };
+  // Alimente le centre de notifications (demandes reçues / acceptées) en direct
+  try { const ids=(typeof wishGet==='function')?wishGet():[]; const works=(typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w=>ids.includes(w.id)); GLG_NOTIF.sync({ friends:_friendsCache, wishlistWorks:works }); _refreshNotifBell(); } catch(e){}
   const cnt = document.getElementById('pp-friends-count'); if (cnt) cnt.textContent = _friendsCache.friends.length;
   const stat = document.getElementById('pp-stat-friends'); if (stat) stat.textContent = _friendsCache.friends.length;
 
@@ -3130,8 +3425,10 @@ async function refreshFriendsUI(){
     html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('incoming')} <span class="pp-fr-badge">${_friendsCache.incoming.length}</span></div><div class="pp-fr-reqs">` +
       _friendsCache.incoming.map(u => `
         <div class="pp-fr-req">
-          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
-          <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+          <button class="pp-fr-open" onclick="openUserProfile('${u.id}')" aria-label="${escHtml(u.username||'')}">
+            <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+            <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+          </button>
           <span class="pp-fr-actions">
             <button class="pp-fr-accept" onclick="friendAccept('${u.id}')">${_ft('accept')}</button>
             <button class="pp-fr-decline" onclick="friendDecline('${u.id}')" aria-label="${_ft('decline')}" title="${_ft('decline')}">${_XSVG}</button>
@@ -3141,12 +3438,12 @@ async function refreshFriendsUI(){
 
   html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('title')} <span class="pp-fr-badge">${_friendsCache.friends.length}</span></div>`;
   if (_friendsCache.friends.length){
+    // Carte cliquable → profil public (le retrait d'ami se fait DEPUIS ce profil)
     html += `<div class="pp-friends-grid">` + _friendsCache.friends.map(u => `
-        <div class="pp-friend-card">
+        <button class="pp-friend-card" onclick="openUserProfile('${u.id}')" aria-label="${escHtml(u.username||'')}" title="${escHtml(u.username||'')}">
           <span class="pp-friend-ava">${_userAvatarHTML(u)}<span class="pp-friend-dot" aria-hidden="true"></span></span>
           <span class="pp-friend-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
-          <button class="pp-friend-remove" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('remove')}" title="${_ft('remove')}">${_XSVG}</button>
-        </div>`).join('') + `</div>`;
+        </button>`).join('') + `</div>`;
   } else {
     html += `<p class="pp-friends-note">${_ft('empty')}</p>`;
   }
@@ -3156,8 +3453,10 @@ async function refreshFriendsUI(){
     html += `<div class="pp-fr-block"><div class="pp-fr-label">${_ft('outgoing')} <span class="pp-fr-badge">${_friendsCache.outgoing.length}</span></div><div class="pp-fr-reqs">` +
       _friendsCache.outgoing.map(u => `
         <div class="pp-fr-req pp-fr-req--out">
-          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
-          <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+          <button class="pp-fr-open" onclick="openUserProfile('${u.id}')" aria-label="${escHtml(u.username||'')}">
+            <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+            <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+          </button>
           <span class="pp-fr-pending">${_ft('pending')}</span>
           <button class="pp-fr-decline" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('cancel')}" title="${_ft('cancel')}">${_XSVG}</button>
         </div>`).join('') + `</div></div>`;
@@ -3204,8 +3503,10 @@ async function _friendSearchDo(q){
     else if (u.relation === 'incoming')action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('accept')}</button>`;
     else                               action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('add')}</button>`;
     return `<div class="fr-res">
-      <span class="fr-res-ava">${_userAvatarHTML(u)}</span>
-      <span class="fr-res-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+      <button class="fr-res-open" onclick="openUserProfile('${u.id}',{username:'${escHtml((u.username||'').replace(/'/g,''))}',avatar_url:${u.avatar_url?`'${u.avatar_url}'`:'null'}})" aria-label="${escHtml(u.username||'')}">
+        <span class="fr-res-ava">${_userAvatarHTML(u)}</span>
+        <span class="fr-res-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
+      </button>
       ${action}
     </div>`;
   }).join('');
@@ -3221,6 +3522,142 @@ async function friendAdd(id, btn){
     btn.replaceWith(span);
   }
   refreshFriendsUI(); // keep the profile section in sync in the background
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROFIL PUBLIC d'un autre joueur (style Steam)
+   Cliquable depuis : carte d'ami, demande, résultat de recherche.
+   Le bouton "Retirer des amis" n'apparaît QUE sur le profil d'un
+   ami (jamais sur le sien — on ne se retire pas soi-même).
+══════════════════════════════════════════════════════════ */
+const _UP_T = {
+  member:   { fr:'Membre depuis', en:'Member since', es:'Miembro desde', de:'Mitglied seit', it:'Membro dal', ar:'عضو منذ', zh:'加入于', ja:'登録日', ru:'Участник с', pl:'Członek od' },
+  friendsN: { fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
+  trophiesN:{ fr:'Trophées', en:'Trophies', es:'Trofeos', de:'Trophäen', it:'Trofei', ar:'الجوائز', zh:'奖杯', ja:'トロフィー', ru:'Трофеи', pl:'Trofea' },
+  add:      { fr:'Ajouter en ami', en:'Add friend', es:'Añadir amigo', de:'Freund hinzufügen', it:'Aggiungi amico', ar:'إضافة صديق', zh:'添加好友', ja:'フレンド追加', ru:'Добавить в друзья', pl:'Dodaj znajomego' },
+  accept:   { fr:'Accepter la demande', en:'Accept request', es:'Aceptar solicitud', de:'Anfrage annehmen', it:'Accetta richiesta', ar:'قبول الطلب', zh:'接受请求', ja:'リクエストを承認', ru:'Принять заявку', pl:'Przyjmij zaproszenie' },
+  pending:  { fr:'Demande envoyée', en:'Request sent', es:'Solicitud enviada', de:'Anfrage gesendet', it:'Richiesta inviata', ar:'تم إرسال الطلب', zh:'请求已发送', ja:'リクエスト送信済み', ru:'Заявка отправлена', pl:'Wysłano zaproszenie' },
+  remove:   { fr:'Retirer des amis', en:'Remove friend', es:'Eliminar amigo', de:'Freund entfernen', it:'Rimuovi amico', ar:'إزالة الصديق', zh:'移除好友', ja:'フレンド解除', ru:'Удалить из друзей', pl:'Usuń znajomego' },
+  removeQ:  { fr:'Retirer cette personne de vos amis ?', en:'Remove this person from your friends?', es:'¿Eliminar a esta persona de tus amigos?', de:'Diese Person aus deinen Freunden entfernen?', it:'Rimuovere questa persona dai tuoi amici?', ar:'إزالة هذا الشخص من أصدقائك؟', zh:'将此人从好友中移除？', ja:'この人をフレンドから外しますか？', ru:'Удалить этого человека из друзей?', pl:'Usunąć tę osobę ze znajomych?' },
+  mine:     { fr:'Mon espace', en:'My space', es:'Mi espacio', de:'Mein Bereich', it:'Il mio spazio', ar:'مساحتي', zh:'我的空间', ja:'マイスペース', ru:'Мой профиль', pl:'Mój profil' },
+  noBio:    { fr:'Ce joueur n’a pas encore de bio.', en:'This player hasn’t added a bio yet.', es:'Este jugador aún no tiene biografía.', de:'Dieser Spieler hat noch keine Bio.', it:'Questo giocatore non ha ancora una bio.', ar:'لم يضف هذا اللاعب نبذة بعد.', zh:'该玩家尚未填写简介。', ja:'このプレイヤーはまだ自己紹介がありません。', ru:'Игрок ещё не добавил описание.', pl:'Ten gracz nie dodał jeszcze bio.' },
+};
+function _upt(k){ const m=_UP_T[k]; return m ? (m[LANG]||m.en) : k; }
+
+let _currentUserId = null; // mis à jour par refreshAccountUI
+async function _userRelation(uid){
+  if (_currentUserId && uid === _currentUserId) return 'self';
+  if (_friendsCache.friends.some(f => f.id === uid))  return 'friend';
+  if (_friendsCache.incoming.some(f => f.id === uid)) return 'incoming';
+  if (_friendsCache.outgoing.some(f => f.id === uid)) return 'outgoing';
+  return 'none';
+}
+
+/* Carte wishlist en LECTURE SEULE (profil public d'un autre joueur). */
+function _publicWishCardHTML(w){
+  const tint = w.tint || '#ffffff'; const rgb = hexToRgb(tint) || '255,255,255';
+  return `<div class="pp-wish-card" style="--tint:${tint};--tint-rgb:${rgb}">
+      <div class="pp-wish-cover" role="button" tabindex="0" aria-label="${w.title}" onclick="showPage('detail','${w.id}')">
+        <img src="${av(w.cover)}" alt="${w.title}" loading="lazy" onerror="this.style.opacity=0">
+        <span class="pp-wish-status ${w.status}">${getStatusLabel(w)}</span>
+      </div>
+      <div class="pp-wish-info">
+        <div class="pp-wish-name">${w.title}</div>
+        <div class="pp-wish-meta">${w.year} · <span class="price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span></div>
+      </div>
+    </div>`;
+}
+
+/* Ouvre le profil PUBLIC d'un autre joueur = PAGE complète (comme la nôtre). */
+let _viewProfileId = null;
+function openUserProfile(uid){
+  if (!uid) return;
+  _viewProfileId = (_currentUserId && uid === _currentUserId) ? null : uid;
+  closeAuthModal();
+  showPage('profile');               // showPage → buildProfilePage() → mode public
+}
+function _backFromPublic(){ _viewProfileId = null; showPage('profile'); }
+
+/* Rendu de la page profil PUBLIC d'un autre joueur — même disposition que la
+   nôtre : bannière, avatar, identité, stats, trophées (les SIENS), wishlist
+   (la SIENNE). Lecture seule + bouton d'action ami (selon la relation). */
+async function buildPublicProfilePage(viewId){
+  const host = $('page-profile'); if(!host) return;
+  host.innerHTML = `<section class="pp"><div class="pp-loading">…</div></section>`;
+  let prof = null;
+  try { const r = await GLG_AUTH.getPublicProfile?.(viewId); if (r && r.ok) prof = r.profile; } catch(e){}
+  if (!prof){
+    const all = [..._friendsCache.friends, ..._friendsCache.incoming, ..._friendsCache.outgoing];
+    const f = all.find(x => x.id === viewId) || {};
+    prof = { id:viewId, username:f.username||'—', avatar_url:f.avatar_url||null, banner_url:null, bio:null, created_at:null, friend_count:null, wishlist:[], achievements:[] };
+  }
+  if (!_friendsCache.friends.length && !_friendsCache.incoming.length && !_friendsCache.outgoing.length){
+    try { const fr = await GLG_AUTH.friendsList?.(); if (fr && fr.ok) _friendsCache = { friends:fr.friends||[], incoming:fr.incoming||[], outgoing:fr.outgoing||[] }; } catch(e){}
+  }
+  const name = prof.username || '—';
+  const since = prof.created_at ? new Date(prof.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
+  const banner = prof.banner_url;
+  const keys = new Set(Array.isArray(prof.achievements) ? prof.achievements : []);
+  const d = computeTrophies(keys);                       // trophées calculés depuis SES déblocages
+  const wids = Array.isArray(prof.wishlist) ? prof.wishlist : [];
+  const wWorks = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => wids.includes(w.id) && !isMatureHidden(w));
+  const rel = await _userRelation(viewId);
+  let action = '';
+  if (rel === 'friend')        action = `<button class="btn btn-outline up-action up-action--remove" data-act="remove">${_upt('remove')}</button>`;
+  else if (rel === 'incoming') action = `<button class="btn btn-primary up-action" data-act="accept">${_upt('accept')}</button>`;
+  else if (rel === 'outgoing') action = `<span class="up-pending">${_upt('pending')}</span>`;
+  else if (rel === 'self')     action = '';
+  else                         action = `<button class="btn btn-primary up-action" data-act="add">${_upt('add')}</button>`;
+
+  host.innerHTML = `
+    <section class="pp pp--public">
+      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url('${banner}')"`:''}><div class="pp-banner-scrim"></div></div>
+      <div class="pp-head">
+        <span class="pp-avatar pp-avatar--ro">${_userAvatarHTML(prof)}</span>
+        <div class="pp-id">
+          <h1 class="pp-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
+          <div class="pp-badges"><span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span></div>
+          ${prof.bio ? `<p class="pp-bio">${escHtml(prof.bio)}</p>` : `<p class="pp-bio pp-bio--empty">${_upt('noBio')}</p>`}
+        </div>
+        <div class="pp-actions pp-actions--public">
+          <button class="btn btn-outline pp-back-btn" onclick="_backFromPublic()">‹ ${_ft('title')}</button>
+          ${action}
+        </div>
+      </div>
+      <div class="pp-stats">
+        <div class="pp-stat"><b>${d.earnedTotal}</b><span>${_tt('section')}</span></div>
+        <div class="pp-stat"><b>${prof.friend_count!=null?prof.friend_count:'—'}</b><span>${_ft('statFriends')}</span></div>
+        <div class="pp-stat"><b>${wWorks.length}</b><span>${_wt('title')}</span></div>
+      </div>
+      <div class="pp-section pp-trophy-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('level')}</h2></div>
+        <div class="pp-trophy-showcase">${trophyShowcaseHTML(d)}</div>
+      </div>
+      <div class="pp-section pp-tg-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('byGame')}</h2></div>
+        <div class="pp-tg-grid">${d.byGame.length ? d.byGame.map(g => trophyGameCardHTML(g).replace(/ onclick="[^"]*"/,'')).join('') : `<p class="pp-friends-note">${_tt('none')}</p>`}</div>
+      </div>
+      <div class="pp-section">
+        <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count">${wWorks.length}</span></div>
+        <div class="pp-wish-grid">${wWorks.length ? wWorks.map(_publicWishCardHTML).join('') : `<p class="pp-friends-note">—</p>`}</div>
+      </div>
+    </section>
+    ${footerHTML()}`;
+
+  const actBtn = host.querySelector('.up-action');
+  if (actBtn) actBtn.addEventListener('click', async () => {
+    const act = actBtn.dataset.act;
+    if (act === 'remove' && !confirm(_upt('removeQ'))) return;
+    actBtn.disabled = true;
+    try {
+      if (act === 'add')      await GLG_AUTH.friendRequest?.(viewId);
+      else if (act === 'accept') await GLG_AUTH.friendRespond?.(viewId, true);
+      else if (act === 'remove') await GLG_AUTH.friendRemove?.(viewId);
+    } catch(e){}
+    await refreshFriendsUI();
+    buildPublicProfilePage(viewId);
+  });
+  setTimeout(initReveal, 60);
 }
 
 /* ══════════════════════════════════════════
@@ -3247,7 +3684,8 @@ const _TIER_POINTS = { bronze:15, silver:30, gold:90, platinum:180 };
 const _TIER_ORDER  = { platinum:0, gold:1, silver:2, bronze:3 };
 let _achKeys = new Set();
 
-function computeTrophies(){
+function computeTrophies(keys){
+  const K = keys || _achKeys;                          // set de clés (par défaut : l'utilisateur courant)
   const counts = { bronze:0, silver:0, gold:0, platinum:0 };
   const earned = { bronze:0, silver:0, gold:0, platinum:0 };
   let points = 0; const byGame = [];
@@ -3260,8 +3698,8 @@ function computeTrophies(){
     list.forEach(tr => {
       counts[tr.tier]++;
       const isEarned = (tr.tier === 'platinum')
-        ? (nonPlat.length > 0 && nonPlat.every(x => _achKeys.has(gid + '/' + x.code)))
-        : _achKeys.has(gid + '/' + tr.code);
+        ? (nonPlat.length > 0 && nonPlat.every(x => K.has(gid + '/' + x.code)))
+        : K.has(gid + '/' + tr.code);
       if (isEarned){ earned[tr.tier]++; tiers[tr.tier]++; gEarned++; points += _TIER_POINTS[tr.tier]; }
     });
     byGame.push({ gid, work, total:list.length, earned:gEarned, tiers,
@@ -3508,12 +3946,20 @@ async function openBannerPicker(){
   $('bpick-file')?.addEventListener('change', async e => {
     const file = e.target.files?.[0]; if(!file) return;
     _hideErr('bpick-err');
+    if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) { _showErr('bpick-err', _at('imgType')); return; }
     _showErr('bpick-err', '…'); document.getElementById('bpick-err')?.classList.add('ok');
-    const r = await GLG_AUTH.uploadBanner(file);
-    document.getElementById('bpick-err')?.classList.remove('ok');
-    if(r.ok){ closeAuthModal(); await refreshAccountUI(); buildProfilePage(); return; }
-    const map = { type:_at('imgType'), size:_at('imgSize'), rejected:_at('imgRejected'), notConfigured:_at('notConfigured'), notAuth:_at('notConfigured') };
-    _showErr('bpick-err', map[r.code] || _at('fail'));
+    try {
+      // Bannière paysage redimensionnée + compressée → data-URL (fonctionne sans bucket)
+      const dataUrl = await _processImageFile(file, { maxW: 1600, maxH: 520, square: false, quality: 0.82 });
+      const r = await GLG_AUTH.updateProfile({ banner_url: dataUrl });
+      document.getElementById('bpick-err')?.classList.remove('ok');
+      if(r.ok){ closeAuthModal(); await refreshAccountUI(); buildProfilePage(); return; }
+      const map = { notConfigured:_at('notConfigured'), notAuth:_at('notConfigured') };
+      _showErr('bpick-err', map[r.code] || _at('fail'));
+    } catch (err) {
+      document.getElementById('bpick-err')?.classList.remove('ok');
+      _showErr('bpick-err', err.message === 'size' ? _at('imgSize') : err.message === 'type' ? _at('imgType') : _at('fail'));
+    } finally { e.target.value = ''; }
   });
 }
 

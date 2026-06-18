@@ -221,19 +221,19 @@
 .dp-related-all:hover{ border-color:var(--tint,#fff); color:#fff; gap:13px; background:rgba(var(--tint-rgb,255,255,255),.07); }
 
 /* auto-fit + cap + center → 3-4 cartes restent équilibrées et centrées (plus de moitié droite vide) */
-.dp-related-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,250px)); justify-content:center; gap:clamp(16px,1.8vw,26px); }
+.dp-related-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,310px)); justify-content:center; gap:clamp(20px,2.4vw,36px); max-width:1140px; margin:0 auto; }
 
 .dp-rel-card{
   position:relative; display:flex; flex-direction:column; overflow:hidden; cursor:pointer;
   --tint-rgb:255,255,255;
   background:linear-gradient(180deg,#101012,#0b0b0c);
-  border:1px solid var(--border,rgba(255,255,255,.08)); border-radius:7px;
-  transition:transform .42s var(--ease), border-color .42s, box-shadow .42s;
+  border:1px solid var(--border,rgba(255,255,255,.08)); border-radius:9px;
+  transition:transform .46s var(--ease), border-color .46s, box-shadow .46s;
 }
 .dp-rel-card:hover{
-  transform:translateY(-7px);
-  border-color:rgba(var(--tint-rgb),.55);
-  box-shadow:0 26px 64px -26px rgba(0,0,0,.95), 0 0 0 1px rgba(var(--tint-rgb),.28), 0 20px 54px -30px rgba(var(--tint-rgb),.55);
+  transform:translateY(-10px);
+  border-color:rgba(var(--tint-rgb),.6);
+  box-shadow:0 34px 80px -28px rgba(0,0,0,.95), 0 0 0 1px rgba(var(--tint-rgb),.32), 0 26px 70px -30px rgba(var(--tint-rgb),.62);
 }
 
 .dp-rel-cover{ position:relative; aspect-ratio:3/4; overflow:hidden; background:#0d0d0d; }
@@ -260,8 +260,9 @@
 .dp-rel-go-arr{ transition:transform .25s; }
 .dp-rel-card:hover .dp-rel-go-arr{ transform:translateX(3px); }
 
-.dp-rel-foot{ padding:14px 14px 16px; display:flex; flex-direction:column; gap:10px; }
-.dp-rel-name{ font-family:var(--f-disp,sans-serif); font-size:1.08rem; line-height:1.04; letter-spacing:.02em; text-transform:uppercase; color:#fff; }
+.dp-rel-foot{ padding:18px 18px 20px; display:flex; flex-direction:column; gap:12px; }
+.dp-rel-name{ font-family:var(--f-disp,sans-serif); font-size:1.34rem; line-height:1.02; letter-spacing:.02em; text-transform:uppercase; color:#fff; transition:color .3s; }
+.dp-rel-card:hover .dp-rel-name{ color:#fff; text-shadow:0 0 26px rgba(var(--tint-rgb),.5); }
 .dp-rel-sub2{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .dp-rel-status{ display:inline-flex; align-items:center; gap:6px; font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.55); }
 .dp-rel-dot{ width:6px; height:6px; border-radius:50%; background:var(--tint,#fff); box-shadow:0 0 8px var(--tint,#fff); flex-shrink:0; }
@@ -1527,9 +1528,9 @@ input[type="number"], textarea{ cursor:text; }
 
 
 /* ───────────────────────────────────────────────────────────────────────
-   §31 · LANGUAGE GATE — retrait du scanline (jugé inutile) + entrée plus fluide
+   §31 · LANGUAGE GATE — entrée d'ensemble (la ligne morte ".gate-scan" a été
+   définitivement supprimée de main.css ; refonte cinématique complète en §36)
 ─────────────────────────────────────────────────────────────────────── */
-.gate-scan{ display:none !important; animation:none !important; }   /* la ligne qui descend → supprimée */
 /* Entrée d'ensemble : léger fondu + montée du bloc, transitions plus douces */
 #lang-gate:not(.out){ animation:gateRise .9s cubic-bezier(.16,1,.3,1) both; }
 @keyframes gateRise{ from{ opacity:0; } to{ opacity:1; } }
@@ -1629,3 +1630,331 @@ input[type="number"], textarea{ cursor:text; }
   transition:border-color .25s, color .25s, background .25s;
 }
 .pp-bio-add:hover{ border-color:rgba(255,255,255,.4); color:#fff; background:rgba(255,255,255,.03); }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §36 · LANGUAGE GATE — refonte cinématique AAA (présentation + motion)
+   Étend §28/§31. Aucune "ligne qui descend" : ambiance qui RESPIRE, moment
+   de marque plus affirmé, tuiles de langue premium, chorégraphie d'entrée
+   raffinée. Transform/opacity uniquement (GPU). reduced-motion en fin.
+─────────────────────────────────────────────────────────────────────── */
+
+/* — Vignette de cadrage : profondeur cinéma, concentre le regard — */
+#lang-gate{ box-shadow:inset 0 0 240px 70px rgba(0,0,0,.72), inset 0 0 70px rgba(0,0,0,.45); }
+
+/* — Aura ambiante vivante (élément .gate-aura injecté par buildGate) —
+   Un seul halo central qui respire. Pas de balayage/ligne (volonté studio). */
+.gate-aura{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.gate-aura::before{
+  content:''; position:absolute; left:50%; top:40%; transform:translate(-50%,-50%);
+  width:120vmax; height:120vmax; border-radius:50%;
+  background:radial-gradient(circle, rgba(150,178,255,.07), rgba(120,150,230,.025) 28%, transparent 58%);
+  animation:gateAuraBreath 9s ease-in-out infinite;
+}
+@keyframes gateAuraBreath{
+  0%,100%{ opacity:.6;  transform:translate(-50%,-50%) scale(.95) }
+  50%    { opacity:1;   transform:translate(-50%,-50%) scale(1.07) }
+}
+
+/* — LOGO : moment de marque plus grand + allumage doux — */
+.gate-logo-img{ height:58px !important; animation:gateLogoIgnite 1s .1s cubic-bezier(.16,1,.3,1) both; }
+@keyframes gateLogoIgnite{ from{ opacity:0; transform:scale(.86) } to{ opacity:1; transform:scale(1) } }
+.gate-studio-name{ font-size:.56rem !important; letter-spacing:.62em !important; color:rgba(255,255,255,.92) !important; }
+/* Hairline signature qui se trace sous le nom de studio */
+.gate-logo-wrap::after{
+  content:''; display:block; height:1px; width:0; margin-top:5px; align-self:center;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:gateRule .9s .72s cubic-bezier(.16,1,.3,1) forwards;
+}
+@keyframes gateRule{ to{ width:150px } }
+
+/* — Séparateur "CHOOSE YOUR LANGUAGE" : plus lisible + lignes qui s'ouvrent — */
+.gate-separator{ width:min(100%,clamp(320px,44vw,560px)) !important; margin-bottom:clamp(16px,2.4vh,26px) !important; }
+.gate-sep-label{ color:rgba(255,255,255,.64) !important; font-size:.44rem !important; letter-spacing:.5em !important; }
+.gate-separator .gate-sep-line{ transform-origin:center; animation:gateSepGrow .85s .52s cubic-bezier(.16,1,.3,1) both; }
+@keyframes gateSepGrow{ from{ transform:scaleX(0); opacity:0 } to{ transform:scaleX(1); opacity:1 } }
+
+/* — MOSAÏQUE DE DRAPEAUX : plus présente et premium — */
+@media(min-width:901px){
+  .gate-grid{
+    grid-template-columns:repeat(5, clamp(110px,12.6vw,160px)) !important;
+    grid-auto-rows:clamp(80px,8.8vw,118px) !important;
+  }
+}
+/* Défaut : monochrome MAIS vivant (les flags paraissaient éteints) */
+.gate-lang{ filter:grayscale(100%) brightness(.92) contrast(1.05); }
+/* Survol du grid → assombrit les non-choisis pour focaliser le choix */
+.gate-grid:hover .gate-lang{ filter:grayscale(100%) brightness(.55) contrast(1.05); }
+.gate-grid:hover .gate-lang:hover{ filter:grayscale(0%) brightness(1.06) contrast(1.05) !important; }
+/* Sheen lumineux subtil en haut de chaque tuile */
+.gate-lang::before{
+  content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.09), transparent 36%);
+  opacity:.45; transition:opacity .35s var(--ease,ease);
+}
+.gate-lang:hover::before{ opacity:1; }
+/* Élévation "carte qui se lève" au survol (translate hover ≠ translate d'entrée) */
+.gate-lang:hover{ transform:translateY(-4px) scale(1.05) !important; }
+/* Identité lisible */
+.gate-lang-name{ font-size:clamp(.4rem,.5vw,.5rem) !important; letter-spacing:.15em !important; color:rgba(255,255,255,.9) !important; }
+.gate-lang:hover .gate-lang-name{ color:#fff !important; }
+.gate-lang-go{ top:8px !important; right:10px !important; font-size:.82rem !important; }
+
+/* — HUD système : lecture renforcée — */
+.gate-bottom{ margin-top:clamp(14px,2.4vh,24px) !important; }
+.gate-bottom-item{ font-size:.38rem !important; letter-spacing:.28em !important; }
+.gate-bottom-pulse{ color:rgba(255,255,255,.72) !important; }
+.gate-sep-bottom .gate-sep-line{ background:linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent) !important; }
+
+/* — Coins viseur : un cran plus nets — */
+.gate-corner{ border-color:rgba(255,255,255,.28) !important; }
+
+/* — reduced-motion : tout se fige proprement à l'état final — */
+@media(prefers-reduced-motion:reduce){
+  .gate-aura::before{ animation:none !important; opacity:.8; }
+  .gate-logo-img{ animation:none !important; opacity:1 !important; transform:none !important; }
+  .gate-logo-wrap::after{ animation:none !important; width:150px; }
+  .gate-separator .gate-sep-line{ animation:none !important; transform:none !important; opacity:1; }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §37 · PROFIL — élévation visuelle (espace membre launcher)
+   Bannière par défaut cinématique (jamais "vide/triste"), avatar premium,
+   stats + titres de section plus affirmés. Étend §35 et la base profil.
+─────────────────────────────────────────────────────────────────────── */
+
+/* — Bannière par défaut (aucune image) : ambiance de marque vivante — */
+.pp-banner:not(.has-img){
+  background:
+    radial-gradient(ellipse 72% 130% at 16% -14%, rgba(120,150,230,.18), transparent 60%),
+    radial-gradient(ellipse 64% 130% at 88% -8%, rgba(168,120,224,.13), transparent 58%),
+    linear-gradient(120deg,#0c0c0f,#161619 55%,#0a0a0c);
+}
+/* Voile motif GLG très discret sur la bannière par défaut */
+.pp-banner:not(.has-img)::before{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:url('../assets/img/brand/glg-tile.png') repeat; background-size:320px;
+  opacity:.05; mix-blend-mode:screen;
+}
+/* Liseré lumineux en bas de bannière (séparation nette, sous l'avatar) */
+.pp-banner::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:1px; z-index:1;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+}
+
+/* — Avatar : anneau premium + lueur froide (box-shadow → pas clippé) — */
+.pp-avatar{
+  border:none !important;
+  box-shadow:
+    0 0 0 3px #080808,
+    0 0 0 4px rgba(255,255,255,.20),
+    0 0 34px -2px rgba(150,178,255,.26),
+    0 18px 50px -16px #000 !important;
+  transition:box-shadow .35s var(--ease,ease), transform .35s var(--ease,ease);
+}
+.pp-avatar:hover{
+  transform:translateY(-2px);
+  box-shadow:
+    0 0 0 3px #080808,
+    0 0 0 4px rgba(255,255,255,.38),
+    0 0 44px 0 rgba(150,178,255,.36),
+    0 22px 60px -16px #000 !important;
+}
+
+/* — Stats : un cran plus vivantes — */
+.pp-stat{ transition:background .25s ease; }
+.pp-stat:hover{ background:#101014; }
+.pp-stat b{ text-shadow:0 0 24px rgba(150,178,255,.12); }
+
+/* — Titres de section : accent vertical "magazine" — */
+.pp-sec-title{ position:relative; padding-left:16px; }
+.pp-sec-title::before{
+  content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:4px; height:.82em; border-radius:1px;
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.35));
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §38 · NOTIFICATIONS — cloche nav (badge) + panneau déroulant (feel launcher)
+   La cloche n'apparaît que connecté (.is-auth, posé par refreshAccountUI).
+─────────────────────────────────────────────────────────────────────── */
+.nav-notif-btn{
+  display:none;                 /* masquée tant que non connecté */
+  position:relative;
+  align-items:center; justify-content:center;
+  width:34px; height:34px; margin-left:8px; flex-shrink:0;
+  border:1px solid var(--border,rgba(255,255,255,.08));
+  background:none; color:var(--greyt,#999); cursor:pointer;
+  transition:color .2s, border-color .2s, background .2s, transform .2s var(--ease,ease);
+}
+.nav-notif-btn.is-auth{ display:flex; }
+.nav-notif-btn:hover{ color:#fff; border-color:var(--bmd,rgba(255,255,255,.18)); background:var(--w06,rgba(255,255,255,.06)); }
+.nav-notif-btn svg{ display:block; }
+/* Badge : pastille en haut-droite, chiffre si non-lus */
+.nav-notif-dot{
+  position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
+  display:none; align-items:center; justify-content:center;
+  border-radius:9px; background:#e5564e; color:#fff; border:2px solid #0a0a0b;
+  font-family:var(--f-mono,monospace); font-size:.5rem; font-weight:700; line-height:1;
+  box-shadow:0 0 0 1px rgba(229,86,78,.5), 0 2px 8px rgba(229,86,78,.5);
+}
+.nav-notif-dot.on{ display:flex; animation:notifPop .35s var(--ease,ease) both; }
+@keyframes notifPop{ from{ transform:scale(0); } to{ transform:scale(1); } }
+
+/* Panneau déroulant */
+.notif-panel{
+  position:fixed; z-index:1200; width:min(360px,calc(100vw - 24px));
+  background:rgba(12,12,14,.98); border:1px solid var(--bmd,rgba(255,255,255,.14));
+  border-radius:12px; overflow:hidden;
+  box-shadow:0 24px 70px -18px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.03);
+  -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  opacity:0; transform:translateY(-8px) scale(.98); transform-origin:top right;
+  pointer-events:none; transition:opacity .26s var(--ease,ease), transform .26s var(--ease,ease);
+}
+.notif-panel.open{ opacity:1; transform:none; pointer-events:all; }
+.notif-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:14px 16px; border-bottom:1px solid var(--border,rgba(255,255,255,.08));
+}
+.notif-h-title{ font-family:var(--f-disp,sans-serif); font-size:1rem; letter-spacing:.08em; text-transform:uppercase; color:#fff; }
+.notif-markall{
+  background:none; border:none; cursor:pointer; color:rgba(150,178,255,.85);
+  font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.1em; text-transform:uppercase;
+  transition:color .2s;
+}
+.notif-markall:hover{ color:#fff; }
+.notif-list{ max-height:min(60vh,440px); overflow-y:auto; overscroll-behavior:contain; }
+.notif-item{
+  display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left;
+  padding:13px 16px; background:none; border:none; border-bottom:1px solid rgba(255,255,255,.05);
+  cursor:pointer; position:relative; transition:background .2s;
+}
+.notif-item:hover{ background:rgba(255,255,255,.04); }
+.notif-item.is-unread{ background:rgba(120,150,230,.06); }
+.notif-item.is-unread:hover{ background:rgba(120,150,230,.1); }
+.notif-ico{
+  flex-shrink:0; width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.06); border:1px solid var(--border,rgba(255,255,255,.1)); color:#fff;
+}
+.notif-ico svg{ width:18px; height:18px; }
+.notif-ico--friend{ color:#7fd3ff; }
+.notif-ico--release{ color:#ffd36b; }
+.notif-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.notif-title{ font-family:var(--f-body,sans-serif); font-size:.82rem; font-weight:600; color:#fff; }
+.notif-text{ font-family:var(--f-body,sans-serif); font-size:.74rem; line-height:1.4; color:rgba(255,255,255,.6); }
+.notif-time{ font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.35); margin-top:2px; }
+.notif-unread-dot{ flex-shrink:0; width:8px; height:8px; border-radius:50%; background:#7fb0ff; margin-top:6px; box-shadow:0 0 8px rgba(127,176,255,.7); }
+.notif-empty{ padding:40px 20px; text-align:center; color:rgba(255,255,255,.4); font-family:var(--f-body,sans-serif); font-size:.84rem; }
+@media(prefers-reduced-motion:reduce){
+  .notif-panel{ transition:opacity .2s; transform:none; }
+  .nav-notif-dot.on{ animation:none; }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §39 · FICHE DÉTAIL — ornements vectoriels latéraux (identité par jeu)
+   Cadre HUD/key-art tinté (couleur de l'œuvre) de chaque côté du hero.
+   Décoratif (pointer-events:none), sous le texte (z-index 2 < body 3).
+─────────────────────────────────────────────────────────────────────── */
+.dp-hero-art{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden;
+  opacity:0; transition:opacity 1.2s ease .25s; }
+.dp-hero.dp-entered .dp-hero-art{ opacity:.62; }
+.dp-art{ position:absolute; top:0; height:100%; width:clamp(110px,17vw,250px); }
+.dp-art--l{ left:0; }
+.dp-art--r{ right:0; }
+@media(max-width:760px){
+  .dp-art{ width:74px; }
+  .dp-hero.dp-entered .dp-hero-art{ opacity:.4; }
+}
+@media(prefers-reduced-motion:reduce){
+  .dp-hero-art{ transition:none; opacity:.62; }
+}
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §40 · CONTACT — hero centré (titre + sous-textes + bande de promesses)
+─────────────────────────────────────────────────────────────────────── */
+#page-contact .contact-hero-inner{ max-width:900px; margin-left:auto; margin-right:auto; text-align:center; }
+#page-contact .contact-eye-lbl{ justify-content:center; }
+#page-contact .contact-hero-desc{ margin-left:auto; margin-right:auto; }
+#page-contact .contact-promises{ margin-left:auto; margin-right:auto; }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §41 · FOOTER — bloc marque encadré (viseur) + centré (réf. image 3)
+─────────────────────────────────────────────────────────────────────── */
+.footer-brand{ text-align:center; }
+.footer-brand-frame{
+  position:relative; display:block; width:100%; max-width:340px; margin:0 auto;
+  padding:clamp(26px,3vw,40px) clamp(24px,3vw,40px);
+}
+.fb-corner{ position:absolute; width:18px; height:18px; pointer-events:none; border:0 solid rgba(255,255,255,.34); }
+.fb-tl{ top:0; left:0; border-top-width:1px; border-left-width:1px; }
+.fb-tr{ top:0; right:0; border-top-width:1px; border-right-width:1px; }
+.fb-bl{ bottom:0; left:0; border-bottom-width:1px; border-left-width:1px; }
+.fb-br{ bottom:0; right:0; border-bottom-width:1px; border-right-width:1px; }
+.footer-brand .footer-logo{ display:flex; justify-content:center; margin-bottom:18px; }
+.footer-brand .footer-logo img{ height:38px; width:auto; margin:0 auto; }
+.footer-brand .footer-brand-desc{ margin:0 auto; max-width:34ch; line-height:1.7; }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §42 · PROFIL PUBLIC (autre joueur) — modale style Steam + cartes cliquables
+─────────────────────────────────────────────────────────────────────── */
+.up-modal{ padding:0 !important; overflow:hidden; max-width:420px; text-align:center; }
+.up-loading{ padding:60px 0; color:rgba(255,255,255,.5); font-family:var(--f-mono,monospace); letter-spacing:.2em; }
+.up-banner{
+  position:relative; height:120px; background:
+    radial-gradient(ellipse 70% 130% at 20% -10%, rgba(120,150,230,.2), transparent 60%),
+    radial-gradient(ellipse 60% 130% at 85% 0%, rgba(168,120,224,.14), transparent 58%),
+    linear-gradient(120deg,#0c0c0f,#161619 55%,#0a0a0c);
+  background-size:cover; background-position:center;
+}
+.up-banner-scrim{ position:absolute; inset:0; background:linear-gradient(0deg,#101012 2%,transparent 70%); }
+.up-head{ position:relative; margin-top:-46px; padding:0 28px; display:flex; flex-direction:column; align-items:center; }
+.up-avatar{
+  width:88px; height:88px; border-radius:50%; overflow:hidden; position:relative; background:#161618;
+  box-shadow:0 0 0 4px #101012, 0 0 0 5px rgba(255,255,255,.18), 0 0 28px -4px rgba(150,178,255,.4);
+}
+.up-avatar .ava-img{ width:100%; height:100%; object-fit:cover; }
+.up-avatar .ava-init{ display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-family:var(--f-disp,sans-serif); font-size:2rem; color:#fff; background:linear-gradient(135deg,#2a2a2e,#161618); }
+.up-name{ font-family:var(--f-disp,sans-serif); font-size:1.5rem; letter-spacing:.02em; color:#fff; margin-top:12px; display:inline-flex; align-items:center; gap:.3em; }
+.up-since{ font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.42); margin-top:6px; }
+.up-stats{ display:flex; justify-content:center; gap:0; margin:20px 28px 0; border:1px solid var(--border,rgba(255,255,255,.08)); }
+.up-stat{ flex:1; padding:14px 10px; }
+.up-stat + .up-stat{ border-left:1px solid var(--border,rgba(255,255,255,.08)); }
+.up-stat b{ display:block; font-family:var(--f-disp,sans-serif); font-size:1.5rem; color:#fff; line-height:1; }
+.up-stat span{ display:block; margin-top:6px; font-family:var(--f-mono,monospace); font-size:.46rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.45); }
+.up-bio{ padding:18px 28px 0; font-family:var(--f-body,sans-serif); font-size:.86rem; line-height:1.6; color:rgba(255,255,255,.72); }
+.up-bio--empty{ color:rgba(255,255,255,.34); font-style:italic; }
+.up-actions{ padding:22px 28px 28px; }
+.up-action{ width:100%; }
+.up-action--remove{ border-color:rgba(229,86,78,.5) !important; color:#ff8b84 !important; }
+.up-action--remove:hover{ background:rgba(229,86,78,.14) !important; border-color:#e5564e !important; color:#fff !important; }
+.up-pending{ display:inline-block; width:100%; padding:12px; border:1px dashed var(--bmd,rgba(255,255,255,.18)); color:rgba(255,255,255,.5); font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.14em; text-transform:uppercase; }
+
+/* Cartes / lignes désormais cliquables (reset bouton + curseur) */
+.pp-friend-card{ cursor:pointer; background:none; border:1px solid var(--border,rgba(255,255,255,.07)); width:100%; font:inherit; color:inherit; text-align:left; transition:border-color .25s, background .25s, transform .25s var(--ease,ease); }
+.pp-friend-card:hover{ border-color:rgba(150,178,255,.45); background:rgba(255,255,255,.03); transform:translateY(-2px); }
+.pp-fr-open, .fr-res-open{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; background:none; border:none; cursor:pointer; font:inherit; color:inherit; text-align:left; padding:0; transition:opacity .2s; }
+.pp-fr-open:hover, .fr-res-open:hover{ opacity:.75; }
+.pp-fr-open .pp-fr-name, .fr-res-open .fr-res-name{ text-decoration:none; }
+
+
+/* ───────────────────────────────────────────────────────────────────────
+   §43 · PROFIL PUBLIC = PAGE complète (lecture seule, même look que le sien)
+─────────────────────────────────────────────────────────────────────── */
+.pp-loading{ padding:140px 0; text-align:center; color:rgba(255,255,255,.4); font-family:var(--f-mono,monospace); letter-spacing:.3em; }
+/* Avatar non éditable (span au lieu de button) */
+.pp-avatar--ro{ display:block; cursor:default; }
+.pp-bio--empty{ color:rgba(255,255,255,.4); font-style:italic; }
+/* Bloc d'actions du profil public : retour + action ami, empilés */
+.pp-actions--public{ display:flex; flex-direction:column; gap:10px; align-items:stretch; min-width:190px; }
+.pp-actions--public .pp-back-btn{ white-space:nowrap; }
+.pp-actions--public .up-action--remove{ border-color:rgba(229,86,78,.5) !important; color:#ff8b84 !important; }
+.pp-actions--public .up-action--remove:hover{ background:rgba(229,86,78,.14) !important; border-color:#e5564e !important; color:#fff !important; }
+.pp-actions--public .up-pending{ text-align:center; padding:11px; border:1px dashed var(--bmd,rgba(255,255,255,.18)); color:rgba(255,255,255,.5); font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.14em; text-transform:uppercase; }
+@media(max-width:760px){ .pp-actions--public{ width:100%; min-width:0; } }

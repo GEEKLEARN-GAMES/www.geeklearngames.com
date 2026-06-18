@@ -216,11 +216,18 @@
   ═══════════════════════════════════════════════════════════ */
   function animFooter() {
     if (!MOTION) return;
-    if (!document.querySelector('.footer-col')) return; // no footer on this page yet
-
-    gsap.from('.footer-col', {
-      scrollTrigger: { trigger: '.footer-inner', start: 'top 90%', once: true },
-      y: 22, opacity: 0, duration: 0.5, ease: E2, stagger: 0.08
+    // SCOPE to the ACTIVE page's footer only. Le sélecteur global re-cachait
+    // les footers de TOUTES les pages (5 slots) avec un seul ScrollTrigger →
+    // les autres restaient à opacity:0 (footer manquant après nav rapide).
+    const page = document.querySelector('.page.active') || document;
+    const cols = page.querySelectorAll('.footer-col');
+    if (!cols.length) return;
+    const inner = page.querySelector('.footer-inner');
+    // PAS d'animation d'opacité : le footer reste TOUJOURS visible (jamais figé
+    // invisible si le trigger ne se déclenche pas). Seul un léger glissement.
+    gsap.from(cols, {
+      scrollTrigger: inner ? { trigger: inner, start: 'top 97%', once: true } : undefined,
+      y: 18, duration: 0.5, ease: E2, stagger: 0.07, clearProps: 'transform,willChange'
     });
   }
 

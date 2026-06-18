@@ -222,20 +222,6 @@ ul{list-style:none}
   background:radial-gradient(circle, rgba(255,255,255,.07), rgba(255,255,255,.02) 38%, transparent 64%);
 }
 
-/* One-time cinematic scanline sweep on boot */
-.gate-scan{
-  position:absolute;left:0;right:0;top:0;height:2px;z-index:3;pointer-events:none;opacity:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6) 35%,rgba(255,255,255,.6) 65%,transparent);
-  box-shadow:0 0 22px rgba(255,255,255,.45);
-  animation:gateScan 2.6s 1s cubic-bezier(.5,0,.25,1) 1 forwards;
-}
-@keyframes gateScan{
-  0%{opacity:0;transform:translateY(0)}
-  6%{opacity:.85}
-  90%{opacity:.85}
-  100%{opacity:0;transform:translateY(100vh)}
-}
-
 /* Per-flag staggered entrance (uses individual `translate` so the hover
    `transform:scale()` is never overridden by the filling animation). */
 .gate-grid{animation:none}                 /* grid frame appears instantly; flags carry the reveal */
@@ -264,7 +250,6 @@ ul{list-style:none}
 @keyframes gateHudPulse{0%,100%{opacity:.45}50%{opacity:1}}
 
 @media(prefers-reduced-motion:reduce){
-  .gate-scan{animation:none;display:none}
   .gate-lang{animation:none}
   .gate-bottom-pulse{animation:none}
   .gate-lang.selected{animation:none}
@@ -313,9 +298,11 @@ ul{list-style:none}
   /* Offset the trailing letter-spacing gap so text looks optically centered */
   padding-left:.45em;
 }
-.nav-links{display:flex;align-items:center;margin-left:auto;gap:0}
-/* Search icon — BEFORE nav links */
-.nav-search-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;margin-right:4px;border:1px solid var(--border);color:var(--greyt);cursor:pointer;background:none;transition:all .2s;flex-shrink:0}
+.nav-links{display:flex;align-items:center;gap:0}
+/* Right cluster (notifications + account) — pushed to the far right on every breakpoint */
+.nav-right{display:flex;align-items:center;margin-left:auto;gap:0;flex-shrink:0}
+/* Search icon — first item of the right cluster, before the section links */
+.nav-search-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;margin:0 10px 0 0;border:1px solid var(--border);color:var(--greyt);cursor:pointer;background:none;transition:all .2s;flex-shrink:0}
 .nav-search-btn:hover{color:var(--white);border-color:var(--bmd);background:var(--w06)}
 .nav-link{font-family:var(--f-mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--greyt);padding:8px 13px;position:relative;transition:color .2s;cursor:pointer;background:none;border:none;white-space:nowrap}
 .nav-link::after{content:'';position:absolute;bottom:4px;left:50%;right:50%;height:1px;background:var(--white);transition:left .3s var(--ease),right .3s var(--ease)}
@@ -968,9 +955,12 @@ ul{list-style:none}
   /* 100% de la section + 1 tuile = jamais de vide quelle que soit la largeur */
   width: calc(100% + 480px);
   height: 100%;
-  background-image: url('../assets/img/brand/glg-pattern.png');
-  /* 480 / 1.778 ≈ 270px — ratio 16:9 exact */
-  background-size: 480px 270px;
+  /* PERF : on tuile la PETITE image glg-tile.png (240×81, 3.6 Ko) au lieu de
+     glg-pattern.png (16000×9000 → ≈576 Mo décodés en RAM = cause du lag au scroll).
+     Même motif GLG. Rendue 480×162 (×2, ratio préservé) → tuile large de 480px,
+     donc translateX(-480px) reste un cycle exact = loop seamless conservé. */
+  background-image: url('../assets/img/brand/glg-tile.png');
+  background-size: 480px 162px;
   background-repeat: repeat;
   will-change: transform;
   animation: glgDrift var(--glg-speed) linear infinite;
@@ -2026,9 +2016,9 @@ footer{
 @media(max-width:900px){
   :root{--nav-h:68px}
   .nav-links{display:none}.nav-burger{display:flex;margin-left:8px}
-  .nav-search-btn,.nav-cta{display:none} /* desktop-only on mobile: search→topbar, contact→burger menu */
-  .nav-search-topbar{display:flex;margin-left:auto} /* show + push the group right on mobile */
-  #nav-lang-btn{margin-left:8px} /* flag sits flush after burger */
+  .nav-search-btn{display:none} /* desktop-only on mobile: search → topbar in .nav-right */
+  .nav-search-topbar{display:flex} /* .nav-right (margin-left:auto) pushes the cluster right */
+  #nav-lang-btn{margin-left:8px} /* flag sits right after the logo */
   .studio-block{grid-template-columns:1fr}
   .studio-half:first-child{border-right:none;border-bottom:1px solid var(--border)}
   .dp-story-body{grid-template-columns:1fr}
