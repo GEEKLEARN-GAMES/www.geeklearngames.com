@@ -794,6 +794,8 @@ function showPage(name, itemId = null) {
     if (name === 'works') requestAnimationFrame(buildCarousels);
     /* Build the member space (avatar/banner/wishlist) on demand */
     if (name === 'profile') buildProfilePage();
+    /* Build the dedicated settings page on demand */
+    if (name === 'settings') buildSettingsPage();
   }
 
   // Update browser URL without reload
@@ -881,6 +883,7 @@ window.addEventListener('popstate', e => {
     const page = $('page-' + state.page);
     if (page) page.classList.add('active');
     if (state.page === 'profile') buildProfilePage();
+    if (state.page === 'settings') buildSettingsPage();
     if (state.page === 'works') requestAnimationFrame(buildCarousels);
     _scrollTopInstant();
   }
@@ -2565,7 +2568,7 @@ function _buildAccountMenu() {
     if (!act) return;
     closeAccountMenu();
     if (act === 'profile') { _viewProfileId = null; showPage('profile'); }
-    else if (act === 'options') openAuthModal();
+    else if (act === 'options') showPage('settings');
     else if (act === 'logout') { await GLG_AUTH.signOut(); refreshAccountUI(); }
   });
   // Close on outside click / escape
@@ -2618,7 +2621,7 @@ async function renderAuthModal() {
   const configured = !!window.GLG_AUTH?.isConfigured?.();
   const user = configured ? await GLG_AUTH.getUser() : null;
 
-  if (user) { m.innerHTML = await _profileHTML(); _wireProfile(); return; }
+  if (user) { closeAuthModal(); showPage('settings'); return; }  // connecté → page Paramètres dédiée
 
   const notice = configured ? '' : `<div class="auth-notice">${_at('notConfigured')}</div>`;
   m.innerHTML = `
@@ -2790,62 +2793,227 @@ function _wireSignup() {
   });
 }
 
-async function _profileHTML() {
-  const p = await GLG_AUTH.getProfile();
-  const u = await GLG_AUTH.getUser();
-  const name = p?.username || u?.email?.split('@')[0] || '—';
-  const since = p?.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { year:'numeric', month:'long' }) : '';
-  const initial = (name[0] || '?').toUpperCase();
-  const gLabel = p?.gender === 'male' ? _at('male') : p?.gender === 'female' ? _at('female') : (p?.gender_other || _at('other'));
+/* ══════════════════════════════════════════════════════════
+   PRÉFÉRENCES UTILISATEUR (colonne profiles.prefs jsonb)
+   Réellement fonctionnelles côté client : réduction d'animations,
+   couleur d'accent, filtres de notifications, confidentialité.
+══════════════════════════════════════════════════════════ */
+const _OPT_T = {
+  settings:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
+  tabProfile:{fr:'Profil',en:'Profile',es:'Perfil',de:'Profil',it:'Profilo',ar:'الملف',zh:'资料',ja:'プロフィール',ru:'Профиль',pl:'Profil'},
+  tabPerso:{fr:'Personnalisation',en:'Personalization',es:'Personalización',de:'Personalisierung',it:'Personalizzazione',ar:'التخصيص',zh:'个性化',ja:'カスタマイズ',ru:'Оформление',pl:'Personalizacja'},
+  tabNotif:{fr:'Notifications',en:'Notifications',es:'Notificaciones',de:'Mitteilungen',it:'Notifiche',ar:'الإشعارات',zh:'通知',ja:'通知',ru:'Уведомления',pl:'Powiadomienia'},
+  tabPrivacy:{fr:'Confidentialité',en:'Privacy',es:'Privacidad',de:'Datenschutz',it:'Privacy',ar:'الخصوصية',zh:'隐私',ja:'プライバシー',ru:'Приватность',pl:'Prywatność'},
+  tabAccount:{fr:'Compte',en:'Account',es:'Cuenta',de:'Konto',it:'Account',ar:'الحساب',zh:'账户',ja:'アカウント',ru:'Аккаунт',pl:'Konto'},
+  banner:{fr:'Changer la bannière',en:'Change banner',es:'Cambiar el banner',de:'Banner ändern',it:'Cambia banner',ar:'تغيير الغلاف',zh:'更换横幅',ja:'バナーを変更',ru:'Сменить баннер',pl:'Zmień baner'},
+  accent:{fr:"Couleur d'accent du profil",en:'Profile accent color',es:'Color de acento',de:'Akzentfarbe',it:'Colore d’accento',ar:'لون التمييز',zh:'强调色',ja:'アクセントカラー',ru:'Цвет акцента',pl:'Kolor akcentu'},
+  accentNone:{fr:'Aucune (par défaut)',en:'None (default)',es:'Ninguno',de:'Keine',it:'Nessuno',ar:'بدون',zh:'无',ja:'なし',ru:'Нет',pl:'Brak'},
+  reducedMotion:{fr:'Réduire les animations',en:'Reduce animations',es:'Reducir animaciones',de:'Animationen reduzieren',it:'Riduci animazioni',ar:'تقليل الحركة',zh:'减少动画',ja:'アニメーションを減らす',ru:'Меньше анимаций',pl:'Ogranicz animacje'},
+  reducedMotionD:{fr:'Coupe les effets de mouvement (confort & performance).',en:'Turns off motion effects (comfort & performance).',es:'Desactiva los efectos de movimiento.',de:'Schaltet Bewegungseffekte aus.',it:'Disattiva gli effetti di movimento.',ar:'يوقف تأثيرات الحركة.',zh:'关闭动效（更舒适、更流畅）。',ja:'モーション効果を無効化（快適・軽量）。',ru:'Отключает эффекты движения.',pl:'Wyłącza efekty ruchu.'},
+  notifFriendReq:{fr:'Demandes d’ami reçues',en:'Friend requests received',es:'Solicitudes recibidas',de:'Erhaltene Anfragen',it:'Richieste ricevute',ar:'طلبات الصداقة',zh:'收到的好友请求',ja:'受信したフレンド申請',ru:'Входящие заявки',pl:'Otrzymane zaproszenia'},
+  notifFriendAcc:{fr:'Demandes d’ami acceptées',en:'Friend requests accepted',es:'Solicitudes aceptadas',de:'Angenommene Anfragen',it:'Richieste accettate',ar:'الطلبات المقبولة',zh:'已接受的请求',ja:'承認された申請',ru:'Принятые заявки',pl:'Przyjęte zaproszenia'},
+  notifRelease:{fr:'Sorties de ma liste de souhaits',en:'Releases from my wishlist',es:'Estrenos de mi lista',de:'Releases aus meiner Wunschliste',it:'Uscite dalla mia lista',ar:'إصدارات قائمة الرغبات',zh:'愿望单上线提醒',ja:'ウィッシュリストの配信',ru:'Релизы из списка желаний',pl:'Premiery z listy życzeń'},
+  privShowTrophies:{fr:'Afficher mes trophées sur mon profil',en:'Show my trophies on my profile',es:'Mostrar mis trofeos',de:'Meine Trophäen zeigen',it:'Mostra i miei trofei',ar:'إظهار جوائزي',zh:'在资料中显示奖杯',ja:'プロフィールにトロフィーを表示',ru:'Показывать трофеи',pl:'Pokaż moje trofea'},
+  privShowWishlist:{fr:'Afficher ma liste de souhaits',en:'Show my wishlist',es:'Mostrar mi lista de deseos',de:'Meine Wunschliste zeigen',it:'Mostra la mia lista',ar:'إظهار قائمة رغباتي',zh:'显示我的愿望单',ja:'ウィッシュリストを表示',ru:'Показывать список желаний',pl:'Pokaż listę życzeń'},
+  privShowOnline:{fr:'Afficher mon statut en ligne',en:'Show my online status',es:'Mostrar mi estado',de:'Online-Status zeigen',it:'Mostra stato online',ar:'إظهار حالة الاتصال',zh:'显示在线状态',ja:'オンライン状態を表示',ru:'Показывать статус «в сети»',pl:'Pokaż status online'},
+  changePw:{fr:'Changer le mot de passe',en:'Change password',es:'Cambiar contraseña',de:'Passwort ändern',it:'Cambia password',ar:'تغيير كلمة المرور',zh:'修改密码',ja:'パスワード変更',ru:'Сменить пароль',pl:'Zmień hasło'},
+  newPw:{fr:'Nouveau mot de passe',en:'New password',es:'Nueva contraseña',de:'Neues Passwort',it:'Nuova password',ar:'كلمة مرور جديدة',zh:'新密码',ja:'新しいパスワード',ru:'Новый пароль',pl:'Nowe hasło'},
+  confirmPw:{fr:'Confirmer',en:'Confirm',es:'Confirmar',de:'Bestätigen',it:'Conferma',ar:'تأكيد',zh:'确认',ja:'確認',ru:'Подтвердить',pl:'Potwierdź'},
+  pwMismatch:{fr:'Les mots de passe ne correspondent pas.',en:'Passwords don’t match.',es:'Las contraseñas no coinciden.',de:'Passwörter stimmen nicht überein.',it:'Le password non coincidono.',ar:'كلمتا المرور غير متطابقتين.',zh:'两次密码不一致。',ja:'パスワードが一致しません。',ru:'Пароли не совпадают.',pl:'Hasła nie są zgodne.'},
+  pwChanged:{fr:'Mot de passe modifié ✓',en:'Password changed ✓',es:'Contraseña cambiada ✓',de:'Passwort geändert ✓',it:'Password aggiornata ✓',ar:'تم تغيير كلمة المرور ✓',zh:'密码已修改 ✓',ja:'パスワード変更 ✓',ru:'Пароль изменён ✓',pl:'Hasło zmienione ✓'},
+  updatePw:{fr:'Mettre à jour',en:'Update',es:'Actualizar',de:'Aktualisieren',it:'Aggiorna',ar:'تحديث',zh:'更新',ja:'更新',ru:'Обновить',pl:'Zaktualizuj'},
+  language:{fr:'Langue',en:'Language',es:'Idioma',de:'Sprache',it:'Lingua',ar:'اللغة',zh:'语言',ja:'言語',ru:'Язык',pl:'Język'},
+  changeLang:{fr:'Changer de langue',en:'Change language',es:'Cambiar idioma',de:'Sprache wechseln',it:'Cambia lingua',ar:'تغيير اللغة',zh:'更改语言',ja:'言語を変更',ru:'Сменить язык',pl:'Zmień język'},
+  settingsTitle:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
+  settingsSub:{fr:'Gère ton compte, ton apparence, ta confidentialité et les mises à jour.',en:'Manage your account, appearance, privacy and updates.',es:'Gestiona tu cuenta, apariencia, privacidad y actualizaciones.',de:'Verwalte Konto, Aussehen, Datenschutz und Updates.',it:'Gestisci account, aspetto, privacy e aggiornamenti.',ar:'أدر حسابك ومظهرك وخصوصيتك والتحديثات.',zh:'管理账户、外观、隐私与更新。',ja:'アカウント・外観・プライバシー・更新を管理。',ru:'Управление аккаунтом, оформлением, приватностью и обновлениями.',pl:'Zarządzaj kontem, wyglądem, prywatnością i aktualizacjami.'},
+  tabUpdates:{fr:'Mises à jour',en:'Updates',es:'Actualizaciones',de:'Updates',it:'Aggiornamenti',ar:'التحديثات',zh:'更新',ja:'更新',ru:'Обновления',pl:'Aktualizacje'},
+  appVersion:{fr:'Version installée',en:'Installed version',es:'Versión instalada',de:'Installierte Version',it:'Versione installata',ar:'الإصدار المثبت',zh:'已安装版本',ja:'インストール済みバージョン',ru:'Установленная версия',pl:'Zainstalowana wersja'},
+  upToDate:{fr:'Tu utilises la dernière version. ✓',en:'You’re on the latest version. ✓',es:'Estás en la última versión. ✓',de:'Du nutzt die neueste Version. ✓',it:'Hai l’ultima versione. ✓',ar:'أنت تستخدم أحدث إصدار. ✓',zh:'已是最新版本。✓',ja:'最新バージョンです。✓',ru:'У вас последняя версия. ✓',pl:'Masz najnowszą wersję. ✓'},
+  checkUpdates:{fr:'Vérifier les mises à jour',en:'Check for updates',es:'Buscar actualizaciones',de:'Nach Updates suchen',it:'Cerca aggiornamenti',ar:'التحقق من التحديثات',zh:'检查更新',ja:'更新を確認',ru:'Проверить обновления',pl:'Sprawdź aktualizacje'},
+  checking:{fr:'Vérification…',en:'Checking…',es:'Comprobando…',de:'Wird geprüft…',it:'Controllo…',ar:'جارٍ التحقق…',zh:'检查中…',ja:'確認中…',ru:'Проверка…',pl:'Sprawdzanie…'},
+  launcherNote:{fr:'Dans l’application téléchargeable (launcher), les mises à jour s’installeront automatiquement depuis cette page.',en:'In the downloadable app (launcher), updates will install automatically from this page.',es:'En la app descargable (launcher), las actualizaciones se instalarán desde esta página.',de:'In der herunterladbaren App (Launcher) werden Updates über diese Seite installiert.',it:'Nell’app scaricabile (launcher), gli aggiornamenti si installeranno da questa pagina.',ar:'في التطبيق القابل للتنزيل، ستُثبَّت التحديثات من هذه الصفحة.',zh:'在可下载的客户端中，更新将从此页面自动安装。',ja:'ダウンロード版（ランチャー）では、更新はこのページから自動インストールされます。',ru:'В загружаемом приложении (лаунчере) обновления будут устанавливаться с этой страницы.',pl:'W aplikacji do pobrania (launcher) aktualizacje będą instalowane z tej strony.'},
+  releaseNotes:{fr:'Notes de version',en:'Release notes',es:'Notas de versión',de:'Versionshinweise',it:'Note di rilascio',ar:'ملاحظات الإصدار',zh:'更新日志',ja:'リリースノート',ru:'Список изменений',pl:'Lista zmian'},
+};
+function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
+const GLG_VERSION = '1.0.0';
+
+let _userPrefs = null;
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true} }; }
+function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
+  accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
+  reducedMotion:!!p.reducedMotion,
+  notif:Object.assign({},d.notif,p.notif||{}),
+  privacy:Object.assign({},d.privacy,p.privacy||{}) }; }
+function _applyPrefs(p){
+  _userPrefs = _normPrefs(p);
+  document.documentElement.classList.toggle('glg-reduce-motion', _userPrefs.reducedMotion);
+  if (_userPrefs.accent) document.documentElement.style.setProperty('--user-accent', _userPrefs.accent);
+  else document.documentElement.style.removeProperty('--user-accent');
+  return _userPrefs;
+}
+async function _savePrefs(patch){
+  _userPrefs = _normPrefs(Object.assign({}, _userPrefs||_defaultPrefs(), patch));
+  _applyPrefs(_userPrefs);
+  try { await GLG_AUTH.updateProfile?.({ prefs: _userPrefs }); } catch(e){}
+}
+function _toggleHTML(id, label, desc, on){
+  return `<label class="set-toggle" for="${id}">
+      <span class="set-toggle-main"><span class="set-toggle-label">${label}</span>${desc?`<span class="set-toggle-desc">${desc}</span>`:''}</span>
+      <input type="checkbox" id="${id}" ${on?'checked':''}><span class="set-switch" aria-hidden="true"></span>
+    </label>`;
+}
+const _ACCENTS = ['#00d4ff','#a878e0','#e5564e','#ffb44c','#4cc38a','#ff7ab8'];
+
+/* Onglets des paramètres (partagés modale + page dédiée). */
+function _settingsTabs(){
   return `
-    <div class="auth-box auth-box--profile" role="dialog" aria-modal="true">
-      <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
-        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </button>
-      <button type="button" class="auth-avatar auth-avatar--btn" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
-        ${_avatarDiscHTML(p, u)}
-        <span class="auth-avatar-edit" aria-hidden="true">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-        </span>
-      </button>
-      <h3 class="auth-profile-name">${name}</h3>
-      <p class="auth-profile-meta">${u?.email || ''}${since ? ` · ${_at('memberSince')} ${since}` : ''}</p>
-      <form id="auth-profile" novalidate>
-        <label class="auth-field"><span>${_at('username')}</span>
-          <input type="text" id="ap-user" value="${name}" maxlength="20"><span class="auth-hint" id="ap-user-hint"></span></label>
-        <div class="auth-row">
-          <label class="auth-field"><span>${_at('gender')}</span>
-            <select id="ap-gender">
-              <option value="male" ${p?.gender==='male'?'selected':''}>${_at('male')}</option>
-              <option value="female" ${p?.gender==='female'?'selected':''}>${_at('female')}</option>
-              <option value="other" ${p?.gender==='other'?'selected':''}>${_at('other')}</option>
-            </select></label>
-          <label class="auth-field"><span>${_at('age')}</span>
-            <input type="number" id="ap-age" min="13" max="120" value="${p?.age ?? ''}"></label>
+        <button class="set-tab active" data-tab="profile">${_ot('tabProfile')}</button>
+        <button class="set-tab" data-tab="perso">${_ot('tabPerso')}</button>
+        <button class="set-tab" data-tab="notif">${_ot('tabNotif')}</button>
+        <button class="set-tab" data-tab="privacy">${_ot('tabPrivacy')}</button>
+        <button class="set-tab" data-tab="account">${_ot('tabAccount')}</button>
+        <button class="set-tab" data-tab="updates">${_ot('tabUpdates')}</button>`;
+}
+/* Panneaux des paramètres (partagés modale + page dédiée). */
+function _settingsPanels(p, u, pr){
+  const uname = p.username || u.email?.split('@')[0] || '';
+  return `
+        <div class="set-panel active" data-panel="profile">
+          <form id="auth-profile" novalidate>
+            <label class="auth-field"><span>${_at('username')}</span>
+              <input type="text" id="ap-user" value="${escHtml(uname)}" maxlength="20"><span class="auth-hint" id="ap-user-hint"></span></label>
+            <div class="auth-row">
+              <label class="auth-field"><span>${_at('gender')}</span>
+                <select id="ap-gender">
+                  <option value="male" ${p.gender==='male'?'selected':''}>${_at('male')}</option>
+                  <option value="female" ${p.gender==='female'?'selected':''}>${_at('female')}</option>
+                  <option value="other" ${p.gender==='other'?'selected':''}>${_at('other')}</option>
+                </select></label>
+              <label class="auth-field"><span>${_at('age')}</span>
+                <input type="number" id="ap-age" min="13" max="120" value="${p.age ?? ''}"></label>
+            </div>
+            <label class="auth-field"><span>${_ppt('bioLabel')}</span>
+              <textarea id="ap-bio" maxlength="280" rows="3" placeholder="${_ppt('bioPh')}" style="resize:none;font-family:var(--f-body,sans-serif)">${p.bio ? escHtml(p.bio) : ''}</textarea></label>
+            <button type="button" class="set-link-btn" id="ap-banner-btn">⌑ ${_ot('banner')}</button>
+            <p class="auth-err" id="ap-err" hidden></p>
+            <button type="submit" class="btn btn-primary auth-submit" id="ap-save">${_at('save')}</button>
+          </form>
         </div>
-        <label class="auth-field"><span>${_ppt('bioLabel')}</span>
-          <textarea id="ap-bio" maxlength="280" rows="3" placeholder="${_ppt('bioPh')}" style="resize:none;font-family:var(--f-body,sans-serif)">${p?.bio ? escHtml(p.bio) : ''}</textarea>
-        </label>
-        <p class="auth-err" id="ap-err" hidden></p>
-        <button type="submit" class="btn btn-primary auth-submit" id="ap-save">${_at('save')}</button>
-      </form>
-      <div class="auth-profile-actions">
-        <button class="auth-link" id="ap-logout">${_at('logout')}</button>
-        <button class="auth-link auth-link--danger" id="ap-delete">${_at('del')}</button>
-      </div>
-    </div>`;
+        <div class="set-panel" data-panel="perso" hidden>
+          <div class="set-group-label">${_ot('accent')}</div>
+          <div class="set-accents" id="ap-accents">
+            <button type="button" class="set-accent set-accent--none ${!pr.accent?'on':''}" data-accent="" title="${_ot('accentNone')}">∅</button>
+            ${_ACCENTS.map(c=>`<button type="button" class="set-accent ${pr.accent&&pr.accent.toLowerCase()===c?'on':''}" data-accent="${c}" style="--sw:${c}" aria-label="${c}"></button>`).join('')}
+          </div>
+          <div class="set-toggle-list">${_toggleHTML('ap-rmotion', _ot('reducedMotion'), _ot('reducedMotionD'), pr.reducedMotion)}</div>
+        </div>
+        <div class="set-panel" data-panel="notif" hidden>
+          <div class="set-toggle-list">
+            ${_toggleHTML('ap-n-freq', _ot('notifFriendReq'), '', pr.notif.friendReq)}
+            ${_toggleHTML('ap-n-facc', _ot('notifFriendAcc'), '', pr.notif.friendAcc)}
+            ${_toggleHTML('ap-n-rel',  _ot('notifRelease'),  '', pr.notif.release)}
+          </div>
+        </div>
+        <div class="set-panel" data-panel="privacy" hidden>
+          <div class="set-toggle-list">
+            ${_toggleHTML('ap-p-tro',  _ot('privShowTrophies'), '', pr.privacy.showTrophies)}
+            ${_toggleHTML('ap-p-wish', _ot('privShowWishlist'), '', pr.privacy.showWishlist)}
+            ${_toggleHTML('ap-p-onl',  _ot('privShowOnline'),   '', pr.privacy.showOnline)}
+          </div>
+        </div>
+        <div class="set-panel" data-panel="account" hidden>
+          <label class="auth-field"><span>${_at('email')}</span><input type="email" value="${u.email||''}" disabled></label>
+          <div class="set-group-label">${_ot('changePw')}</div>
+          <label class="auth-field"><span>${_ot('newPw')}</span><input type="password" id="ap-pw1" autocomplete="new-password"></label>
+          <label class="auth-field"><span>${_ot('confirmPw')}</span><input type="password" id="ap-pw2" autocomplete="new-password"></label>
+          <p class="auth-err" id="ap-pw-err" hidden></p>
+          <button type="button" class="btn btn-outline set-w" id="ap-pw-save">${_ot('updatePw')}</button>
+          <div class="set-group-label">${_ot('language')}</div>
+          <button type="button" class="set-link-btn" id="ap-lang-btn">🌐 ${_ot('changeLang')}</button>
+          <div class="auth-profile-actions">
+            <button type="button" class="auth-link" id="ap-logout">${_at('logout')}</button>
+            <button type="button" class="auth-link auth-link--danger" id="ap-delete">${_at('del')}</button>
+          </div>
+        </div>
+        <div class="set-panel" data-panel="updates" hidden>
+          <div class="set-update-row">
+            <div><div class="set-group-label" style="margin:0 0 5px">${_ot('appVersion')}</div><div class="set-version">GEEKLEARN GAMES — v${GLG_VERSION}</div></div>
+            <button type="button" class="btn btn-outline" id="ap-update-check">${_ot('checkUpdates')}</button>
+          </div>
+          <p class="set-update-status" id="ap-update-status">${_ot('upToDate')}</p>
+          <p class="set-update-note">${_ot('launcherNote')}</p>
+        </div>`;
 }
 
-function _wireProfile() {
-  $('ap-avatar')?.addEventListener('click', openAvatarPicker);
-  $('auth-profile')?.addEventListener('submit', async e => {
+/* Page dédiée PARAMÈTRES (#page-settings). Remplace l'ancienne pop-up : plus
+   d'espace, plus de confort, et c'est ICI que le launcher standalone gérera
+   ses mises à jour (onglet "Mises à jour"). */
+async function buildSettingsPage(){
+  const host = $('page-settings'); if(!host) return;
+  const configured = !!window.GLG_AUTH?.isConfigured?.();
+  const user = configured ? await GLG_AUTH.getUser() : null;
+  if (!user){
+    host.innerHTML = `
+      <section class="pp-signed-out"><div class="pp-so-inner reveal">
+        <div class="pp-so-badge">${_ACCOUNT_ICON}</div>
+        <h1 class="pp-so-title">${_ot('settingsTitle')}</h1>
+        <p class="pp-so-desc">${_ppt('signedOutP')}</p>
+        <div class="pp-so-actions">
+          <button class="btn btn-primary" onclick="openAuthModal('login')">${_ppt('signIn')}</button>
+          <button class="btn btn-outline" onclick="openAuthModal('signup')">${_ppt('createAcc')}</button>
+        </div>
+      </div></section>${footerHTML()}`;
+    setTimeout(initReveal, 60); return;
+  }
+  const p = (await GLG_AUTH.getProfile()) || {};
+  if (_accountProfile && _accountProfile.avatar_url !== undefined) p.avatar_url = _accountProfile.avatar_url;
+  const pr = _applyPrefs(p.prefs);
+  const name = p.username || user.email?.split('@')[0] || '—';
+  const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '';
+  host.innerHTML = `
+    <section class="settings-page">
+      <div class="settings-page-head">
+        <button type="button" class="auth-avatar auth-avatar--btn settings-head-ava" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
+          ${_avatarDiscHTML(p, user)}
+          <span class="auth-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </button>
+        <div class="settings-head-id">
+          <span class="settings-eyebrow">${_ot('settingsTitle')}</span>
+          <h1 class="settings-page-title">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
+          <p class="settings-page-sub">${user.email||''}${since?` · ${_at('memberSince')} ${since}`:''}</p>
+        </div>
+      </div>
+      <div class="settings-layout">
+        <aside class="settings-nav set-tabs" role="tablist">${_settingsTabs()}</aside>
+        <div class="settings-content set-panels">${_settingsPanels(p, user, pr)}</div>
+      </div>
+    </section>
+    ${footerHTML()}`;
+  _wireSettings(host);
+  setTimeout(initReveal, 60);
+}
+
+/* Câblage des paramètres — scopé à `root` (modale OU page #page-settings). */
+function _wireSettings(root) {
+  root = root || $('glg-auth-modal'); if (!root) return;
+  const q = sel => root.querySelector(sel);
+  // Onglets
+  root.querySelectorAll('.set-tab').forEach(t => t.addEventListener('click', () => {
+    root.querySelectorAll('.set-tab').forEach(x => x.classList.toggle('active', x === t));
+    root.querySelectorAll('.set-panel').forEach(pn => { const on = pn.dataset.panel === t.dataset.tab; pn.classList.toggle('active', on); pn.hidden = !on; });
+  }));
+  q('#ap-avatar')?.addEventListener('click', openAvatarPicker);
+  q('#ap-banner-btn')?.addEventListener('click', openBannerPicker);
+  q('#ap-lang-btn')?.addEventListener('click', () => { reopenLangGate(); });
+  // Enregistrer le profil (texte)
+  q('#auth-profile')?.addEventListener('submit', async e => {
     e.preventDefault();
     _hideErr('ap-err');
-    const btn = $('ap-save'); const orig = btn.textContent;
+    const btn = q('#ap-save'); const orig = btn.textContent;
     btn.disabled = true; btn.textContent = _at('working');
     const r = await GLG_AUTH.updateProfile({
-      username: $('ap-user').value, gender: $('ap-gender').value, age: $('ap-age').value,
-      bio: ($('ap-bio')?.value || '').trim(),
+      username: q('#ap-user').value, gender: q('#ap-gender').value, age: q('#ap-age').value,
+      bio: (q('#ap-bio')?.value || '').trim(),
     });
     btn.disabled = false;
     if (!r.ok) { btn.textContent = orig; _showErr('ap-err', r.code==='taken'?_at('uTaken'):_at('fail')); return; }
@@ -2854,11 +3022,49 @@ function _wireProfile() {
     refreshAccountUI();
     if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
   });
-  $('ap-logout')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); });
+  // Couleur d'accent
+  root.querySelectorAll('.set-accent').forEach(b => b.addEventListener('click', async () => {
+    root.querySelectorAll('.set-accent').forEach(x => x.classList.toggle('on', x === b));
+    await _savePrefs({ accent: b.dataset.accent || null });
+    if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
+  }));
+  // Réduction d'animations
+  $('ap-rmotion')?.addEventListener('change', e => _savePrefs({ reducedMotion: e.target.checked }));
+  // Notifications
+  const notifSave = () => _savePrefs({ notif:{ friendReq:$('ap-n-freq').checked, friendAcc:$('ap-n-facc').checked, release:$('ap-n-rel').checked } });
+  ['ap-n-freq','ap-n-facc','ap-n-rel'].forEach(id => $(id)?.addEventListener('change', notifSave));
+  // Confidentialité (impacte l'affichage du profil)
+  const privSave = async () => {
+    await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showOnline:$('ap-p-onl').checked } });
+    if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
+  };
+  ['ap-p-tro','ap-p-wish','ap-p-onl'].forEach(id => $(id)?.addEventListener('change', privSave));
+  // Changement de mot de passe
+  $('ap-pw-save')?.addEventListener('click', async () => {
+    _hideErr('ap-pw-err');
+    const a = $('ap-pw1').value, b = $('ap-pw2').value;
+    if (a !== b) { _showErr('ap-pw-err', _ot('pwMismatch')); return; }
+    const strong = window.GLG_AUTH?.passwordStrength?.(a);
+    if (strong && !strong.ok) { _showErr('ap-pw-err', _at('pwWeak')); return; }
+    const btn = $('ap-pw-save'); const orig = btn.textContent; btn.disabled = true; btn.textContent = _at('working');
+    const r = await GLG_AUTH.changePassword?.(a);
+    btn.disabled = false;
+    if (!r || !r.ok) { btn.textContent = orig; _showErr('ap-pw-err', (r && r.code==='weak') ? _at('pwWeak') : _at('fail')); return; }
+    btn.textContent = _ot('pwChanged'); $('ap-pw1').value = ''; $('ap-pw2').value = '';
+    setTimeout(() => { btn.textContent = orig; }, 2200);
+  });
+  // Vérification de mise à jour (placeholder — réelle dans le launcher standalone)
+  q('#ap-update-check')?.addEventListener('click', () => {
+    const st = q('#ap-update-status'); const btn = q('#ap-update-check'); if (!st || !btn) return;
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = _ot('checking'); st.textContent = _ot('checking');
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; st.textContent = _ot('upToDate'); }, 1100);
+  });
+  // Déconnexion / suppression — referme la modale (si présente) ET quitte la page
+  $('ap-logout')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); showPage('home'); });
   $('ap-delete')?.addEventListener('click', async () => {
     if (!confirm(_at('delConfirm'))) return;
     const r = await GLG_AUTH.deleteAccount();
-    if (r.ok) { closeAuthModal(); refreshAccountUI(); }
+    if (r.ok) { closeAuthModal(); refreshAccountUI(); showPage('home'); }
     else _showErr('ap-err', _at('fail'));
   });
 }
@@ -2872,8 +3078,30 @@ function getPresetAvatars() {
 /* After a picker action: go back to the edit modal, or — if launched from
    the member-space page — just close the overlay and refresh the page. */
 function _pickerReturn(){
-  if (document.getElementById('page-profile')?.classList.contains('active')) { closeAuthModal(); buildProfilePage(); }
+  closeAuthModal();
+  if (document.getElementById('page-settings')?.classList.contains('active')) buildSettingsPage();
+  else if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
   else renderAuthModal();
+}
+
+/* Synchronise l'avatar PARTOUT immédiatement (nav + page profil + modale/paramètres)
+   sans attendre un getProfile potentiellement en retard → les deux restent toujours
+   alignés. Met aussi à jour le cache _accountProfile (source de vérité du profil). */
+function _setAvatarEverywhere(url){
+  const uname = _accountProfile?.username;
+  if (_accountProfile) _accountProfile.avatar_url = url || null;
+  const disc = _avatarDiscHTML({ avatar_url: url || null, username: uname }, null);
+  // 1) Mini-avatar de la nav
+  const navAva = document.querySelector('#nav-account-btn .nav-account-ava');
+  if (navAva) navAva.innerHTML = disc;
+  // 2) Grand avatar de la page profil (on conserve le crayon d'édition)
+  const ppAva = document.querySelector('#page-profile .pp-avatar');
+  if (ppAva){ const pencil = ppAva.querySelector('.pp-avatar-edit')?.outerHTML || ''; ppAva.innerHTML = disc + pencil; }
+  // 3) Avatar d'en-tête de la modale/page paramètres
+  document.querySelectorAll('#glg-auth-modal .auth-avatar, #page-settings .auth-avatar').forEach(av => {
+    const pencil = av.querySelector('.auth-avatar-edit')?.outerHTML || '';
+    av.innerHTML = disc + pencil;
+  });
 }
 
 /* Lit un fichier image → recadre/redimensionne via canvas (ULTRA optimisé) →
@@ -2941,8 +3169,9 @@ async function openAvatarPicker() {
   $('apick-back')?.addEventListener('click', _pickerReturn);
   m.querySelectorAll('.avatar-cell').forEach(c => c.addEventListener('click', async () => {
     _hideErr('apick-err');
-    const r = await GLG_AUTH.updateProfile({ avatar_url: c.dataset.src });
-    if (r.ok) { await refreshAccountUI(); _pickerReturn(); }
+    const url = c.dataset.src;
+    const r = await GLG_AUTH.updateProfile({ avatar_url: url });
+    if (r.ok) { _setAvatarEverywhere(url); await refreshAccountUI(); _pickerReturn(); }
     else _showErr('apick-err', r.code === 'notConfigured' ? _at('notConfigured') : _at('fail'));
   }));
   $('apick-file').addEventListener('change', async e => {
@@ -2953,7 +3182,7 @@ async function openAvatarPicker() {
       // Recadrage carré + compression → data-URL (avatar net et léger, optimisé)
       const dataUrl = await _processImageFile(file, { maxW: 256, maxH: 256, square: true, quality: 0.86 });
       const r = await GLG_AUTH.updateProfile({ avatar_url: dataUrl });
-      if (r.ok) { await refreshAccountUI(); _pickerReturn(); return; }
+      if (r.ok) { _setAvatarEverywhere(dataUrl); await refreshAccountUI(); _pickerReturn(); return; }
       const map = { notConfigured:_at('notConfigured'), notAuth:_at('notConfigured') };
       _showErr('apick-err', map[r.code] || _at('fail'));
     } catch (err) {
@@ -3018,8 +3247,9 @@ const GLG_NOTIF = (function(){
     opts = opts || {};
     const friends  = opts.friends  || { friends:[], incoming:[], outgoing:[] };
     const works    = opts.wishlistWorks || [];
+    const np       = opts.notifPrefs || { friendReq:true, friendAcc:true, release:true };
     // 1) Demandes d'ami reçues
-    (friends.incoming||[]).forEach(u => {
+    if (np.friendReq !== false) (friends.incoming||[]).forEach(u => {
       add({ id:'freq:'+u.id, type:'friend_request', icon:'friend',
             title:_nt('friendReq'), body:_nt('friendReqB').replace('%s', u.username||'?'), data:{ uid:u.id } });
     });
@@ -3030,14 +3260,14 @@ const GLG_NOTIF = (function(){
       (friends.friends||[]).forEach(u => {
         if (!_seenFriends.has(u.id)){
           _seenFriends.add(u.id);
-          add({ id:'facc:'+u.id+':'+Date.now(), type:'friend_accepted', icon:'friend',
+          if (np.friendAcc !== false) add({ id:'facc:'+u.id+':'+Date.now(), type:'friend_accepted', icon:'friend',
                 title:_nt('friendOk'), body:_nt('friendOkB').replace('%s', u.username||'?'), data:{ uid:u.id } });
         }
       });
       _save();
     }
     // 3) Jeu de la wishlist sorti (statut "disponible/sorti")
-    works.forEach(w => {
+    if (np.release !== false) works.forEach(w => {
       const st = (w.status||'').toLowerCase();
       if (/avail|released|out|sorti|disponible(?!.*bient)/.test(st) && !/coming|bient/.test(st)){
         add({ id:'rel:'+w.id, type:'wishlist_release', icon:'release',
@@ -3139,9 +3369,11 @@ async function refreshAccountUI() {
     _accountProfile = p;
     _wishlist = (p.wishlist || []).slice();
     _wishSaveLocal();
+    _applyPrefs(p.prefs);                 // applique réduction d'animations + accent dès la connexion
   } else {
     _accountProfile = null;
     _wishlist = _wishLoadLocal();
+    _applyPrefs(null);                    // reset aux valeurs par défaut à la déconnexion
   }
   _wishEmit();
 
@@ -3193,7 +3425,7 @@ async function _syncNotifications(){
   try { const r = await GLG_AUTH.friendsList(); friends = { friends:r.friends||[], incoming:r.incoming||[], outgoing:r.outgoing||[] }; } catch(e){}
   const ids = (typeof wishGet==='function') ? wishGet() : [];
   const works = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => ids.includes(w.id));
-  try { GLG_NOTIF.sync({ friends, wishlistWorks: works }); } catch(e){}
+  try { GLG_NOTIF.sync({ friends, wishlistWorks: works, notifPrefs: _userPrefs && _userPrefs.notif }); } catch(e){}
   _refreshNotifBell();
 }
 
@@ -3251,6 +3483,9 @@ async function buildProfilePage(){
 
   /* ── Membre connecté ── */
   const p = (await GLG_AUTH.getProfile()) || {};
+  // Anti-retard : si on vient de changer d'avatar, le cache est plus frais que getProfile
+  if (_accountProfile && _accountProfile.avatar_url !== undefined) p.avatar_url = _accountProfile.avatar_url;
+  const pr = _applyPrefs(p.prefs);   // confidentialité + accent + réduction d'animations
   const name  = p.username || user.email?.split('@')[0] || '—';
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
   const gLabel = p.gender==='male' ? _at('male') : p.gender==='female' ? _at('female') : (p.gender_other || _at('other'));
@@ -3278,10 +3513,10 @@ async function buildProfilePage(){
             ${p.age?`<span class="pp-badge">${p.age} ${_ppt('years')}</span>`:''}
             <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
           </div>
-          ${p.bio ? `<p class="pp-bio">${escHtml(p.bio)}</p>` : `<button class="pp-bio-add" onclick="openAuthModal()">${_ppt('addBio')}</button>`}
+          ${p.bio ? `<p class="pp-bio">${escHtml(p.bio)}</p>` : `<button class="pp-bio-add" onclick="showPage('settings')">${_ppt('addBio')}</button>`}
         </div>
         <div class="pp-actions">
-          <button class="btn btn-outline pp-edit-btn" onclick="openAuthModal()">${_ppt('edit')}</button>
+          <button class="btn btn-outline pp-edit-btn" onclick="showPage('settings')">${_ppt('edit')}</button>
         </div>
       </div>
 
@@ -3292,10 +3527,11 @@ async function buildProfilePage(){
         <div class="pp-stat pp-stat--soon"><b>0</b><span>${_ppt('statLib')} · ${_ppt('soon')}</span></div>
       </div>
 
+      ${pr.privacy.showTrophies ? `
       <div class="pp-section pp-trophy-section">
         <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('level')}</h2></div>
         <div id="pp-trophy-showcase" class="pp-trophy-showcase"></div>
-      </div>
+      </div>` : ''}
 
       <div class="pp-section pp-link-section">
         <div class="pp-sec-head"><h2 class="pp-sec-title">${_lt('title')}</h2></div>
@@ -3314,15 +3550,17 @@ async function buildProfilePage(){
         <div id="pp-friends-body" class="pp-friends-body"></div>
       </div>
 
+      ${pr.privacy.showTrophies ? `
       <div class="pp-section pp-tg-section">
         <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('byGame')}</h2></div>
         <div id="pp-trophy-games" class="pp-tg-grid"></div>
-      </div>
+      </div>` : ''}
 
+      ${pr.privacy.showWishlist ? `
       <div class="pp-section">
         <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count" id="pp-wish-count">${wishCount()}</span></div>
         <div class="pp-wish-grid" id="pp-wish-grid"></div>
-      </div>
+      </div>` : ''}
     </section>
     ${footerHTML()}`;
   _renderProfileWishlist();
@@ -3416,7 +3654,7 @@ async function refreshFriendsUI(){
   const r = await GLG_AUTH.friendsList();
   _friendsCache = { friends:r.friends||[], incoming:r.incoming||[], outgoing:r.outgoing||[] };
   // Alimente le centre de notifications (demandes reçues / acceptées) en direct
-  try { const ids=(typeof wishGet==='function')?wishGet():[]; const works=(typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w=>ids.includes(w.id)); GLG_NOTIF.sync({ friends:_friendsCache, wishlistWorks:works }); _refreshNotifBell(); } catch(e){}
+  try { const ids=(typeof wishGet==='function')?wishGet():[]; const works=(typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w=>ids.includes(w.id)); GLG_NOTIF.sync({ friends:_friendsCache, wishlistWorks:works, notifPrefs:_userPrefs&&_userPrefs.notif }); _refreshNotifBell(); } catch(e){}
   const cnt = document.getElementById('pp-friends-count'); if (cnt) cnt.textContent = _friendsCache.friends.length;
   const stat = document.getElementById('pp-stat-friends'); if (stat) stat.textContent = _friendsCache.friends.length;
 

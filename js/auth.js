@@ -293,6 +293,22 @@
   async function uploadAvatar(file) { return _uploadImage(file, 'avatar'); }
   async function uploadBanner(file) { return _uploadImage(file, 'banner'); }
 
+  /* ── Changement de mot de passe (utilisateur connecté) ─── */
+  async function changePassword(newPassword) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const user = await getUser();
+    if (!user) return { ok: false, code: 'notAuth' };
+    const pv = passwordStrength(newPassword);
+    if (!pv.ok) return { ok: false, code: 'weak' };
+    const { error } = await _client.auth.updateUser({ password: newPassword });
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('should be different') || msg.includes('same')) return { ok: false, code: 'samePw' };
+      return { ok: false, code: 'network', error };
+    }
+    return { ok: true };
+  }
+
   /* ── Suppression de compte (droit à l'oubli, RGPD) ─────── */
   // Utilise une RPC SECURITY DEFINER `delete_user` (voir db/schema.sql)
   async function deleteAccount() {
@@ -404,7 +420,7 @@
     getClient:    () => _client,
     validateUsername, validateEmail, passwordStrength, validateAge,
     checkUsernameAvailable,
-    signUp, signIn, signOut,
+    signUp, signIn, signOut, changePassword,
     getSession, getUser, getProfile, updateProfile, deleteAccount,
     uploadAvatar, uploadBanner, moderateImage,
     searchUsers, friendRequest, friendRespond, friendRemove, friendsList, getPublicProfile,
