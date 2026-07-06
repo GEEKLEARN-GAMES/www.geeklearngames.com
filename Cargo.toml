@@ -1,0 +1,31 @@
+[package]
+name = "glg-launcher"
+version = "1.0.0"
+description = "GEEKLEARN GAMES — launcher de bureau (Windows/macOS)"
+authors = ["GEEKLEARN GAMES"]
+edition = "2021"
+
+# Voir launcher/README.md pour le guide de build complet.
+
+[lib]
+name = "glg_launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-deep-link = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
+serde_json = "1"
+
+[profile.release]
+# Binaire compact (l'updater télécharge moins, le launcher démarre plus vite)
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
