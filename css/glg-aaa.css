@@ -3313,3 +3313,12 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
 @media (max-width:640px){ .lt-dl-grid{ grid-template-columns:1fr; max-width:none; } }
 /* Case « Se souvenir de cet appareil » — aligne le pattern auth-consent */
 .auth-remember span{ color:rgba(255,255,255,.7); }
+/* Lien « Toutes les versions » sous la grille de téléchargement */
+.lt-allver{
+  display:inline-block; margin-top:12px;
+  font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.16em;
+  text-transform:uppercase; color:rgba(255,255,255,.5); text-decoration:none;
+  border-bottom:1px solid rgba(255,255,255,.16); padding-bottom:3px;
+  transition:color .25s, border-color .25s;
+}
+.lt-allver:hover{ color:#fff; border-color:rgba(255,255,255,.55); }

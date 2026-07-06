@@ -1821,6 +1821,7 @@ const _LNCH_T = {
   dlMeta:  { fr:'%s Mo · installation en un clic · mises à jour automatiques signées', en:'%s MB · one-click install · signed auto-updates', es:'%s MB · instalación en un clic · actualizaciones automáticas firmadas', de:'%s MB · Ein-Klick-Installation · signierte Auto-Updates', it:'%s MB · installazione in un clic · aggiornamenti automatici firmati', ar:'%s م.ب · تثبيت بنقرة · تحديثات تلقائية موقَّعة', zh:'%s MB · 一键安装 · 签名自动更新', ja:'%s MB · ワンクリックインストール · 署名付き自動更新', ru:'%s МБ · установка в один клик · подписанные автообновления', pl:'%s MB · instalacja jednym kliknięciem · podpisane autoaktualizacje' },
   dlSoon:  { fr:'bientôt', en:'soon', es:'pronto', de:'bald', it:'presto', ar:'قريباً', zh:'即将推出', ja:'近日', ru:'скоро', pl:'wkrótce' },
   dl:      { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
+  allVer:  { fr:'Toutes les versions (Intel, deb, rpm…)', en:'All versions (Intel, deb, rpm…)', es:'Todas las versiones (Intel, deb, rpm…)', de:'Alle Versionen (Intel, deb, rpm…)', it:'Tutte le versioni (Intel, deb, rpm…)', ar:'كل الإصدارات (Intel وdeb وrpm…)', zh:'全部版本（Intel、deb、rpm…）', ja:'すべてのバージョン（Intel・deb・rpm…）', ru:'Все версии (Intel, deb, rpm…)', pl:'Wszystkie wersje (Intel, deb, rpm…)' },
   dlSha:   { fr:'Empreinte SHA-256 de l’installeur', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
 };
 const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
@@ -1832,9 +1833,11 @@ const LAUNCHER_DL = {
   version: '1.0.0',
   sizeMB: 1.7,
   sha256: '7e3c72418291e1a1400a9be922c90edd70f66e75662b14cb0171b032b1ed1a59',
-  win: 'download/GEEKLEARN-GAMES-Setup.exe',
-  mac: null,   // ex.: https://github.com/<compte>/<repo>/releases/latest/download/GEEKLEARN.GAMES_1.0.0_aarch64.dmg
-  linux: null, // ex.: .../GEEKLEARN.GAMES_1.0.0_amd64.AppImage
+  win: 'download/GEEKLEARN-GAMES-Setup.exe', // auto-hébergé (léger, domaine propre)
+  // Release CI signée (tag launcher-v1.0.0) — à mettre à jour à chaque release :
+  mac:   'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v1.0.0/GEEKLEARN.GAMES_1.0.0_aarch64.dmg',
+  linux: 'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v1.0.0/GEEKLEARN.GAMES_1.0.0_amd64.AppImage',
+  all:   'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/latest', // toutes plateformes (dmg Intel, deb, rpm…)
 };
 /* OS du visiteur (pour proposer le bon bouton). iOS contient "like Mac OS X"
    → exclu. Android exclu de linux. Défaut raisonnable : windows. */
@@ -1897,7 +1900,7 @@ function buildLauncherTeaser() {
           ${[
             ['win',   'Windows 10/11', '.exe · NSIS',                     LAUNCHER_DL.win,
               '<svg viewBox="0 0 16 16" fill="none"><path d="M2 3.6l5.4-.8v4.9H2V3.6zM8.4 2.6L14 1.8v5.9H8.4V2.6zM2 8.7h5.4v4.9L2 12.8V8.7zM8.4 8.7H14v5.9l-5.6-.8V8.7z" fill="currentColor"/></svg>'],
-            ['mac',   'macOS',         '.dmg · Apple Silicon & Intel',    LAUNCHER_DL.mac,
+            ['mac',   'macOS',         '.dmg · Apple Silicon',            LAUNCHER_DL.mac,
               '<svg viewBox="0 0 16 16" fill="none"><path d="M11.1 8.5c0-1.5 1.2-2.2 1.3-2.3-.7-1-1.8-1.2-2.2-1.2-.9-.1-1.8.6-2.3.6-.5 0-1.2-.6-2-.5-1 0-2 .6-2.5 1.5-1.1 1.9-.3 4.6.8 6.1.5.8 1.1 1.6 1.9 1.6.8 0 1.1-.5 2-.5s1.2.5 2 .5 1.4-.7 1.9-1.5c.6-.9.8-1.7.8-1.8 0 0-1.6-.6-1.7-2.5zM9.6 3.9c.4-.5.7-1.2.6-2-.6 0-1.4.4-1.8 1-.4.4-.7 1.2-.6 1.9.7.1 1.4-.4 1.8-.9z" fill="currentColor"/></svg>'],
             ['linux', 'Linux',         '.AppImage · MAJ auto',            LAUNCHER_DL.linux,
               '<svg viewBox="0 0 16 16" fill="none"><rect x="1.6" y="2.4" width="12.8" height="11.2" rx="1.4" stroke="currentColor" stroke-width="1.2"/><path d="M4.4 6.2l2 1.8-2 1.8M8 10.6h3.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
@@ -1916,6 +1919,7 @@ function buildLauncherTeaser() {
           </span>`).join('')}
         </div>
         <p class="lt-sha reveal">${_lnt('dlSha')} <code>${LAUNCHER_DL.sha256}</code></p>
+        ${LAUNCHER_DL.all ? `<a class="lt-allver reveal" href="${LAUNCHER_DL.all}" target="_blank" rel="noopener">${_lnt('allVer')} <span aria-hidden="true">${_ARR()}</span></a>` : ''}
       </div>
       <div class="lt-visual reveal" aria-hidden="true">
         <div class="lt-window">
