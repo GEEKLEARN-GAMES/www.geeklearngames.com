@@ -564,6 +564,11 @@ function selectLang(code) {
       // profile/settings retombent proprement sur leur état déconnecté.
       const _bp = window._bootPage; window._bootPage = null;
       showPage(_bp);
+    } else if (window._pendingLaunch) {
+      // Deep-link glg:// arrivé AVANT le choix de langue (launcher fraîchement
+      // ouvert par le site web) : consommé maintenant que tout est construit.
+      const _pl = window._pendingLaunch; window._pendingLaunch = null;
+      _applyLaunchAction(_pl);
     }
 
     // Trigger the fade once the browser has committed the built DOM to screen.
@@ -1552,6 +1557,9 @@ function _libStageHTML(x, recent) {
 function launcherHandoff(gameId, verb) {
   const w = ALL_WORKS.find(i => i.id === gameId);
   if (!w) return;
+  // DANS le launcher : pas de modale de passage de relais — on agit direct
+  // (bibliothèque, jeu sélectionné ; le téléchargement natif viendra ici).
+  if (IS_TAURI) { window.__GLG_DEEPLINK?.(`glg://${verb}/${gameId}`); return; }
   document.getElementById('glg-handoff')?.remove();
   const ov = document.createElement('div');
   ov.id = 'glg-handoff';
@@ -1791,11 +1799,41 @@ const _LNCH_T = {
   f4d: { fr:'2FA type Steam Guard, données chiffrées, vie privée respectée — déjà actifs ici.', en:'Steam Guard-style 2FA, encrypted data, privacy respected — already live here.', es:'2FA al estilo Steam Guard, datos cifrados, privacidad respetada — ya activos aquí.', de:'2FA im Steam-Guard-Stil, verschlüsselte Daten, gewahrte Privatsphäre — hier bereits aktiv.', it:'2FA in stile Steam Guard, dati cifrati, privacy rispettata — già attivi qui.', ar:'مصادقة ثنائية بأسلوب Steam Guard وبيانات مشفّرة وخصوصية محترمة — مفعّلة هنا بالفعل.', zh:'Steam 令牌式两步验证、数据加密、尊重隐私——这些已在此生效。', ja:'Steam Guard式2FA、暗号化データ、プライバシー尊重 — すでにここで稼働中。', ru:'2FA в стиле Steam Guard, шифрование данных, уважение к приватности — уже работает здесь.', pl:'2FA w stylu Steam Guard, szyfrowane dane, poszanowanie prywatności — już działa tutaj.' },
   notify:  { fr:'Être prévenu de la sortie', en:'Get notified at launch', es:'Avísame en el lanzamiento', de:'Zum Start benachrichtigen', it:'Avvisami al lancio', ar:'أعلمني عند الصدور', zh:'发布时通知我', ja:'リリース時に通知を受け取る', ru:'Сообщить о выходе', pl:'Powiadom mnie o premierze' },
   version: { fr:'V1.0.0 · Windows & macOS', en:'V1.0.0 · Windows & macOS', es:'V1.0.0 · Windows y macOS', de:'V1.0.0 · Windows & macOS', it:'V1.0.0 · Windows e macOS', ar:'V1.0.0 · Windows وmacOS', zh:'V1.0.0 · Windows 与 macOS', ja:'V1.0.0 · Windows & macOS', ru:'V1.0.0 · Windows и macOS', pl:'V1.0.0 · Windows i macOS' },
+  eyebrowDl:{ fr:'Application de bureau · V1.0.0 disponible', en:'Desktop app · V1.0.0 available', es:'Aplicación de escritorio · V1.0.0 disponible', de:'Desktop-App · V1.0.0 verfügbar', it:'App desktop · V1.0.0 disponibile', ar:'تطبيق سطح المكتب · V1.0.0 متاح الآن', zh:'桌面应用 · V1.0.0 现已推出', ja:'デスクトップアプリ · V1.0.0 配信中', ru:'Настольное приложение · доступна V1.0.0', pl:'Aplikacja desktopowa · V1.0.0 dostępna' },
+  titleDl: { fr:'TÉLÉCHARGE LE LAUNCHER', en:'DOWNLOAD THE LAUNCHER', es:'DESCARGA EL LAUNCHER', de:'LADE DEN LAUNCHER', it:'SCARICA IL LAUNCHER', ar:'حمّل المشغّل', zh:'下载启动器', ja:'ランチャーをダウンロード', ru:'СКАЧАЙ ЛАУНЧЕР', pl:'POBIERZ LAUNCHER' },
+  dlWin:   { fr:'Télécharger pour Windows', en:'Download for Windows', es:'Descargar para Windows', de:'Für Windows herunterladen', it:'Scarica per Windows', ar:'تنزيل لويندوز', zh:'下载 Windows 版', ja:'Windows版をダウンロード', ru:'Скачать для Windows', pl:'Pobierz dla Windows' },
+  dlMeta:  { fr:'%s Mo · installation en un clic · mises à jour automatiques signées', en:'%s MB · one-click install · signed auto-updates', es:'%s MB · instalación en un clic · actualizaciones automáticas firmadas', de:'%s MB · Ein-Klick-Installation · signierte Auto-Updates', it:'%s MB · installazione in un clic · aggiornamenti automatici firmati', ar:'%s م.ب · تثبيت بنقرة · تحديثات تلقائية موقَّعة', zh:'%s MB · 一键安装 · 签名自动更新', ja:'%s MB · ワンクリックインストール · 署名付き自動更新', ru:'%s МБ · установка в один клик · подписанные автообновления', pl:'%s MB · instalacja jednym kliknięciem · podpisane autoaktualizacje' },
+  dlSoon:  { fr:'bientôt', en:'soon', es:'pronto', de:'bald', it:'presto', ar:'قريباً', zh:'即将推出', ja:'近日', ru:'скоро', pl:'wkrótce' },
+  dlSha:   { fr:'Empreinte SHA-256 de l’installeur', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
 };
 const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
 
+/* Téléchargements du launcher — UNE seule source de vérité pour les URLs.
+   Windows : installeur auto-hébergé (léger, 1,7 Mo). macOS/Linux : renseigner
+   les URLs GitHub Releases à la 1re release CI (tag launcher-v*). */
+const LAUNCHER_DL = {
+  version: '1.0.0',
+  sizeMB: 1.7,
+  sha256: '7e3c72418291e1a1400a9be922c90edd70f66e75662b14cb0171b032b1ed1a59',
+  win: 'download/GEEKLEARN-GAMES-Setup.exe',
+  mac: null,   // ex.: https://github.com/<compte>/<repo>/releases/latest/download/GEEKLEARN.GAMES_1.0.0_aarch64.dmg
+  linux: null, // ex.: .../GEEKLEARN.GAMES_1.0.0_amd64.AppImage
+};
+/* OS du visiteur (pour proposer le bon bouton). iOS contient "like Mac OS X"
+   → exclu. Android exclu de linux. Défaut raisonnable : windows. */
+function _dlOS() {
+  const u = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(u)) return 'mobile';
+  if (/android/i.test(u)) return 'mobile';
+  if (/mac/i.test(u)) return 'mac';
+  if (/linux|x11/i.test(u)) return 'linux';
+  return 'win';
+}
+
 function buildLauncherTeaser() {
   const home = $('page-home'); if (!home) return;
+  // Dans le launcher lui-même, « Le launcher arrive » n'a pas de sens.
+  if (IS_TAURI) { $('home-launcher')?.remove(); return; }
   let host = $('home-launcher');
   if (!host) {
     host = document.createElement('section');
@@ -1811,11 +1849,21 @@ function buildLauncherTeaser() {
     ['f3t','f3d','<svg viewBox="0 0 24 24" fill="none"><path d="M19.5 9.5A7.5 7.5 0 006 7M4.5 14.5A7.5 7.5 0 0018 17" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M19.8 4.6v4.2h-4.2M4.2 19.4v-4.2h4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
     ['f4t','f4d','<svg viewBox="0 0 24 24" fill="none"><path d="M12 3L5 5.6v5.2c0 4.6 3 7.7 7 9.4 4-1.7 7-4.8 7-9.4V5.6L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 11.4l2.2 2.2 3.8-4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
   ];
+  // Bouton principal selon l'OS du visiteur ; plateformes sans artefact
+  // publié = chip « bientôt » (URLs centralisées dans LAUNCHER_DL).
+  const os = _dlOS();
+  const dlIcon = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  let sizeTxt = String(LAUNCHER_DL.sizeMB);
+  try { sizeTxt = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: 1 }).format(LAUNCHER_DL.sizeMB); } catch (e) {}
+  const primary = (os === 'mac' && !LAUNCHER_DL.mac) || (os === 'linux' && !LAUNCHER_DL.linux)
+    ? `<span class="btn btn-outline btn-lg lt-dl-soon">${os === 'mac' ? 'macOS' : 'Linux'} — ${_lnt('dlSoon')}</span>
+       <a class="btn btn-primary btn-lg" href="${LAUNCHER_DL.win}" download>${dlIcon} ${_lnt('dlWin')}</a>`
+    : `<a class="btn btn-primary btn-lg" href="${LAUNCHER_DL[os === 'mac' ? 'mac' : os === 'linux' ? 'linux' : 'win'] || LAUNCHER_DL.win}" download>${dlIcon} ${os === 'mac' ? 'macOS' : os === 'linux' ? 'Linux' : _lnt('dlWin')}</a>`;
   host.innerHTML = `
     <div class="lt-inner">
       <div class="lt-copy">
-        <p class="section-eye reveal">${_lnt('eyebrow')}</p>
-        <h2 class="section-h reveal" style="margin:12px 0 16px">${_lnt('title')}</h2>
+        <p class="section-eye reveal">${_lnt('eyebrowDl')}</p>
+        <h2 class="section-h reveal" style="margin:12px 0 16px">${_lnt('titleDl')}</h2>
         <p class="lt-sub reveal">${_lnt('sub')}</p>
         <div class="lt-feats">
           ${FEATS.map(([t, d, svg], i) => `
@@ -1825,9 +1873,15 @@ function buildLauncherTeaser() {
           </div>`).join('')}
         </div>
         <div class="lt-actions reveal">
-          <button class="btn btn-primary btn-lg" onclick="showPage('contact')">${_lnt('notify')}</button>
-          <span class="lt-version">${_lnt('version')}</span>
+          ${primary}
         </div>
+        <p class="lt-dl-meta reveal">${_lnt('dlMeta').replace('%s', sizeTxt)}</p>
+        <div class="lt-platforms reveal">
+          <span class="lt-plat ${LAUNCHER_DL.win ? 'lt-plat--on' : ''}">Windows 10/11</span>
+          <span class="lt-plat ${LAUNCHER_DL.mac ? 'lt-plat--on' : ''}">macOS${LAUNCHER_DL.mac ? '' : ` — ${_lnt('dlSoon')}`}</span>
+          <span class="lt-plat ${LAUNCHER_DL.linux ? 'lt-plat--on' : ''}">Linux${LAUNCHER_DL.linux ? '' : ` — ${_lnt('dlSoon')}`}</span>
+        </div>
+        <p class="lt-sha reveal">${_lnt('dlSha')} <code>${LAUNCHER_DL.sha256}</code></p>
       </div>
       <div class="lt-visual reveal" aria-hidden="true">
         <div class="lt-window">
@@ -6486,7 +6540,30 @@ document.addEventListener('DOMContentLoaded', () => {
    maison via la cloche (jamais un confirm() navigateur). L'activation
    se fait depuis Options → Mises à jour (bouton "Vérifier").
 ══════════════════════════════════════════ */
-const IS_TAURI = '__TAURI_INTERNALS__' in window;
+/* Le site tourne-t-il DANS le launcher de bureau ? Deux signaux :
+   l'injection Tauri (pages locales) OU l'user-agent posé par la fenêtre
+   du launcher (contenu distant, voir launcher/src-tauri/tauri.conf.json). */
+const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigator.userAgent);
+
+/* ── DEEP-LINKS glg:// REÇUS PAR LE LAUNCHER ────────────────────────────
+   Le shell Tauri (launcher/src-tauri/src/lib.rs) évalue
+   __GLG_DEEPLINK('glg://play/<id>') quand l'OS lui transmet le protocole
+   (clic « Jouer » sur le SITE web → launcher). Le launcher « confirme » :
+   il ouvre la bibliothèque avec le jeu demandé sélectionné. */
+function _applyLaunchAction(act) {
+  if (!act || !ALL_WORKS.some(w => w.id === act.id)) return;
+  _libSelected = act.id;
+  showPage('library');
+}
+window.__GLG_DEEPLINK = function (url) {
+  try {
+    const m = String(url || '').match(/^glg:\/\/(play|install)\/([a-z0-9-]+)/i);
+    if (!m) return;
+    const act = { verb: m[1].toLowerCase(), id: m[2].toLowerCase() };
+    if (!_siteBuilt) { window._pendingLaunch = act; return; } // gate pas encore franchi → consommé après selectLang
+    _applyLaunchAction(act);
+  } catch (e) {}
+};
 const _SWUP_T = {
   t:{ fr:'Mise à jour disponible', en:'Update available', es:'Actualización disponible', de:'Update verfügbar', it:'Aggiornamento disponibile', ar:'تحديث متوفر', zh:'有可用更新', ja:'アップデートがあります', ru:'Доступно обновление', pl:'Dostępna aktualizacja' },
   b:{ fr:'Options → Mises à jour pour l’installer.', en:'Options → Updates to install it.', es:'Opciones → Actualizaciones para instalarla.', de:'Optionen → Updates zum Installieren.', it:'Opzioni → Aggiornamenti per installarlo.', ar:'الخيارات ← التحديثات لتثبيته.', zh:'前往 选项 → 更新 安装。', ja:'オプション→アップデートからインストール。', ru:'Настройки → Обновления, чтобы установить.', pl:'Opcje → Aktualizacje, aby zainstalować.' },

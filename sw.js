@@ -10,7 +10,7 @@
      • cross-origin (Supabase, API de change) → JAMAIS interceptés.
    Discipline : bumper CACHE à chaque déploiement (PROGRESS.md).
 ═══════════════════════════════════════════════════════════ */
-const CACHE = 'glg-v3';
+const CACHE = 'glg-v4';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./'])).catch(() => {}));
@@ -35,6 +35,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // Supabase/API : réseau direct
+  if (url.pathname.includes('/download/')) return;   // installeurs : jamais depuis un cache
 
   // Navigations → network-first (fraîcheur), repli cache (offline réel)
   if (req.mode === 'navigate') {

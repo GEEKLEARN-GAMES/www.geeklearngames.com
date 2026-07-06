@@ -278,6 +278,8 @@ create trigger friendships_touch before update on public.friendships
   for each row execute function public.touch_updated_at();
 
 -- ── Recherche d'utilisateurs (pseudo + avatar + relation seulement) ──────
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.search_users(text);
 create or replace function public.search_users(q text)
 returns table (id uuid, username text, avatar_url text, relation text)
 language sql security definer set search_path = public as $$
@@ -363,6 +365,8 @@ revoke all on function public.friend_remove(uuid) from public;
 grant execute on function public.friend_remove(uuid) to authenticated;
 
 -- ── Liste : amis + demandes entrantes/sortantes (pseudo + avatar) ────────
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.friends_list();
 create or replace function public.friends_list()
 returns table (friendship_id bigint, other_id uuid, username text, avatar_url text, kind text, since timestamptz)
 language sql security definer set search_path = public as $$
@@ -392,6 +396,8 @@ grant execute on function public.friends_list() to authenticated;
 --  (pseudo, avatar, bannière, bio, date d'inscription) + compteurs (trophées,
 --  amis). JAMAIS d'email, âge, birthdate, genre ou autre donnée privée.
 -- ════════════════════════════════════════════════════════════════════════
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.public_profile(uuid);
 create or replace function public.public_profile(uid uuid)
 returns table (
   id uuid, username text, avatar_url text, banner_url text, bio text,
@@ -610,6 +616,8 @@ revoke all on function public.delete_review(text) from public;
 grant execute on function public.delete_review(text) to authenticated;
 
 -- Agrégat pour les fiches (nb, moyenne, histogramme) — visible par tous
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.review_summary(text);
 create or replace function public.review_summary(wid text)
 returns table (cnt bigint, avg_rating numeric, histo jsonb)
 language sql stable security definer set search_path = public as $$
@@ -626,6 +634,8 @@ revoke all on function public.review_summary(text) from public;
 grant execute on function public.review_summary(text) to anon, authenticated;
 
 -- Liste paginée d'une œuvre, avec pseudo/avatar (jamais la table en direct)
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.work_reviews(text, int, int);
 create or replace function public.work_reviews(wid text, lim int default 10, off int default 0)
 returns table (user_id uuid, username text, avatar_url text, rating int, body text, updated_at timestamptz)
 language sql stable security definer set search_path = public as $$
@@ -639,6 +649,8 @@ revoke all on function public.work_reviews(text,int,int) from public;
 grant execute on function public.work_reviews(text,int,int) to anon, authenticated;
 
 -- Évaluations rédigées par UN joueur (section profil, style Steam)
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.user_reviews(uuid);
 create or replace function public.user_reviews(uid uuid)
 returns table (work_id text, rating int, body text, updated_at timestamptz)
 language sql stable security definer set search_path = public as $$
@@ -692,6 +704,8 @@ grant execute on function public.wishlist_count(text) to anon, authenticated;
 -- ════════════════════════════════════════════════════════════════════════
 create index if not exists ua_ach_key_idx on public.user_achievements (ach_key);
 
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.trophy_rarity(text);
 create or replace function public.trophy_rarity(game text)
 returns table (ach_key text, owners bigint, pct numeric, players bigint)
 language sql stable security definer set search_path = public as $$
