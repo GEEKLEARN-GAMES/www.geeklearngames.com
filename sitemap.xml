@@ -1,8 +1,198 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://www.geeklearngames.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=fr</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=en</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=es</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=de</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=it</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=ar</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=zh</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=ja</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=ru</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?lang=pl</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=trick-or-treat</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=trick-or-treat"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=trick-or-treat&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=a-terrible-wonderful-christmas&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=easter-my-bunny</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=easter-my-bunny"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=easter-my-bunny&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=eid-of-light</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=eid-of-light"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=eid-of-light&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=backrooms-liminal</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=backrooms-liminal"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=backrooms-liminal&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=soul-redemption</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=soul-redemption"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=soul-redemption&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=soul-redemption-frenzy-fest&amp;lang=pl"/>
+  </url>
+  <url>
+    <loc>https://www.geeklearngames.com/?work=hush</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/?work=hush"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?work=hush&amp;lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?work=hush&amp;lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?work=hush&amp;lang=es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?work=hush&amp;lang=de"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?work=hush&amp;lang=it"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?work=hush&amp;lang=ar"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?work=hush&amp;lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?work=hush&amp;lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?work=hush&amp;lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?work=hush&amp;lang=pl"/>
   </url>
 </urlset>

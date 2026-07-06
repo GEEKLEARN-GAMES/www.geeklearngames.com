@@ -1,0 +1,150 @@
+#1 [major/a11y] app.js:1485
+  T: Modale hand-off #glg-handoff : aucun focus initial, pas de focus trap, pas de retour de focus
+  D: launcherHandoff() (lignes 1459-1508) crée l'overlay avec role="dialog" et aria-modal="true" mais n'appelle jamais .focus() (grep de 'focus(' sur tout app.js : aucune occurrence dans cette fonction). Le focus clavier reste sur le bouton JOUER/INSTALLER derrière l'overlay ; comme aria-modal="true" masque le reste de la page aux lecteurs d'écran, l'utilisateur SR se retrouve focalisé sur un élément devenu invisible pour
+  F: À l'ouverture : mémoriser document.activeElement, puis focus() sur #ho-open (ou ov avec tabindex="-1"). Ajouter un piège Tab/Shift+Tab dans onKey. Dans close() : restituer le focus à l'élément mémorisé. Dans l'état « introuvable » : focus() sur #ho-ok après remplacement du innerHTML.
+
+#2 [major/a11y] app.js:4571
+  T: Visionneuse #glg-shot-view : aria-modal absent, aucun focus initial ni trap ni retour de focus
+  D: _openShotView() (lignes 4566-4587) pose `ov.setAttribute('role','dialog')` et un aria-label, mais PAS aria-modal="true" (contrairement à #glg-handoff), aucun .focus() sur le bouton .shot-view-close, aucun piège Tab, et close() (ligne 4578) ne restitue pas le focus. L'overlay étant appendé en fin de <body>, un utilisateur clavier doit traverser toute la page pour atteindre le bouton Fermer, pendant que le lecteur d'éc
+  F: Ajouter ov.setAttribute('aria-modal','true'), focus() sur .shot-view-close à l'ouverture, piéger Tab, et restituer le focus à l'élément déclencheur dans close().
+
+#3 [major/a11y] app.js:4528
+  T: Grille captures : la visionneuse ne peut pas être ouverte au clavier (onclick sur <img> non focusable)
+  D: _initProfileShots() rend chaque capture ainsi (lignes 4527-4529) : `<img src="..." alt="" loading="lazy" ... onclick="_openShotView(this.src)" ...>`. Un <img> n'est pas focusable et n'a ni role="button", ni tabindex, ni gestionnaire clavier : l'agrandissement est inaccessible au clavier et invisible pour les lecteurs d'écran (alt="" = élément décoratif alors qu'il est interactif). Les boutons de suppression, eux, son
+  F: Envelopper l'image dans un <button type="button" class="pp-shot-open" aria-label="..."> (libellé i18n type « Agrandir la capture ») appelant _openShotView, ou à défaut ajouter role="button" tabindex="0" + handler keydown Enter/Espace sur l'img.
+
+#4 [major/a11y] app.js:3110
+  T: Menu compte .acct-menu : role="menu" sans navigation clavier ni fermeture Échap
+  D: _buildAccountMenu() (lignes 3098-3128) pose role="menu" sur le conteneur et role="menuitem" sur les boutons, mais n'attache AUCUN listener keydown : pas de flèches Haut/Bas, pas de Home/End, alors que le pattern ARIA menu annonce ces touches aux utilisateurs SR. Le commentaire ligne 3122 dit « Close on outside click / escape » mais seul un listener 'click' est enregistré (lignes 3123-3127) — Échap ne ferme pas le men
+  F: Ajouter un keydown sur le menu : ArrowDown/ArrowUp pour circuler entre les .acct-menu-item (roving focus), Escape pour closeAccountMenu() + refocus de #nav-account-btn. À l'ouverture, focus() sur le premier item. Alternative plus simple : retirer role="menu"/"menuitem" et garder des boutons ordinair
+
+#5 [minor/a11y] app.js:3081
+  T: Bouton compte #nav-account-btn : aria-expanded jamais posé/mis à jour
+  D: _buildAccountButton() pose `btn.setAttribute('aria-haspopup','true')` (ligne 3081) mais ni toggleAccountMenu() (ligne 3140 : `menu.classList.add('open')`) ni closeAccountMenu() (ligne 3142) ne mettent à jour aria-expanded sur le bouton. Un lecteur d'écran annonce un popup mais ne peut jamais savoir s'il est ouvert ou fermé. À noter que le burger mobile fait bien les choses (index.html ligne 245 : aria-expanded="false
+  F: Initialiser btn.setAttribute('aria-expanded','false') dans _buildAccountButton(), passer à 'true' dans toggleAccountMenu() à l'ouverture et 'false' dans closeAccountMenu(). Ajouter aria-controls="nav-account-menu".
+
+#6 [major/a11y] app.js:3294
+  T: Étape TOTP : l'erreur « code invalide » n'est jamais annoncée aux lecteurs d'écran
+  D: _renderTotpStep() affiche l'erreur via `<p class="auth-err" id="at-err" hidden></p>` (ligne 3294) dévoilé par _showErr() (ligne 3252 : textContent + hidden=false). Aucun role="alert" ni aria-live n'existe dans tout le projet (grep 'aria-live|role="alert"' : 0 résultat dans app.js et index.html). Un utilisateur SR qui saisit un mauvais code 2FA valide le formulaire et n'entend rien — il ne sait pas pourquoi la connexi
+  F: Ajouter role="alert" (ou aria-live="assertive") sur les <p class="auth-err"> — au minimum #at-err et #ap-mfa-err — et lier l'input au message : aria-describedby="at-err" + aria-invalid="true" quand l'erreur est visible.
+
+#7 [minor/a11y] app.js:1391
+  T: Rail bibliothèque .lib-item : l'état sélectionné n'est exprimé que par une classe CSS
+  D: buildLibraryPage() rend `<button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="...">` (ligne 1391) et le handler de clic (ligne 1402) ne fait que `classList.toggle('active', ...)`. La sélection courante n'est signalée que visuellement (glg-aaa.css §2990 : bordure + fond) — aucun aria-current/aria-pressed/aria-selected, donc un lecteur d'écran ne peut pas savoir quel jeu est affiché dans la vit
+  F: Poser aria-current="true" (ou aria-pressed) sur le bouton actif et le retirer des autres dans le handler ligne 1402 : `x.setAttribute('aria-current', x === b ? 'true' : 'false')`.
+
+#8 [minor/a11y] app.js:3176
+  T: Modale auth (conteneur de l'étape TOTP) : role="dialog" sans nom accessible
+  D: renderAuthModal() rend `<div class="auth-box" role="dialog" aria-modal="true">` (ligne 3176) sans aria-label ni aria-labelledby, alors que les autres dialogues du site en ont un (index.html ligne 182 : #search-modal aria-labelledby ; ligne 691 : #modal-buy aria-labelledby). Quand _renderTotpStep() remplace .auth-body, le dialogue annoncé au lecteur d'écran n'a aucun nom — l'utilisateur entend juste « dialogue » sans 
+  F: Ajouter aria-labelledby pointant vers un id posé sur le titre courant (onglet actif signIn/signUp, ou .auth-totp-title à l'étape TOTP), ou au minimum un aria-label générique mis à jour par _renderTotpStep().
+
+#9 [major/rtl] app.js:1448
+  T: Bibliothèque (.lib-link) : flèches « → » codées en dur, non miroir en RTL
+  D: _libStageHTML génère deux liens de la vitrine bibliothèque avec une flèche texte codée en dur : ligne 1448 `<button class="lib-link" ...>${_st('view')} <span aria-hidden="true">→</span></button>` et ligne 1449 idem pour les trophées. En arabe (dir=rtl posé sur <html>, app.js:423), la flèche reste « → » : elle pointe vers la droite alors que le sens de lecture/progression est vers la gauche — elle pointe donc « en arr
+  F: Ajouter un helper directionnel dans app.js (ex. `const _arr = () => LANG === 'ar' ? '←' : '→';`) et l'utiliser dans _libStageHTML (les pages sont reconstruites au changement de langue, donc un helper JS suffit). Alternative CSS : `[dir="rtl"] .lib-link span[aria-hidden]{ display:inline-block; transf
+
+#10 [major/rtl] app.js:1221
+  T: Boutique : flèches « → » codées en dur dans .shop-deal-cta et le bouton de renvoi Nos Œuvres
+  D: Deux occurrences dans le code boutique récent : (1) _shopDealHTML ligne 1221 `<span class="shop-deal-cta">${_st('view')} <span aria-hidden="true">→</span></span>` — cartes d'offres (§55) affichées aussi sur Nos Œuvres via buildWorksDeals ; (2) buildShopPage ligne 1301 `<button class="btn btn-primary btn-lg" onclick="showPage('works')">${_st('gamesCta')} →</button>` — bandeau .shop-redirect (§58). En arabe la chaîne d
+  F: Même correctif que pour .lib-link : helper `_arr()` retournant '←' quand LANG === 'ar', utilisé aux lignes 1221 et 1301 (pour 1301, envelopper la flèche dans un <span aria-hidden="true"> pour permettre aussi l'option CSS scaleX(-1)).
+
+#11 [minor/rtl] glg-aaa.css:3016
+  T: Bibliothèque : halo teinté de .lib-hero-veil ancré à gauche (at 18% 88%) sans contrepartie RTL
+  D: glg-aaa.css:3012-3017 : `.lib-hero-veil{ background: linear-gradient(0deg, ...), radial-gradient(90% 70% at 18% 88%, rgba(var(--tint-rgb...),.13), transparent 60%); }`. Le radial-gradient est un positionnement physique « bas-gauche » pensé pour éclairer .lib-hero-body. Or .lib-hero est `display:flex` (ligne 3006) : en RTL le main-start passe à droite et .lib-hero-body (max-width:640px, ligne 3020) se place à droite —
+  F: Ajouter : `[dir="rtl"] .lib-hero-veil{ background: linear-gradient(0deg, rgba(5,5,6,.96) 0%, rgba(5,5,6,.55) 34%, rgba(5,5,6,.15) 62%, rgba(5,5,6,.35) 100%), radial-gradient(90% 70% at 82% 88%, rgba(var(--tint-rgb,255,255,255),.13), transparent 60%); }` (miroir 18% → 82%).
+
+#12 [minor/rtl] glg-aaa.css:2931
+  T: Options v2 : hairline ::after du héro non miroir alors que le masque du fond l'est
+  D: glg-aaa.css:2931-2934 : `.settings-page-head--v2::after{ ... background:linear-gradient(90deg,rgba(255,255,255,.25),transparent 65%); }` — extrémité lumineuse ancrée à gauche. Incohérence interne : le masque du fond `.settings-head-bg` a bien sa contrepartie RTL juste au-dessus (lignes 2927-2930, mask-image 90deg → 270deg), mais le trait d'accent ::after du même composant n'en a pas. En arabe, le fond bannière est vi
+  F: Ajouter : `[dir="rtl"] .settings-page-head--v2::after{ background:linear-gradient(270deg,rgba(255,255,255,.25),transparent 65%); }`.
+
+#13 [minor/rtl] glg-aaa.css:2670
+  T: .shop-deal-info : le padding RTL (34px) écrase la valeur mobile (26px) par spécificité
+  D: La règle RTL `[dir="rtl"] .shop-deal-info{ padding-right:0; padding-left:34px; }` (ligne 2670, spécificité 0,2,0) l'emporte sur la règle mobile `@media (max-width:560px){ .shop-deal-info{ padding-right:26px; } }` (ligne 2667, spécificité 0,1,0 — les media queries n'ajoutent pas de spécificité). Résultat : sur mobile ≤560px en arabe, la réserve pour le bouton wishlist reste à 34px au lieu des 26px prévus — la colonne 
+  F: Dans le bloc `@media (max-width:560px)`, ajouter : `[dir="rtl"] .shop-deal-info{ padding-left:26px; }`.
+
+#14 [minor/rtl] glg-aaa.css:2874
+  T: .pp-recent : padding physique asymétrique (12px/16px) non miroir en RTL
+  D: glg-aaa.css:2874 : `.pp-recent{ ... padding:12px 16px 12px 12px; ... }` — 12px côté mini-cover, 16px côté chevron. Les contreparties RTL existent pour text-align (ligne 2885), le translateX de survol (2886) et la rotation du chevron (2901-2902), mais pas pour ce padding : en RTL la grille inverse cover/chevron alors que le padding reste physique — 16px se retrouve contre la cover et 12px contre le chevron. Écart de 4
+  F: Ajouter `[dir="rtl"] .pp-recent{ padding:12px 12px 12px 16px; }` (ou remplacer par `padding-block:12px; padding-inline:12px 16px;` en logique, ce qui supprime le besoin de contrepartie).
+
+#15 [major/coherence] index.html:717
+  T: data.js et app.js modifiés APRÈS le dernier bump ?v= d'index.html — cache stale garanti au déploiement
+  D: index.html référence js/data.js?v=10 (l.712) et js/app.js?v=97 (l.717), et PROGRESS.md (l.20) enregistre ces mêmes versions comme courantes. Mais les dates de modification disque montrent : index.html enregistré le 05/07 22:18:57, alors que data.js = 05/07 22:31:25 et app.js = 05/07 22:32:00 — donc édités APRÈS le dernier bump. Le garde-fou du projet ('BUMPER à chaque édition du fichier') n'a pas été appliqué. Conséq
+  F: Avant déploiement : vérifier le contenu réel de data.js/app.js vs la version déployée ; si modifiés, passer à data.js?v=11 et app.js?v=98 dans index.html et mettre à jour la ligne Versions de .claude/PROGRESS.md.
+
+#16 [major/coherence] schema.sql:389
+  T: schema.sql échoue sur une base VIERGE : public_profile référence des objets définis plus loin dans le fichier
+  D: La fonction public.public_profile (l.389–408) est en `language sql` : Postgres valide son corps à la création (check_function_bodies=on par défaut). Or elle référence (1) `public.user_achievements` (l.397/401), table créée seulement l.505, et (2) `p.recent_games` (l.405), colonne ajoutée seulement l.420 (`alter table ... add column if not exists recent_games`). Sur la base de PRODUCTION existante, le re-run passe (to
+  F: Déplacer le bloc public_profile APRÈS la création de user_achievements (l.505) et l'ajout de la colonne recent_games (l.420) — ou remonter ces deux définitions avant la fonction. Vérifier ensuite le fichier complet sur un projet Supabase jetable.
+
+#17 [major/coherence] site.webmanifest:38
+  T: Les 3 shortcuts PWA (/#works, /#shop, /#profile) ne sont pas routés au boot — ils atterrissent sur Home
+  D: Le manifest déclare des raccourcis vers /#works, /#shop et /#profile (l.38–54). Or au démarrage, app.js ne consomme que `?work=`, `?lang=`, `?add=` et l'ancien format `#detail/<id>` (l.6154–6158 : `location.hash.startsWith('#detail/')`). Le handler popstate (l.1000) ne lit que history.state, jamais le hash — inexistant lors d'un lancement à froid depuis un raccourci OS. Résultat : les 3 shortcuts ouvrent la page d'ac
+  F: Au boot (DOMContentLoaded), parser location.hash contre les noms de pages connus (works/shop/library/about/contact/profile/settings) et le stocker dans un `window._bootPage` consommé par selectLang après initSite (même mécanique que _bootWorkId) ; pour profile, retomber sur home si non connecté. Alt
+
+#18 [minor/coherence] sw.js:13
+  T: CACHE encore à 'glg-v2' — à bumper en 'glg-v3' au prochain déploiement (discipline déclarée du fichier)
+  D: sw.js (l.13) : `const CACHE = 'glg-v2'` avec la consigne l.11 « Discipline : bumper CACHE à chaque déploiement ». Le fichier date du 03/07 alors que plusieurs sessions de changements ont suivi (app.js v91→v97, glg-aaa v45→v50, schema, auth v13→v15). Sans bump : pas de casse fonctionnelle (navigations network-first, nouveaux ?v= = nouvelles URLs), mais les anciennes entrées versionnées (app.js?v=91…96, etc.) ne sont j
+  F: Passer `const CACHE = 'glg-v3'` dans le même commit que le déploiement, et mettre à jour la mention `sw.js (const CACHE='glg-v2')` dans .claude/PROGRESS.md l.20.
+
+#19 [minor/coherence] _headers:16
+  T: CSP et Permissions-Policy pas identiques entre index.html (meta) et _headers
+  D: Deux divergences réelles : (1) CSP — la meta (index.html l.82/84) autorise `https://*.supabase.co` (img-src, connect-src, wss) alors que _headers (l.16) épingle `https://rjtccuikevoeqgbssjnx.supabase.co` (cohérent avec config.js l.19). L'épinglage est plus strict (bien), et comme les deux politiques s'intersectent l'effet net reste correct — mais si le projet Supabase change un jour, seul _headers cassera silencieuse
+  F: Aligner les deux sources : épingler aussi rjtccuikevoeqgbssjnx.supabase.co dans la meta CSP (ou commenter l'écart voulu wildcard/épinglé), et ajouter `bluetooth=()` à la Permissions-Policy de _headers.
+
+#20 [minor/coherence] app.js:2467
+  T: Footer : 5 liens de nav fixes — Bibliothèque absente même connecté (à trancher : voulu ou oubli ?)
+  D: footerHTML() (app.js l.2467–2471) génère exactement 5 boutons depuis t('nav') — home/works/shop/about/contact — et les tableaux `nav` de data.js ont bien 5 entrées ×10 langues (l.654, 721, 787…). Or connecté, le site a 6 pages visibles : le header ajoute BIBLIOTHÈQUE via `.is-auth` sur #nl-library/#nml-library (décision UX actée, PROGRESS.md). Le footer, lui, est statique et n'affiche jamais Bibliothèque, même connec
+  F: Soit documenter la décision « footer sans Bibliothèque » dans PROGRESS.md, soit ajouter dans footerHTML() un bouton library avec classe dédiée togglée `.is-auth` par refreshAccountUI (même pattern que #nl-library), libellé via _lbt('navLabel') — sans toucher aux tableaux t('nav') à 5 entrées.
+
+#21 [minor/coherence] schema.sql:5
+  T: En-tête « À EXÉCUTER UNE SEULE FOIS » contredit le workflow réel de ré-exécution
+  D: Le commentaire d'en-tête (l.5) dit « À EXÉCUTER UNE SEULE FOIS », alors que le workflow du projet impose l'inverse : PROGRESS.md répète « ⚠️ RÉ-EXÉCUTER schema.sql (idempotent) » à chaque session ajoutant colonnes/RPC, et le fichier est justement construit pour être rejoué (drop if exists partout). Quelqu'un qui suit l'en-tête à la lettre ne rejouera pas le script et n'aura ni grant_game, ni touch_recent_game, ni buc
+  F: Remplacer l'en-tête par « Idempotent — ré-exécuter ce fichier EN ENTIER après chaque mise à jour du schéma » et supprimer le doublon `add column bio` de la l.538.
+
+#22 [minor/coherence] _headers:27
+  T: js/vendor/* servi en immutable 1 an sans aucun mécanisme de cache-busting
+  D: _headers (l.27–28) applique `Cache-Control: public, max-age=31536000, immutable` à /js/vendor/*, et index.html charge ces fichiers SANS ?v= (l.719 supabase.min.js, l.723–726 gsap/ScrollTrigger/lenis). Le système ?v= du projet ne couvre donc pas les vendors : si l'un est mis à jour sous le même nom de fichier (montée de version Supabase JS par ex.), les navigateurs le gardent 1 an ET sw.js le sert en cache-first indéf
+  F: Décider une convention et la noter dans PROGRESS.md : soit renommer le fichier à chaque mise à jour vendor (supabase.min-2.x.js), soit ajouter ?v=1 aux quatre balises script vendor d'index.html (le bump ?v= redevient alors le seul geste à connaître).
+
+#23 [major/ux] app.js:2453
+  T: La modale d'achat est un cul-de-sac : boutons plateformes en onclick="void(0)"
+  D: openBuyModal() rend chaque plateforme comme `<button class="plat-btn" onclick="void(0)">` avec le libellé PLATS[p].cta ('Buy on Steam', 'Get on Epic'…) et une flèche. Or PLATS (data.js l.7-13) ne contient AUCUNE URL de store, et le CSS .plat-btn (main.css l.1250-1257) donne cursor:pointer + translation au hover + animation de flèche : l'affordance promet un clic qui ne fait strictement rien. Contradiction de libellés
+  F: Soit ajouter une URL par plateforme dans PLATS et faire un window.open, soit afficher un état honnête ('Précommande bientôt disponible' + bouton wishlist/notification) au lieu de faux boutons interactifs. A minima retirer cursor:pointer/hover des boutons sans action.
+
+#24 [major/ux] app.js:2102
+  T: Un joueur qui possède déjà le jeu voit toujours ACHETER partout sur la fiche
+  D: buildDetail() est 100% synchrone et ne consulte jamais profiles.library (qui existe pourtant : buildLibraryPage lit p.library, schema.sql a grant_game, et launcherHandoff gère glg://play). Résultat : le CTA héros 'Acheter — prix' (l.2102), la sticky bar (l.2126), la buybox (l.2213) et les boutons plateformes de la buybox appellent tous openBuyModal() sans condition, même pour un jeu déjà dans la bibliothèque du joueu
+  F: Dans buildDetail, vérifier _accountProfile?.library (cache déjà maintenu par refreshAccountUI) : si le jeu est possédé, remplacer les CTA 'Acheter' par 'Jouer'/'Installer' → launcherHandoff(id,'play'|'install') + badge 'Dans votre bibliothèque', et neutraliser openBuyModal pour ce titre.
+
+#25 [major/ux] app.js:4348
+  T: Bibliothèque figée après login/logout effectué depuis cette page
+  D: L'état déconnecté de buildLibraryPage affiche 'Se connecter' → openAuthModal('login'). Après un login réussi, tous les chemins (_wireLogin l.3360, _renderTotpStep l.3393, _wireSignup l.3463) font `closeAuthModal(); refreshAccountUI();` — or refreshAccountUI ne reconstruit QUE le profil : `if (page-profile actif) buildProfilePage()` (l.4348). page-library n'est jamais reconstruite : le joueur fraîchement connecté rest
+  F: Dans refreshAccountUI, ajouter le même garde que pour le profil : `if (page-library active) buildLibraryPage();` (et idem page-settings). Aligner le logout du menu avatar sur celui des paramètres.
+
+#26 [minor/ux] app.js:4838
+  T: Accepter/Refuser/Annuler une demande d'ami : aucun disabled pendant le RPC (double-submit)
+  D: friendAccept/friendDecline/friendRemoveUI (l.4838-4840) font `await GLG_AUTH.friendRespond(...); refreshFriendsUI();` sans jamais désactiver le bouton cliqué ni donner de feedback : pendant la latence réseau, 'Accepter' (pp-fr-accept) et les croix restent cliquables → doubles appels RPC et impression que rien ne se passe. Incohérent avec le même flux ailleurs : friendAdd() de la recherche fait `btn.disabled = true` p
+  F: Passer le bouton en paramètre (comme friendAdd) : `onclick="friendAccept('id', this)"` puis `btn.disabled = true` avant l'await, ou désactiver tout .pp-fr-actions du rang concerné.
+
+#27 [minor/ux] app.js:5547
+  T: Suppression d'une évaluation sans confirmation ni disabled — incohérent avec les captures
+  D: _dpRevDelete() (l.5547) supprime immédiatement la review (`await GLG_AUTH.deleteReview(...)`) au clic sur 'Supprimer' du formulaire (rv-del), sans confirm() et sans désactiver le bouton. Toutes les autres actions destructives du site confirment : suppression de capture `if (!confirm(_sht('delQ'))) return;` (_initProfileShots, qui met aussi b.disabled=true), désactivation 2FA `if (!confirm(_mt('disableConfirm'))) retu
+  F: Ajouter une clé i18n delQ dans _REV_T (10 langues) + `if (!confirm(...)) return;` et désactiver le bouton pendant l'await, comme pour les captures.
+
+#28 [minor/ux] data.js:7
+  T: PLATS.cta en anglais dur dans une UI 10 langues
+  D: PLATS (data.js l.7-13) définit cta:'Buy on Steam', 'Get on Epic', 'PlayStation Store'… Ces chaînes sont affichées telles quelles dans la modale d'achat (`<div class="plat-cta">${PLATS[p].cta}</div>` dans openBuyModal) et en tooltip des boutons plateformes de la buybox (`title="${PLATS[p].cta}"`). Un utilisateur FR/AR/ZH voit donc 'BUY ON STEAM' au milieu d'une modale entièrement traduite — en violation de la règle pr
+  F: Transformer cta en map i18n (ou clé I18N par plateforme) résolue via LANG, comme les maps _*_T d'app.js.
+
+#29 [minor/ux] app.js:5032
+  T: Profil public : wishlist vide = '—' brut, et numérotation de sections à trous
+  D: Sur buildPublicProfilePage, chaque section vide a un message localisé (trophées `_tt('none')`, évaluations `_rvt('profNone')`, captures `_sht('empty')`) SAUF la wishlist qui affiche un tiret brut : `` `<p class="pp-friends-note">—</p>` `` (l.5032). Par ailleurs la section 'Jeux récents' data-idx="01 /" n'est rendue que si non vide (l.5010) alors que trophées/évals/captures gardent leurs index codés en dur 02/03/04 : 
+  F: Réutiliser _wt('empty') (déjà traduit) pour la wishlist publique, et calculer data-idx dynamiquement (compteur incrémenté par section réellement rendue).
+
+#30 [minor/ux] app.js:3900
+  T: 2FA : bouton Désactiver jamais désactivé et messages d'erreur qui s'empilent
+  D: _renderMfaOn : le clic sur 'Désactiver' (#ap-mfa-off) lance `await GLG_AUTH.mfaUnenroll(...)` sans btn.disabled (re-clic possible pendant le RPC), et en cas d'échec fait `box.insertAdjacentHTML('beforeend', '<p class="auth-err">…')` (l.3905) : chaque nouvel essai raté AJOUTE un paragraphe 'Opération impossible pour le moment.' sous le précédent, sans jamais purger les anciens. Même pattern d'empilement dans _renderMf
+  F: Désactiver le bouton pendant l'await et réutiliser un élément d'erreur unique (créé une fois, textContent mis à jour), comme le fait déjà le formulaire TOTP.
+

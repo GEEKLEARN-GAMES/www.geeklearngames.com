@@ -19,6 +19,7 @@ const FILMS = [
     title:'TRICK OR TREAT?',
     tagline:'One night. Two choices. No going back.',
     year:'October 2028', price:'7.99€', basePrice:7.99, status:'coming-soon', statusLabel:'Coming Soon',
+    promo:{ pct:15 }, // offre de précommande permanente (sans date de fin)
     i18n:{
       fr:{ tagline:'Une nuit. Deux choix. Sans retour possible.', description:['En cette nuit d\'Halloween, une soirée de bonbons ou un sort en apparence banale bascule dans une série de choix moraux qui détermineront le destin de tout un quartier. Chaque porte à laquelle vous frappez, chaque décision que vous prenez — tout compte.','TRICK OR TREAT? est le premier film interactif de GEEKLEARN GAMES — une expérience narrative à embranchements explorant la peur de l\'enfance, la communauté, et la fine ligne entre farce et conséquence. Disponible sur toutes les grandes plateformes avec interactivité complète.'], features:['12 fins distinctes selon vos choix','Casting vocal complet en français, anglais et espagnol','Atmosphère d\'Halloween façonnée à la main pendant 18 mois','Horreur familiale — recommandé dès 12 ans','Mode accessible avec sous-titres et audiodescriptions','Support multilingue (10 langues)'] },
       es:{ tagline:'Una noche. Dos opciones. Sin vuelta atrás.', description:['En la noche de Halloween, una aparentemente ordinaria salida de truco o trato se convierte en una serie de elecciones morales que determinarán el destino de todo un vecindario. Cada puerta a la que llamas, cada decisión que tomas — todo importa.','TRICK OR TREAT? es el primer film interactivo de GEEKLEARN GAMES — una experiencia narrativa ramificada que explora el miedo infantil, la comunidad y la delgada línea entre broma y consecuencia. Disponible en todas las plataformas principales con interactividad completa.'], features:['12 finales distintos según tus elecciones','Reparto vocal completo en francés, inglés y español','Atmósfera de Halloween elaborada artesanalmente durante 18 meses','Terror familiar — recomendado a partir de 12 años','Modo accesible con subtítulos y audiodescripciones','Compatibilidad con varios idiomas (10 idiomas)'] },
@@ -32,7 +33,7 @@ const FILMS = [
     },
     glow:'o', tint:'#ff6a00',
     cover:'assets/img/works/films/trick-or-treat.svg',
-    logo:'assets/img/works/games/trick-or-treat-logo.png',
+    logo:'assets/img/works/games/trick-or-treat-logo.webp',
     screenshots:[
       'assets/img/works/films/trick-or-treat-ss1.svg',
       'assets/img/works/films/trick-or-treat-ss2.svg',
@@ -199,6 +200,9 @@ const GAMES = [
     title:'BACKROOMS: LIMINAL',
     tagline:'You noclipped out of reality. Now find your way back.',
     year:'2026', price:'4.99€', basePrice:4.99, status:'coming-soon', statusLabel:'Coming Soon',
+    // Offre de précommande : −pct%. `until` (optionnel, inclus) coupe l'offre
+    // automatiquement à minuit — retirer une promo = supprimer cette ligne.
+    promo:{ pct:20, until:'2026-12-31' },
     i18n:{
       fr:{ tagline:'Vous avez glissé hors de la réalité. Trouvez maintenant votre chemin de retour.', description:['Vous êtes dans les Backrooms. Des couloirs jaunâtres à l\'infini, le bourdonnement humide des néons, la certitude que quelque chose d\'autre est là avec vous. BACKROOMS: LIMINAL est un survival horror à la première personne construit sur la terreur pure des espaces liminaux.','Naviguez à travers des niveaux assemblés de manière procédurale en suivant la logique interne du lore original. Les ressources sont rares, les entités sont impitoyables, et la seule issue est d\'aller plus profond. Chaque session génère une topologie unique — vous ne traverserez jamais le même couloir deux fois.'], features:['Niveaux générés de manière procédurale — chaque partie est différente','IA des entités avec mémoire persistante entre les niveaux','Immersion sonore — portez des écouteurs','Mode solo + coopératif (jusqu\'à 2 joueurs)','Mode sans points de sauvegarde pour les joueurs hardcore','Éditeur de niveaux communautaire avec support Steam Workshop'] },
       es:{ tagline:'Te has deslizado fuera de la realidad. Ahora encuentra el camino de vuelta.', description:['Estás en los Backrooms. Pasillos amarillentos interminables, el zumbido húmedo de las luces fluorescentes, la certeza de que algo más está aquí contigo. BACKROOMS: LIMINAL es un survival horror en primera persona construido sobre el terror puro del espacio liminal.','Navega por niveles ensamblados procedimentalmente siguiendo la lógica interna del lore original. Los recursos son escasos, las entidades son implacables, y el único camino es adentrarse más. Cada sesión genera una topología única — nunca recorrerás el mismo pasillo dos veces.'], features:['Niveles generados procedimentalmente — no hay dos partidas iguales','IA de entidades con memoria persistente entre niveles','Inmersión sonora — usa auriculares','Modo solo + cooperativo (hasta 2 jugadores)','Modo sin puntos de control para jugadores hardcore','Editor de niveles de la comunidad con soporte de Steam Workshop'] },
@@ -255,7 +259,7 @@ const GAMES = [
       ja:{ tagline:'死ね。学べ。立ち上がれ。贖え。', description:['SOUL REDEMPTIONはアクション・ローグライトで、あなたの罪に適応する煉獄の七つの部屋を戦い抜く断罪された魂を演じる。すべてのランは死で終わる——しかし死は師であり、あなたはその教訓を持ち越す。','パリィのタイミングと元素的なソウル能力を軸にした深い戦闘システムが、プロシージャルに並べられた部屋と、死に方に応じて分岐するパーマデス・ナラティブの上に重ねられている。このストーリーは多くの死を経験して初めて意味をなす。'], features:['満足のいく深みとスキル上限を持つパリィベースの戦闘','パーマデス・ナラティブ——あなたの死の選択がロアを形成する','7つのチェンバータイプ、それぞれ独自のルールと美学','60以上のソウル能力を発見して組み合わせる','複数のランを通じて明らかになるプロシージャルなロアの断片','New Game+モードが全体験を一新する'] },
       ru:{ tagline:'Умри. Учись. Восстань. Искупи.', description:['SOUL REDEMPTION — это экшн-рогалик, в котором ты играешь за проклятую душу, пробивающуюся через семь камер чистилища, адаптирующегося к твоим грехам. Каждый забег заканчивается смертью — но смерть — это учитель, и ты несёшь её уроки дальше.','Глубокая боевая система, основанная на тайминге парирований и элементальных способностях души, наложена на процедурно упорядоченные камеры и нарратив с перманентной смертью, ветвящийся в зависимости от того, как ты умираешь. История обретает смысл лишь после многих смертей.'], features:['Боевая система на основе парирований с приятной глубиной и высоким порогом мастерства','Нарратив с перманентной смертью — твои решения при гибели формируют лор','7 типов камер, каждая с уникальными правилами и эстетикой','60+ способностей души для открытия и комбинирования','Процедурные фрагменты лора, раскрывающиеся в разных забегах','Режим New Game+ полностью обновляет весь опыт'] },
       pl:{ tagline:'Umrzyj. Naucz się. Powstań. Odkup się.', description:['SOUL REDEMPTION to action-roguelite, w którym wcielasz się w potępioną duszę walczącą przez siedem komnat czyśćca dostosowującego się do twoich grzechów. Każdy run kończy się śmiercią — ale śmierć jest nauczycielem, a ty niesiesz jej lekcje dalej.','Głęboki system walki oparty na timingu parowania i elementalnych zdolnościach duszy, nałożony na proceduralnie ułożone komnaty i narrację z permadeath rozgałęziającą się w zależności od sposobu śmierci. Historia ma sens dopiero po wielu śmierciach.'], features:['Walka oparta na parowaniu z satysfakcjonującą głębią i wysokim sufitem umiejętności','Narracja z permadeath — twoje wybory śmierci kształtują lore','7 typów komnat, każda z unikalnymi zasadami i estetyką','60+ zdolności duszy do odkrycia i połączenia','Proceduralne fragmenty lore odkrywane przez wiele przebiegów','Tryb New Game+ przebudowuje całe doświadczenie'] },
-      it:{ tagline:'Muori. Impara. Rialzati. Redimiti.', description:['SOUL REDEMPTION è un action-roguelite in cui giochi nei panni di un\'anima condannata che combatte attraverso sette camere di un purgatorio che si adatta ai tuoi peccati. Ogni run termina con la morte — ma la morte è la maestra, e ne porti le lezioni con te.','Un sistema di combattimento profondo basato sul timing dei parry e sulle abilità elementali dell\'anima, sovrapposto a camere ordinate proceduralmente e una narrativa permadeath che si ramifica in base a come muori. La storia ha senso solo dopo molte morti.'], features:['Combattimento basato su parry con profondità soddisfacente e alto skill ceiling','Narrativa permadeath — le tue scelte di morte plasmano il lore','7 tipi di camere, ognuna con regole ed estetica uniche','60+ abilità dell\'anima da scoprire e combinare','Frammenti di lore procedurali rivelati attraverso più run','La modalità New Game+ stravolgere l\'intera esperienza'] },
+      it:{ tagline:'Muori. Impara. Rialzati. Redimiti.', description:['SOUL REDEMPTION è un action-roguelite in cui giochi nei panni di un\'anima condannata che combatte attraverso sette camere di un purgatorio che si adatta ai tuoi peccati. Ogni run termina con la morte — ma la morte è la maestra, e ne porti le lezioni con te.','Un sistema di combattimento profondo basato sul timing dei parry e sulle abilità elementali dell\'anima, sovrapposto a camere ordinate proceduralmente e una narrativa permadeath che si ramifica in base a come muori. La storia ha senso solo dopo molte morti.'], features:['Combattimento basato su parry con profondità soddisfacente e alto skill ceiling','Narrativa permadeath — le tue scelte di morte plasmano il lore','7 tipi di camere, ognuna con regole ed estetica uniche','60+ abilità dell\'anima da scoprire e combinare','Frammenti di lore procedurali rivelati attraverso più run','La modalità New Game+ stravolge l\'intera esperienza'] },
     },
     genres:['Horror','Solo','Gore','Psychologic','3D'],
     prices:{eur:'39.99€',gbp:'£34.99',sar:'149.99 ر.س',cny:'¥299',jpy:'¥5,999',rub:'3,499 ₽',pln:'169.99 zł'},
@@ -423,7 +427,7 @@ const TEAM = [
       ru:'"Каждый мир, который мы создаём, начинается с одного честного вопроса: что мы хотим, чтобы человек почувствовал?"',
       pl:'"Każdy świat, który tworzymy, zaczyna się od jednego szczerego pytania: co chcemy, by ludzie poczuli?"',
     },
-    photo:    'assets/img/team/evan-preney.png',
+    photo:    'assets/img/team/evan-preney.webp',
     year:     '2026',
     level:    0,
   },
@@ -513,14 +517,22 @@ const TROPHIES = {
 /* ── TAGS / GENRES (pour les fiches "magazine") ──────────────────────────
    Vocabulaire i18n réutilisable + association par œuvre. */
 const TAG_LABELS = {
-  narrative:{fr:'Narratif',en:'Narrative'}, horror:{fr:'Horreur',en:'Horror'},
-  choices:{fr:'Choix multiples',en:'Branching'}, atmospheric:{fr:'Atmosphérique',en:'Atmospheric'},
-  stealth:{fr:'Infiltration',en:'Stealth'}, thriller:{fr:'Thriller',en:'Thriller'},
-  family:{fr:'Familial',en:'Family'}, drama:{fr:'Drame',en:'Drama'},
-  folk:{fr:'Horreur folk',en:'Folk horror'}, celebration:{fr:'Célébration',en:'Celebration'},
-  emotional:{fr:'Émotion',en:'Emotional'}, liminal:{fr:'Liminal',en:'Liminal'},
-  survival:{fr:'Survie',en:'Survival'}, action:{fr:'Action',en:'Action'},
-  rpg:{fr:'RPG',en:'RPG'}, soulslike:{fr:'Souls-like',en:'Souls-like'},
+  narrative:  {fr:'Narratif',en:'Narrative',es:'Narrativo',de:'Erzählerisch',it:'Narrativo',ar:'سردي',zh:'叙事',ja:'ナラティブ',ru:'Нарративный',pl:'Narracyjny'},
+  horror:     {fr:'Horreur',en:'Horror',es:'Terror',de:'Horror',it:'Horror',ar:'رعب',zh:'恐怖',ja:'ホラー',ru:'Хоррор',pl:'Horror'},
+  choices:    {fr:'Choix multiples',en:'Branching',es:'Decisiones',de:'Verzweigt',it:'Scelte multiple',ar:'خيارات متعددة',zh:'多分支',ja:'マルチエンド',ru:'Ветвление',pl:'Wybory'},
+  atmospheric:{fr:'Atmosphérique',en:'Atmospheric',es:'Atmosférico',de:'Atmosphärisch',it:'Atmosferico',ar:'أجواء غامرة',zh:'氛围',ja:'アトモスフェリック',ru:'Атмосферный',pl:'Klimatyczny'},
+  stealth:    {fr:'Infiltration',en:'Stealth',es:'Sigilo',de:'Stealth',it:'Stealth',ar:'تسلل',zh:'潜行',ja:'ステルス',ru:'Стелс',pl:'Skradanka'},
+  thriller:   {fr:'Thriller',en:'Thriller',es:'Thriller',de:'Thriller',it:'Thriller',ar:'إثارة',zh:'惊悚',ja:'スリラー',ru:'Триллер',pl:'Thriller'},
+  family:     {fr:'Familial',en:'Family',es:'Familiar',de:'Familienfreundlich',it:'Per famiglie',ar:'عائلي',zh:'家庭',ja:'ファミリー',ru:'Семейный',pl:'Rodzinny'},
+  drama:      {fr:'Drame',en:'Drama',es:'Drama',de:'Drama',it:'Dramma',ar:'دراما',zh:'剧情',ja:'ドラマ',ru:'Драма',pl:'Dramat'},
+  folk:       {fr:'Horreur folk',en:'Folk horror',es:'Terror folk',de:'Folk-Horror',it:'Folk horror',ar:'رعب فولكلوري',zh:'民俗恐怖',ja:'フォークホラー',ru:'Фолк-хоррор',pl:'Folk horror'},
+  celebration:{fr:'Célébration',en:'Celebration',es:'Celebración',de:'Fest',it:'Celebrazione',ar:'احتفال',zh:'节庆',ja:'祝祭',ru:'Праздник',pl:'Święto'},
+  emotional:  {fr:'Émotion',en:'Emotional',es:'Emotivo',de:'Emotional',it:'Emozionale',ar:'عاطفي',zh:'情感',ja:'エモーショナル',ru:'Эмоциональный',pl:'Wzruszający'},
+  liminal:    {fr:'Liminal',en:'Liminal',es:'Liminal',de:'Liminal',it:'Liminale',ar:'حدّي',zh:'阈限',ja:'リミナル',ru:'Лиминальный',pl:'Liminalny'},
+  survival:   {fr:'Survie',en:'Survival',es:'Supervivencia',de:'Survival',it:'Sopravvivenza',ar:'بقاء',zh:'生存',ja:'サバイバル',ru:'Выживание',pl:'Survival'},
+  action:     {fr:'Action',en:'Action',es:'Acción',de:'Action',it:'Azione',ar:'أكشن',zh:'动作',ja:'アクション',ru:'Экшен',pl:'Akcja'},
+  rpg:        {fr:'RPG',en:'RPG',es:'RPG',de:'RPG',it:'RPG',ar:'آر بي جي',zh:'角色扮演',ja:'RPG',ru:'RPG',pl:'RPG'},
+  soulslike:  {fr:'Souls-like',en:'Souls-like',es:'Souls-like',de:'Souls-like',it:'Souls-like',ar:'سولز لايك',zh:'魂类',ja:'ソウルライク',ru:'Souls-like',pl:'Souls-like'},
 };
 const WORK_TAGS = {
   'trick-or-treat':['narrative','horror','choices','family'],
@@ -532,6 +544,215 @@ const WORK_TAGS = {
   'soul-redemption-frenzy-fest':['action','soulslike','survival'],
   'hush':['horror','stealth','atmospheric','survival'],
 };
+
+/* ── Fonctionnalités par œuvre (badges buybox : manette / cloud / sous-titres).
+   `default` s'applique quand une œuvre n'a pas d'entrée dédiée — surcharger
+   au besoin : 'mon-jeu': { controller:true, cloud:false, subs:true } ── */
+const WORK_CAPS = {
+  default: { controller:true, cloud:true, subs:true },
+};
+
+/* ── JOURNAL DES MISES À JOUR (fiches, style Steam) ─────────────────────
+   Par œuvre : liste d'actualités { date:'AAAA-MM-JJ', tag:'update|devlog|announce',
+   title:{10 langues}, body:{10 langues} }. Une œuvre sans entrée = section
+   masquée proprement. Ajouter une news ici = elle apparaît sur la fiche. */
+const WORK_NEWS = {
+  'backrooms-liminal': [
+    {
+      date:'2026-06-12', tag:'devlog',
+      title:{
+        en:'Devlog #3 — Corridor generator v2', fr:'Devlog #3 — Générateur de couloirs v2',
+        es:'Devlog #3 — Generador de pasillos v2', de:'Devlog #3 — Korridor-Generator v2',
+        it:'Devlog #3 — Generatore di corridoi v2', ar:'مذكرات التطوير #3 — مولّد الممرات v2',
+        zh:'开发日志 #3——走廊生成器 v2', ja:'開発日誌 #3 — 廊下ジェネレーター v2',
+        ru:'Девлог №3 — генератор коридоров v2', pl:'Devlog #3 — generator korytarzy v2',
+      },
+      body:{
+        en:'The new topology engine guarantees no hallway ever repeats within a run — and the fluorescent hum now follows you between levels. Wear headphones.',
+        fr:'Le nouveau moteur de topologie garantit qu\'aucun couloir ne se répète au sein d\'une même partie — et le bourdonnement des néons vous suit désormais d\'un niveau à l\'autre. Portez des écouteurs.',
+        es:'El nuevo motor de topología garantiza que ningún pasillo se repita dentro de una partida — y el zumbido fluorescente ahora te sigue entre niveles. Usa auriculares.',
+        de:'Die neue Topologie-Engine garantiert, dass sich kein Korridor innerhalb eines Runs wiederholt — und das Neonbrummen folgt dir jetzt zwischen den Leveln. Trag Kopfhörer.',
+        it:'Il nuovo motore di topologia garantisce che nessun corridoio si ripeta all\'interno di una run — e il ronzio dei neon ora ti segue tra i livelli. Usa le cuffie.',
+        ar:'محرك الطوبولوجيا الجديد يضمن ألا يتكرر أي ممر داخل الجولة الواحدة — وطنين النيون بات يتبعك بين المستويات. ضع سماعاتك.',
+        zh:'全新拓扑引擎确保同一局游戏中不会出现重复的走廊——荧光灯的嗡鸣现在会跟随你穿越各个层级。请佩戴耳机。',
+        ja:'新しいトポロジーエンジンにより、1回のランで同じ廊下が二度と現れないことが保証された。蛍光灯のうなり音はレベル間であなたを追いかけてくる。ヘッドフォン推奨。',
+        ru:'Новый движок топологии гарантирует, что ни один коридор не повторится за один забег — а гул ламп теперь следует за вами между уровнями. Наденьте наушники.',
+        pl:'Nowy silnik topologii gwarantuje, że żaden korytarz nie powtórzy się w trakcie jednego przejścia — a szum świetlówek podąża teraz za tobą między poziomami. Załóż słuchawki.',
+      },
+    },
+    {
+      date:'2026-04-02', tag:'announce',
+      title:{
+        en:'Pre-orders are open — 20% off until the end of 2026', fr:'Les précommandes sont ouvertes — −20 % jusqu\'à fin 2026',
+        es:'Las reservas están abiertas — 20 % de descuento hasta finales de 2026', de:'Vorbestellungen sind offen — 20 % Rabatt bis Ende 2026',
+        it:'I preordini sono aperti — 20% di sconto fino a fine 2026', ar:'الطلب المسبق متاح الآن — خصم 20% حتى نهاية 2026',
+        zh:'预购现已开启——2026年底前享8折优惠', ja:'予約受付開始 — 2026年末まで20%オフ',
+        ru:'Предзаказы открыты — скидка 20% до конца 2026 года', pl:'Przedsprzedaż otwarta — 20% zniżki do końca 2026',
+      },
+      body:{
+        en:'BACKROOMS: LIMINAL can now be pre-ordered on Steam and the Epic Games Store. The launch discount applies automatically to every pre-order.',
+        fr:'BACKROOMS: LIMINAL peut désormais être précommandé sur Steam et l\'Epic Games Store. La remise de lancement s\'applique automatiquement à chaque précommande.',
+        es:'BACKROOMS: LIMINAL ya se puede reservar en Steam y Epic Games Store. El descuento de lanzamiento se aplica automáticamente a cada reserva.',
+        de:'BACKROOMS: LIMINAL kann jetzt auf Steam und im Epic Games Store vorbestellt werden. Der Launch-Rabatt gilt automatisch für jede Vorbestellung.',
+        it:'BACKROOMS: LIMINAL è ora preordinabile su Steam e sull\'Epic Games Store. Lo sconto di lancio si applica automaticamente a ogni preordine.',
+        ar:'يمكن الآن طلب BACKROOMS: LIMINAL مسبقاً على Steam ومتجر Epic Games. يُطبَّق خصم الإطلاق تلقائياً على كل طلب مسبق.',
+        zh:'BACKROOMS: LIMINAL 现已在 Steam 和 Epic Games 商店开启预购。首发折扣将自动应用于每笔预购订单。',
+        ja:'BACKROOMS: LIMINALはSteamとEpic Games Storeで予約可能になった。ローンチ割引はすべての予約に自動適用される。',
+        ru:'BACKROOMS: LIMINAL теперь можно предзаказать в Steam и Epic Games Store. Скидка за предзаказ применяется автоматически.',
+        pl:'BACKROOMS: LIMINAL można już zamówić w przedsprzedaży na Steam i w Epic Games Store. Zniżka premierowa nalicza się automatycznie.',
+      },
+    },
+  ],
+  'soul-redemption': [
+    {
+      date:'2026-05-21', tag:'devlog',
+      title:{
+        en:'The parry finally feels right', fr:'La parade a enfin la sensation parfaite',
+        es:'El parry por fin se siente perfecto', de:'Die Parade fühlt sich endlich richtig an',
+        it:'Il parry finalmente rende come deve', ar:'الصدّ أصبح أخيراً بالإحساس الصحيح',
+        zh:'招架的手感终于对了', ja:'パリィの手応えがついに完成した',
+        ru:'Парирование наконец ощущается как надо', pl:'Parowanie w końcu daje właściwe odczucia',
+      },
+      body:{
+        en:'After eleven internal iterations, the parry window, the hit-stop and the soundwork finally click together. Next stop: the second chamber\'s boss.',
+        fr:'Après onze itérations internes, la fenêtre de parade, le hit-stop et le sound design s\'emboîtent enfin. Prochaine étape : le boss de la deuxième chambre.',
+        es:'Tras once iteraciones internas, la ventana de parry, el hit-stop y el diseño de sonido por fin encajan. Próxima parada: el jefe de la segunda cámara.',
+        de:'Nach elf internen Iterationen greifen Parier-Fenster, Hit-Stop und Sounddesign endlich ineinander. Nächster Halt: der Boss der zweiten Kammer.',
+        it:'Dopo undici iterazioni interne, la finestra di parry, l\'hit-stop e il sound design finalmente si incastrano. Prossima tappa: il boss della seconda camera.',
+        ar:'بعد إحدى عشرة مراجعة داخلية، أصبحت نافذة الصدّ وإيقاف الضربة وهندسة الصوت تعمل معاً بتناغم. المحطة التالية: زعيم الغرفة الثانية.',
+        zh:'经过十一次内部迭代，招架判定窗口、打击停顿与音效设计终于完美契合。下一站：第二房间的Boss。',
+        ja:'11回の内部イテレーションを経て、パリィウィンドウ、ヒットストップ、サウンドがついに噛み合った。次はセカンドチェンバーのボスだ。',
+        ru:'После одиннадцати внутренних итераций окно парирования, хит-стоп и звук наконец сошлись воедино. Следующая остановка: босс второй камеры.',
+        pl:'Po jedenastu wewnętrznych iteracjach okno parowania, hit-stop i udźwiękowienie w końcu zagrały razem. Następny przystanek: boss drugiej komnaty.',
+      },
+    },
+  ],
+  'trick-or-treat': [
+    {
+      date:'2026-03-14', tag:'announce',
+      title:{
+        en:'All 12 endings are written', fr:'Les 12 fins sont écrites',
+        es:'Los 12 finales están escritos', de:'Alle 12 Enden sind geschrieben',
+        it:'Tutti i 12 finali sono scritti', ar:'اكتملت كتابة النهايات الاثنتي عشرة',
+        zh:'12个结局已全部完稿', ja:'12のエンディングすべての執筆が完了',
+        ru:'Все 12 концовок написаны', pl:'Wszystkie 12 zakończeń zostało napisanych',
+      },
+      body:{
+        en:'The branching script is locked: 214 scenes, 12 endings, one neighborhood. Casting for the French voice cast begins this summer.',
+        fr:'Le scénario à embranchements est verrouillé : 214 scènes, 12 fins, un seul quartier. Le casting des voix françaises commence cet été.',
+        es:'El guion ramificado está cerrado: 214 escenas, 12 finales, un solo vecindario. El casting de voces en francés comienza este verano.',
+        de:'Das verzweigte Drehbuch steht fest: 214 Szenen, 12 Enden, eine Nachbarschaft. Das Casting für die französischen Stimmen beginnt diesen Sommer.',
+        it:'La sceneggiatura ramificata è chiusa: 214 scene, 12 finali, un solo quartiere. Il casting delle voci francesi inizia quest\'estate.',
+        ar:'اكتمل السيناريو المتفرع: 214 مشهداً، 12 نهاية، حيّ واحد. يبدأ اختيار الأصوات الفرنسية هذا الصيف.',
+        zh:'分支剧本已定稿：214个场景，12个结局，一个街区。法语配音选角将于今夏开始。',
+        ja:'分岐脚本が確定した：214シーン、12エンディング、ひとつの街。フランス語音声のキャスティングは今夏開始。',
+        ru:'Ветвящийся сценарий утверждён: 214 сцен, 12 концовок, один квартал. Кастинг французских актёров озвучки начнётся этим летом.',
+        pl:'Rozgałęziony scenariusz jest zamknięty: 214 scen, 12 zakończeń, jedna dzielnica. Casting francuskich głosów rusza tego lata.',
+      },
+    },
+  ],
+};
+
+/* ── ÉDITIONS (Standard / Deluxe, style Steam) ───────────────────────────
+   Par œuvre : liste d'éditions { key, delta (EUR ajoutés au prix de base),
+   perks:[clés _ED_T] }. Œuvre absente = pas de sélecteur (édition unique).
+   La promo (promo.pct) s'applique au prix de CHAQUE édition. */
+const WORK_EDITIONS = {
+  'soul-redemption': [
+    { key:'standard', delta:0 },
+    { key:'deluxe',   delta:20, perks:['ost','artbook','skins'] },
+  ],
+  'backrooms-liminal': [
+    { key:'standard', delta:0 },
+    { key:'deluxe',   delta:5, perks:['ost','wallpapers'] },
+  ],
+};
+
+/* ── JOURNAL DES VERSIONS (« Quoi de neuf » — Options → Mises à jour) ────
+   Alimenter à chaque déploiement notable. Le launcher standalone lira la
+   même structure pour ses notes de mise à jour. */
+const GLG_CHANGELOG = [
+  {
+    v:'1.0.0', date:'2026-07-05', tag:'release',
+    notes:[
+      { fr:'Bibliothèque façon launcher : tes jeux possédés, bouton Jouer/Installer et passage de relais vers l\'application de bureau (glg://).',
+        en:'Launcher-grade library: your owned games, Play/Install buttons and hand-off to the desktop app (glg://).',
+        es:'Biblioteca estilo launcher: tus juegos, botones Jugar/Instalar y traspaso a la aplicación de escritorio (glg://).',
+        de:'Launcher-Bibliothek: deine Spiele, Spielen/Installieren-Buttons und Übergabe an die Desktop-App (glg://).',
+        it:'Libreria in stile launcher: i tuoi giochi, pulsanti Gioca/Installa e passaggio all\'app desktop (glg://).',
+        ar:'مكتبة بأسلوب المشغّل: ألعابك، أزرار اللعب/التثبيت والتسليم إلى تطبيق سطح المكتب (glg://).',
+        zh:'启动器级游戏库：你拥有的游戏、开始/安装按钮，以及与桌面应用的衔接（glg://）。',
+        ja:'ランチャー級のライブラリ：所有ゲーム、プレイ/インストールボタン、デスクトップアプリへの受け渡し（glg://）。',
+        ru:'Библиотека уровня лаунчера: ваши игры, кнопки «Играть/Установить» и передача в настольное приложение (glg://).',
+        pl:'Biblioteka w stylu launchera: twoje gry, przyciski Graj/Zainstaluj i przekazanie do aplikacji desktopowej (glg://).' },
+      { fr:'Profil enrichi : jeux récents avec temps de jeu, galerie de captures d\'écran et activité publique maîtrisée.',
+        en:'Richer profile: recent games with playtime, screenshot gallery and privacy-controlled public activity.',
+        es:'Perfil enriquecido: juegos recientes con tiempo de juego, galería de capturas y actividad pública controlada.',
+        de:'Erweitertes Profil: letzte Spiele mit Spielzeit, Screenshot-Galerie und kontrollierte öffentliche Aktivität.',
+        it:'Profilo arricchito: giochi recenti con tempo di gioco, galleria di screenshot e attività pubblica controllata.',
+        ar:'ملف أغنى: الألعاب الأخيرة مع وقت اللعب، ومعرض لقطات الشاشة، ونشاط عام خاضع للخصوصية.',
+        zh:'更丰富的个人资料：带游戏时长的最近游戏、截图画廊，以及可控的公开动态。',
+        ja:'充実したプロフィール：プレイ時間つきの最近のゲーム、スクリーンショットギャラリー、公開範囲を管理できるアクティビティ。',
+        ru:'Расширенный профиль: недавние игры со временем в игре, галерея скриншотов и управляемая публичная активность.',
+        pl:'Bogatszy profil: ostatnie gry z czasem gry, galeria zrzutów ekranu i kontrolowana aktywność publiczna.' },
+      { fr:'Sécurité renforcée : double authentification (2FA) à la Steam Guard, protégée par ton application d\'authentification.',
+        en:'Hardened security: Steam Guard-style two-factor authentication backed by your authenticator app.',
+        es:'Seguridad reforzada: autenticación en dos pasos al estilo Steam Guard con tu app de autenticación.',
+        de:'Verstärkte Sicherheit: Zwei-Faktor-Authentifizierung im Steam-Guard-Stil mit deiner Authenticator-App.',
+        it:'Sicurezza rafforzata: autenticazione a due fattori in stile Steam Guard con la tua app di autenticazione.',
+        ar:'أمان معزّز: مصادقة ثنائية على طريقة Steam Guard عبر تطبيق المصادقة.',
+        zh:'安全加固：Steam 令牌式两步验证，由你的身份验证器应用保护。',
+        ja:'セキュリティ強化：認証アプリによるSteam Guard式の二段階認証。',
+        ru:'Усиленная безопасность: двухфакторная аутентификация в стиле Steam Guard через приложение-аутентификатор.',
+        pl:'Wzmocnione bezpieczeństwo: uwierzytelnianie dwuskładnikowe w stylu Steam Guard z aplikacją uwierzytelniającą.' },
+      { fr:'Boutique dédiée au merchandising, offres de précommande sur Nos Œuvres, et journal des mises à jour sur chaque fiche.',
+        en:'Merch-dedicated store, pre-order deals in Our Works, and an update journal on every game page.',
+        es:'Tienda dedicada al merchandising, ofertas de reserva en Nuestras Obras y diario de novedades en cada ficha.',
+        de:'Merch-Store, Vorbesteller-Angebote unter Unsere Werke und ein Update-Journal auf jeder Spieleseite.',
+        it:'Store dedicato al merchandising, offerte preordine in Le Nostre Opere e diario aggiornamenti su ogni scheda.',
+        ar:'متجر مخصّص للسلع، وعروض الطلب المسبق في «أعمالنا»، وسجل التحديثات في كل صفحة لعبة.',
+        zh:'专属周边商店、「我们的作品」中的预购优惠，以及每个游戏页面的更新日志。',
+        ja:'グッズ専門ストア、作品一覧の予約割引、各ゲームページのアップデートジャーナル。',
+        ru:'Магазин мерча, скидки за предзаказ в «Наших работах» и журнал обновлений на каждой странице игры.',
+        pl:'Sklep z gadżetami, oferty przedsprzedaży w Naszych Dziełach i dziennik aktualizacji na każdej stronie gry.' },
+    ],
+  },
+  {
+    v:'0.9.0', date:'2026-06-20', tag:'update',
+    notes:[
+      { fr:'Évaluations des joueurs sur les fiches et trophées PlayStation-style avec rareté en temps réel.',
+        en:'Player reviews on game pages and PlayStation-style trophies with live rarity.',
+        es:'Reseñas de jugadores en las fichas y trofeos al estilo PlayStation con rareza en tiempo real.',
+        de:'Spielerbewertungen auf den Spielseiten und Trophäen im PlayStation-Stil mit Live-Seltenheit.',
+        it:'Recensioni dei giocatori sulle schede e trofei in stile PlayStation con rarità in tempo reale.',
+        ar:'تقييمات اللاعبين في صفحات الألعاب وجوائز بأسلوب PlayStation مع نُدرة فورية.',
+        zh:'游戏页面的玩家评测，以及带实时稀有度的 PlayStation 风格奖杯。',
+        ja:'ゲームページのプレイヤーレビューと、リアルタイム希少度つきPlayStation式トロフィー。',
+        ru:'Отзывы игроков на страницах игр и трофеи в стиле PlayStation с редкостью в реальном времени.',
+        pl:'Recenzje graczy na stronach gier i trofea w stylu PlayStation z rzadkością na żywo.' },
+      { fr:'Amis en direct : présence en ligne, notifications instantanées et liens d\'invitation.',
+        en:'Friends, live: online presence, instant notifications and invite links.',
+        es:'Amigos en directo: presencia en línea, notificaciones instantáneas y enlaces de invitación.',
+        de:'Freunde live: Online-Präsenz, Sofortbenachrichtigungen und Einladungslinks.',
+        it:'Amici in diretta: presenza online, notifiche istantanee e link di invito.',
+        ar:'أصدقاء مباشرةً: حضور متصل، إشعارات فورية وروابط دعوة.',
+        zh:'实时好友：在线状态、即时通知与邀请链接。',
+        ja:'フレンドのライブ化：オンライン表示、即時通知、招待リンク。',
+        ru:'Друзья в реальном времени: онлайн-статус, мгновенные уведомления и пригласительные ссылки.',
+        pl:'Znajomi na żywo: obecność online, natychmiastowe powiadomienia i linki z zaproszeniem.' },
+      { fr:'Dix langues, prix dans ta devise, polices auto-hébergées : plus rapide et plus respectueux de ta vie privée.',
+        en:'Ten languages, prices in your currency, self-hosted fonts: faster and more private.',
+        es:'Diez idiomas, precios en tu moneda y fuentes autoalojadas: más rápido y más privado.',
+        de:'Zehn Sprachen, Preise in deiner Währung, selbst gehostete Schriften: schneller und privater.',
+        it:'Dieci lingue, prezzi nella tua valuta, font auto-ospitati: più veloce e più privato.',
+        ar:'عشر لغات، وأسعار بعملتك، وخطوط مستضافة ذاتياً: أسرع وأكثر خصوصية.',
+        zh:'十种语言、本地货币价格、自托管字体：更快，也更保护隐私。',
+        ja:'10言語、現地通貨の価格、セルフホストフォント：より速く、よりプライベートに。',
+        ru:'Десять языков, цены в вашей валюте, собственные шрифты: быстрее и приватнее.',
+        pl:'Dziesięć języków, ceny w twojej walucie, fonty hostowane lokalnie: szybciej i prywatniej.' },
+    ],
+  },
+];
 
 /* ── TRANSLATIONS ── */
 /* Each key maps to a language code.
@@ -597,6 +818,7 @@ const I18N = {
     shopBtnWorks:'Explorer nos œuvres',
     shopBtnHome:'Retour à l\'accueil',
     shopStatus:'Bientôt disponible',
+    available:'Disponible',
     searchLabel:'Rechercher un jeu ou un film',
     searchHint:'Commencez à taper un titre...',
     searchNoResults:'Aucun résultat pour',
@@ -663,6 +885,7 @@ const I18N = {
     shopBtnWorks:'Explore Our Works',
     shopBtnHome:'Back to Home',
     shopStatus:'Coming Soon',
+    available:'Available',
     searchLabel:'Search a game or film',
     searchHint:'Start typing a title...',
     searchNoResults:'No results for',
@@ -723,6 +946,7 @@ const I18N = {
     shopBtnWorks:'Explorar Nuestras Obras',
     shopBtnHome:'Volver al Inicio',
     shopStatus:'Próximamente',
+    available:'Disponible',
     searchLabel:'Buscar un juego o película',
     searchHint:'Empieza a escribir un título...',
     searchNoResults:'Sin resultados para',
@@ -783,6 +1007,7 @@ const I18N = {
     shopBtnWorks:'Werke entdecken',
     shopBtnHome:'Zurück zur Startseite',
     shopStatus:'Demnächst',
+    available:'Verfügbar',
     searchLabel:'Ein Spiel oder Film suchen',
     searchHint:'Titel eingeben...',
     searchNoResults:'Keine Ergebnisse für',
@@ -843,6 +1068,7 @@ const I18N = {
     shopBtnWorks:'استكشف أعمالنا',
     shopBtnHome:'العودة للرئيسية',
     shopStatus:'قريباً',
+    available:'متوفر',
     searchLabel:'ابحث عن لعبة أو فيلم',
     searchHint:'ابدأ بكتابة عنوان...',
     searchNoResults:'لا نتائج لـ',
@@ -903,6 +1129,7 @@ const I18N = {
     shopBtnWorks:'探索作品',
     shopBtnHome:'返回首页',
     shopStatus:'即将开放',
+    available:'现已推出',
     searchLabel:'搜索游戏或电影',
     searchHint:'开始输入标题...',
     searchNoResults:'未找到结果：',
@@ -963,6 +1190,7 @@ const I18N = {
     shopBtnWorks:'作品を見る',
     shopBtnHome:'ホームに戻る',
     shopStatus:'近日公開',
+    available:'発売中',
     searchLabel:'ゲームまたはフィルムを検索',
     searchHint:'タイトルを入力してください...',
     searchNoResults:'結果なし：',
@@ -1023,6 +1251,7 @@ const I18N = {
     shopBtnWorks:'Наши работы',
     shopBtnHome:'На главную',
     shopStatus:'Скоро',
+    available:'Доступно',
     searchLabel:'Найти игру или фильм',
     searchHint:'Начните вводить название...',
     searchNoResults:'Нет результатов для',
@@ -1083,6 +1312,7 @@ const I18N = {
     shopBtnWorks:'Odkryj nasze prace',
     shopBtnHome:'Powrót do strony głównej',
     shopStatus:'Wkrótce',
+    available:'Dostępne',
     searchLabel:'Szukaj gry lub filmu',
     searchHint:'Zacznij wpisywać tytuł...',
     searchNoResults:'Brak wyników dla',
@@ -1143,6 +1373,7 @@ const I18N = {
     shopBtnWorks:'Esplora le Nostre Opere',
     shopBtnHome:'Torna alla Home',
     shopStatus:'Prossimamente',
+    available:'Disponibile',
     searchLabel:'Cerca un gioco o film',
     searchHint:'Inizia a digitare un titolo...',
     searchNoResults:'Nessun risultato per',

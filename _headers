@@ -1,0 +1,28 @@
+# ═══════════════════════════════════════════════════════════════════
+# GEEKLEARN GAMES — en-têtes de sécurité (Cloudflare Pages)
+# ─────────────────────────────────────────────────────────────────────
+# ⚠️ GitHub Pages IGNORE ce fichier (aucun en-tête custom possible).
+#    Deux options pour l'activer :
+#      A) RECOMMANDÉ : migrer l'hébergement vers Cloudflare Pages
+#         (gratuit, déploiement auto depuis le repo, ce fichier marche tel quel).
+#      B) Rester GitHub Pages : recopier ces en-têtes dans Cloudflare
+#         → Rules → Transform Rules → Modify Response Header (plan gratuit).
+#    Pourquoi c'est important : les meta CSP de index.html ne peuvent PAS
+#    poser frame-ancestors / X-Frame-Options → le site reste framable
+#    (clickjacking) tant que ces en-têtes HTTP ne sont pas actifs.
+# ═══════════════════════════════════════════════════════════════════
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co; connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
+  X-Frame-Options: DENY
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/vendor/*
+  Cache-Control: public, max-age=31536000, immutable

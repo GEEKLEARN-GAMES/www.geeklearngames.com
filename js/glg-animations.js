@@ -236,10 +236,18 @@
   ═══════════════════════════════════════════════════════════ */
   function animPageEnter(pageEl) {
     if (!MOTION || !pageEl) return;
-    gsap.fromTo(pageEl,
-      { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.45, ease: E2, clearProps: 'transform,opacity',
-        onComplete: () => ScrollTrigger.refresh() }
+    if (document.documentElement.classList.contains('glg-reduce-motion')) return;
+    // Stagger des blocs above-the-fold (feel launcher : header → hero → rails en
+    // cascade) au lieu d'un fondu plat de la page entière. fromTo + clearProps
+    // → finit TOUJOURS visible (règle d'or anti-écran-noir), et le failsafe
+    // 1600ms couvre le pire cas. Le stagger se termine (~740ms) après le filet
+    // veil 650ms : sans chevauchement d'états critiques (le veil est opacity-only).
+    const kids = Array.from(pageEl.children).filter(el => el.offsetHeight > 0).slice(0, 4);
+    if (!kids.length) return;
+    gsap.fromTo(kids,
+      { opacity: 0, y: 18 },
+      { opacity: 1, y: 0, duration: 0.45, ease: E2, stagger: 0.07, delay: 0.08,
+        clearProps: 'transform,opacity', onComplete: () => ScrollTrigger.refresh() }
     );
   }
 

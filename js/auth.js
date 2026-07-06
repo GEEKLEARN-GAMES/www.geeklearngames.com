@@ -50,6 +50,25 @@
     return { ok: true, value: v };
   }
 
+  /* ── Validation d'URL média (avatar / bannière) ────────────
+     Retourne : la valeur nettoyée (string), null (effacement), ou
+     `false` si la valeur est REFUSÉE (schéma/format dangereux).
+     Empêche de stocker en base des payloads XSS ou des URLs pouvant
+     s'échapper d'un attribut HTML / d'un url() CSS côté rendu. */
+  function _sanitizeMediaUrl(u) {
+    if (u == null || u === '') return null;
+    if (typeof u !== 'string') return false;
+    const s = u.trim();
+    if (!s) return null;
+    if (s.length > 4096) return false;                       // data-URL WebP réaliste : quelques Ko
+    if (/["'()<>\\`\s]/.test(s)) return false;               // aucun caractère de rupture
+    if (/^data:image\/(png|jpe?g|webp|gif|avif|svg\+xml);/i.test(s)) return s;
+    if (/^https:\/\//i.test(s)) return s;
+    if (/^blob:/i.test(s)) return s;
+    if (/^(?:\/(?!\/)|\.\/|assets\/)/i.test(s)) return s;    // asset relatif du site
+    return false;
+  }
+
   /* ── Validation email ──────────────────────────────────── */
   function validateEmail(e) {
     const v = (e || '').trim();
@@ -214,8 +233,16 @@
     }
     if (fields.gender       != null) allowed.gender = fields.gender;
     if (fields.gender_other != null) allowed.gender_other = String(fields.gender_other).slice(0, 60);
-    if (fields.avatar_url   !== undefined) allowed.avatar_url = fields.avatar_url; // preset path or storage URL
-    if (fields.banner_url   !== undefined) allowed.banner_url = fields.banner_url;
+    if (fields.avatar_url   !== undefined) {
+      const v = _sanitizeMediaUrl(fields.avatar_url);
+      if (v === false) return { ok: false, field: 'avatar_url', code: 'badUrl' };
+      allowed.avatar_url = v;                                    // null clears it
+    }
+    if (fields.banner_url   !== undefined) {
+      const v = _sanitizeMediaUrl(fields.banner_url);
+      if (v === false) return { ok: false, field: 'banner_url', code: 'badUrl' };
+      allowed.banner_url = v;
+    }
     if (fields.wishlist     !== undefined && Array.isArray(fields.wishlist)) {
       // store as a de-duplicated array of work-id strings (defensive cap)
       allowed.wishlist = Array.from(new Set(fields.wishlist.filter(x => typeof x === 'string'))).slice(0, 500);
@@ -398,6 +425,204 @@
     return error ? { ok: false, error } : { ok: true };
   }
 
+  /* ── RARETÉ DES TROPHÉES (agrégats anonymes, RPC publique) ──
+     Renvoie par trophée : owners, pct (0–100, 1 déc.), players
+     (dénominateur = joueurs ayant ≥1 trophée dans CE jeu). */
+  async function trophyRarity(game) {
+    if (!_ready) return { ok: false, code: 'notConfigured', rows: [] };
+    const { data, error } = await _client.rpc('trophy_rarity', { game });
+    if (error) return { ok: false, code: 'network', rows: [], error };
+    return { ok: true, rows: Array.isArray(data) ? data : [] };
+  }
+
+  /* ── ÉVALUATIONS (style Steam) ─────────────────────────────
+     Toute écriture passe par la RPC `upsert_review` (rate-limit
+     serveur 10/24h, caps imposés en base — pas de policy INSERT
+     directe). Lecture via RPC uniquement (jamais la table). */
+  async function upsertReview(workId, rating, body) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('upsert_review', {
+      wid: String(workId || '').slice(0, 64),
+      r:   Math.max(1, Math.min(5, parseInt(rating, 10) || 0)),
+      b:   body == null ? null : String(body).slice(0, 1200),
+    });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data }; // 'notAuth'|'badRating'|'limit'…
+  }
+  async function deleteReview(workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('delete_review', { wid: String(workId || '').slice(0, 64) });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data };
+  }
+  async function reviewSummary(workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('review_summary', { wid: String(workId || '').slice(0, 64) });
+    if (error) return { ok: false, code: 'network', error };
+    const row = Array.isArray(data) ? data[0] : data;
+    return { ok: true, count: Number(row?.cnt || 0), avg: row?.avg_rating != null ? Number(row.avg_rating) : null, histo: row?.histo || {} };
+  }
+  async function workReviews(workId, limit = 10, offset = 0) {
+    if (!_ready) return { ok: false, code: 'notConfigured', reviews: [] };
+    const { data, error } = await _client.rpc('work_reviews', {
+      wid: String(workId || '').slice(0, 64), lim: limit, off: offset,
+    });
+    if (error) return { ok: false, code: 'network', reviews: [], error };
+    return { ok: true, reviews: Array.isArray(data) ? data : [] };
+  }
+  async function userReviews(uid) {
+    if (!_ready) return { ok: false, code: 'notConfigured', reviews: [] };
+    if (!uid)    return { ok: false, code: 'noTarget',      reviews: [] };
+    const { data, error } = await _client.rpc('user_reviews', { uid });
+    if (error) return { ok: false, code: 'network', reviews: [], error };
+    return { ok: true, reviews: Array.isArray(data) ? data : [] };
+  }
+  async function myReview(workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured', review: null };
+    const user = await getUser();
+    if (!user) return { ok: true, review: null };
+    const { data, error } = await _client.from('reviews')
+      .select('rating, body, updated_at, hidden')
+      .eq('user_id', user.id).eq('work_id', String(workId || '').slice(0, 64))
+      .maybeSingle();
+    if (error) return { ok: false, code: 'network', review: null };
+    return { ok: true, review: data || null };
+  }
+  async function reportReview(reviewUserId, workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('report_review', { ruser: reviewUserId, rwork: String(workId || '').slice(0, 64) });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data };
+  }
+
+  /* ── Preuve sociale : nb de wishlists sur une œuvre ─────── */
+  /* ── Bibliothèque (jeux possédés) ────────────────────────
+     Appelé au moment de l'achat (backend paiement en prod). */
+  async function grantGame(gameId, platform) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    try {
+      const { error } = await _client.rpc('grant_game', { p_game: gameId, p_platform: platform || 'glg' });
+      return error ? { ok: false, error } : { ok: true };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+
+  /* ── Jeux récents (sessions réelles, style Steam) ────────
+     Appelé par le jeu/launcher en fin de session : minutes jouées. */
+  async function touchRecentGame(gameId, minutes) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    try {
+      const { error } = await _client.rpc('touch_recent_game', { p_game: gameId, p_minutes: Math.max(0, Math.round(minutes || 0)) });
+      return error ? { ok: false, error } : { ok: true };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+
+  async function wishlistCount(workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured', count: 0 };
+    const { data, error } = await _client.rpc('wishlist_count', { work: String(workId || '').slice(0, 64) });
+    if (error) return { ok: false, code: 'network', count: 0, error };
+    return { ok: true, count: Number(data || 0) };
+  }
+
+  /* ── 2FA TOTP (style Steam Guard) — API MFA OFFICIELLE Supabase ────────
+     Enrôlement : mfaEnroll() → QR + secret → mfaVerifyEnroll(factorId, code).
+     Connexion  : si mfaAal() dit nextLevel 'aal2' ≠ currentLevel, demander le
+     code → mfaChallengeVerify(code). Tout est défensif : jamais de throw. */
+  async function mfaFactors() {
+    if (!_ready) return { ok: false, code: 'notConfigured', factors: [] };
+    try {
+      const { data, error } = await _client.auth.mfa.listFactors();
+      if (error) return { ok: false, error, factors: [] };
+      return { ok: true, factors: (data?.totp || []).filter(f => f.status === 'verified') };
+    } catch (e) { return { ok: false, factors: [] }; }
+  }
+  async function mfaEnroll() {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    try {
+      // Purge les enrôlements abandonnés (non vérifiés) — sinon Supabase
+      // refuse un nouveau facteur du même nom.
+      const { data: lf } = await _client.auth.mfa.listFactors();
+      for (const f of (lf?.all || [])) {
+        if (f.status === 'unverified') { try { await _client.auth.mfa.unenroll({ factorId: f.id }); } catch (e) {} }
+      }
+      const { data, error } = await _client.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'GEEKLEARN GAMES' });
+      if (error) return { ok: false, error };
+      return { ok: true, factorId: data.id, qr: data.totp?.qr_code || '', secret: data.totp?.secret || '', uri: data.totp?.uri || '' };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+  async function mfaVerifyEnroll(factorId, code) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    try {
+      const { data: ch, error: chErr } = await _client.auth.mfa.challenge({ factorId });
+      if (chErr) return { ok: false, error: chErr };
+      const { error: vErr } = await _client.auth.mfa.verify({ factorId, challengeId: ch.id, code: String(code || '').trim() });
+      if (vErr) return { ok: false, code: 'badCode', error: vErr };
+      return { ok: true };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+  async function mfaUnenroll(factorId) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    try {
+      const { error } = await _client.auth.mfa.unenroll({ factorId });
+      return error ? { ok: false, error } : { ok: true };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+  async function mfaAal() {
+    if (!_ready) return {};
+    try {
+      const { data } = await _client.auth.mfa.getAuthenticatorAssuranceLevel();
+      return data || {};
+    } catch (e) { return {}; }
+  }
+  async function mfaChallengeVerify(code) {
+    const { factors } = await mfaFactors();
+    const f = factors[0];
+    if (!f) return { ok: false, code: 'noFactor' };
+    return mfaVerifyEnroll(f.id, code); // même mécanique challenge + verify
+  }
+
+  /* ── GALERIE DE CAPTURES D'ÉCRAN (bucket `screenshots`) ────────────────
+     L'app compresse en WebP ≤1600px AVANT l'appel (blob), on borne à
+     12 captures / joueur. Lecture publique (profils publics). */
+  const SHOT_MAX = 6 * 1024 * 1024, SHOT_LIMIT = 12;
+  async function listScreenshots(uid) {
+    if (!_ready || !uid) return { ok: false, shots: [] };
+    try {
+      const { data, error } = await _client.storage.from('screenshots')
+        .list(`${uid}/shots`, { limit: 24, sortBy: { column: 'name', order: 'desc' } }); // noms = timestamps
+      if (error || !data) return { ok: false, shots: [] };
+      const shots = data.filter(o => o.name && !o.name.startsWith('.')).map(o => {
+        const path = `${uid}/shots/${o.name}`;
+        return { path, name: o.name, url: _client.storage.from('screenshots').getPublicUrl(path).data?.publicUrl || '' };
+      });
+      return { ok: true, shots };
+    } catch (e) { return { ok: false, shots: [] }; }
+  }
+  async function uploadScreenshot(blob) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    if (!blob) return { ok: false, code: 'noFile' };
+    if (blob.size > SHOT_MAX) return { ok: false, code: 'size' };
+    const user = await getUser();
+    if (!user) return { ok: false, code: 'notAuth' };
+    const cur = await listScreenshots(user.id);
+    if ((cur.shots || []).length >= SHOT_LIMIT) return { ok: false, code: 'limit' };
+    const path = `${user.id}/shots/${Date.now()}.webp`;
+    const { error } = await _client.storage.from('screenshots')
+      .upload(path, blob, { contentType: 'image/webp', upsert: false });
+    if (error) return { ok: false, code: 'upload', error };
+    const { data } = _client.storage.from('screenshots').getPublicUrl(path);
+    return { ok: true, url: data?.publicUrl || null, path };
+  }
+  async function deleteScreenshot(path) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const user = await getUser();
+    if (!user) return { ok: false, code: 'notAuth' };
+    if (!String(path || '').startsWith(`${user.id}/`)) return { ok: false, code: 'forbidden' }; // défense en profondeur (RLS fait déjà foi)
+    try {
+      const { error } = await _client.storage.from('screenshots').remove([path]);
+      return error ? { ok: false, error } : { ok: true };
+    } catch (e) { return { ok: false, error: e }; }
+  }
+
   function onChange(cb) {
     if (!_ready) return () => {};
     const { data } = _client.auth.onAuthStateChange((event, session) => cb(event, session));
@@ -424,7 +649,11 @@
     getSession, getUser, getProfile, updateProfile, deleteAccount,
     uploadAvatar, uploadBanner, moderateImage,
     searchUsers, friendRequest, friendRespond, friendRemove, friendsList, getPublicProfile,
-    getAchievements, grantAchievement,
+    getAchievements, grantAchievement, trophyRarity,
+    upsertReview, deleteReview, reviewSummary, workReviews, userReviews, myReview, reportReview,
+    wishlistCount, touchRecentGame, grantGame,
+    mfaFactors, mfaEnroll, mfaVerifyEnroll, mfaUnenroll, mfaAal, mfaChallengeVerify,
+    listScreenshots, uploadScreenshot, deleteScreenshot,
     onChange,
   };
 })();

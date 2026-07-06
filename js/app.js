@@ -59,14 +59,18 @@ async function initFxRates() {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
       const { ts, rates } = JSON.parse(cached);
-      if (Date.now() - ts < TTL) { _fxRates = { EUR:1, ...rates }; return; }
+      // MERGE (ne pas remplacer) : la BCE ne cote ni SAR ni RUB → on garde
+      // les fallbacks statiques pour ces devises, sinon rate=1 → prix faux.
+      if (Date.now() - ts < TTL) { _fxRates = { ..._fxRates, EUR:1, ...rates }; return; }
     }
   } catch(e) {}
   try {
-    const res  = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CNY,JPY,PLN,SAR,RUB');
+    const res  = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CNY,JPY,PLN');
     if (!res.ok) return;
     const data = await res.json();
-    _fxRates = { EUR:1, ...data.rates };
+    // SAR est arrimé au dollar (peg 3,75) → dérivé du USD live quand dispo
+    if (data.rates && data.rates.USD) data.rates.SAR = +(data.rates.USD * 3.75).toFixed(4);
+    _fxRates = { ..._fxRates, EUR:1, ...data.rates };
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), rates: data.rates }));
     refreshDisplayedPrices(); // update DOM after rates arrive
   } catch(e) { /* keep fallback rates */ }
@@ -103,6 +107,143 @@ function getPrice(item) {
   if (item.isFree || item.basePrice === 0) return t('free') || 'FREE';
   if (item.basePrice != null) return formatPrice(item.basePrice, LANG);
   return item.price; // legacy fallback
+}
+
+/* ── Promotions (offres de précommande / soldes) ─────────────────────────
+   data.js : `promo:{ pct:20, until:'2026-12-31' }` sur une œuvre.
+   `until` (optionnel, inclus) coupe l'offre automatiquement côté client —
+   retirer une promo = supprimer le champ, aucune logique à toucher. */
+function activePromo(item) {
+  const p = item && item.promo;
+  if (!p || !(p.pct > 0) || item.isFree || !(item.basePrice > 0)) return null;
+  if (p.until) {
+    const end = Date.parse(p.until + 'T23:59:59');
+    if (!isNaN(end) && Date.now() > end) return null;
+  }
+  return p;
+}
+
+/* Prix courant en EUR, remise déduite (base de toutes les conversions FX). */
+function promoPrice(item) {
+  const p = activePromo(item);
+  return p ? Math.max(0, +(item.basePrice * (1 - p.pct / 100)).toFixed(2)) : item.basePrice;
+}
+
+/* Prix courant (remise déduite), formaté dans la devise de la langue. */
+function getPriceNow(item) {
+  if (item.isFree || item.basePrice === 0) return t('free') || 'FREE';
+  if (item.basePrice != null) return formatPrice(promoPrice(item), LANG);
+  return item.price;
+}
+
+/* Fragment HTML de prix : badge −XX% + ancien prix barré + prix courant.
+   Chaque montant garde son data-base-price → refreshDisplayedPrices()
+   continue de convertir les devises sans reconstruire la page. */
+function priceHTML(item, opts) {
+  const o   = opts || {};
+  const cls = 'glg-price' + (o.size ? ' glg-price--' + o.size : '');
+  if (item.isFree || item.basePrice === 0 || item.basePrice == null)
+    return `<span class="${cls}"><span class="glg-price-now">${getPrice(item)}</span></span>`;
+  const p = activePromo(item);
+  if (!p)
+    return `<span class="${cls}"><span class="glg-price-now price-display" data-base-price="${item.basePrice}">${formatPrice(item.basePrice, LANG)}</span></span>`;
+  const now = promoPrice(item);
+  return `<span class="${cls} glg-price--promo">` +
+    `<span class="glg-price-pct">−${p.pct}%</span>` +
+    `<s class="glg-price-old price-display" data-base-price="${item.basePrice}">${formatPrice(item.basePrice, LANG)}</s>` +
+    `<span class="glg-price-now price-display" data-base-price="${now}">${formatPrice(now, LANG)}</span></span>`;
+}
+
+/* ── ÉDITIONS Standard/Deluxe (buybox, style Steam) ──────────────────────
+   Données : WORK_EDITIONS (data.js). La promo s'applique à chaque édition ;
+   chaque montant garde son data-base-price → conversions FX intactes. */
+const _ED_T = {
+  editions: { fr:'Édition', en:'Edition', es:'Edición', de:'Edition', it:'Edizione', ar:'الإصدار', zh:'版本', ja:'エディション', ru:'Издание', pl:'Edycja' },
+  standard: { fr:'Édition Standard', en:'Standard Edition', es:'Edición Estándar', de:'Standard Edition', it:'Edizione Standard', ar:'الإصدار القياسي', zh:'标准版', ja:'スタンダード版', ru:'Стандартное издание', pl:'Edycja standardowa' },
+  deluxe:   { fr:'Édition Deluxe', en:'Deluxe Edition', es:'Edición Deluxe', de:'Deluxe Edition', it:'Edizione Deluxe', ar:'الإصدار الفاخر', zh:'豪华版', ja:'デラックス版', ru:'Издание Deluxe', pl:'Edycja Deluxe' },
+  includes: { fr:'Inclut', en:'Includes', es:'Incluye', de:'Enthält', it:'Include', ar:'يتضمن', zh:'包含', ja:'同梱内容', ru:'Включает', pl:'Zawiera' },
+  ost:      { fr:'Bande originale numérique', en:'Digital soundtrack', es:'Banda sonora digital', de:'Digitaler Soundtrack', it:'Colonna sonora digitale', ar:'الموسيقى التصويرية الرقمية', zh:'数字原声音乐', ja:'デジタルサウンドトラック', ru:'Цифровой саундтрек', pl:'Cyfrowa ścieżka dźwiękowa' },
+  artbook:  { fr:'Artbook numérique', en:'Digital artbook', es:'Artbook digital', de:'Digitales Artbook', it:'Artbook digitale', ar:'كتاب فني رقمي', zh:'数字画集', ja:'デジタルアートブック', ru:'Цифровой артбук', pl:'Cyfrowy artbook' },
+  skins:    { fr:'Pack de skins exclusifs', en:'Exclusive skin pack', es:'Pack de skins exclusivos', de:'Exklusives Skin-Paket', it:'Pacchetto skin esclusive', ar:'حزمة أشكال حصرية', zh:'专属皮肤包', ja:'限定スキンパック', ru:'Набор эксклюзивных скинов', pl:'Pakiet ekskluzywnych skórek' },
+  wallpapers:{ fr:'Fonds d’écran 4K', en:'4K wallpapers', es:'Fondos de pantalla 4K', de:'4K-Hintergründe', it:'Sfondi 4K', ar:'خلفيات 4K', zh:'4K壁纸', ja:'4K壁紙', ru:'Обои 4K', pl:'Tapety 4K' },
+};
+const _edt = k => (_ED_T[k] && (_ED_T[k][LANG] || _ED_T[k].en)) || k;
+const _dpEditionSel = {}; // workId → clé d'édition choisie (mémoire de session)
+
+function _workEditions(item) { return (typeof WORK_EDITIONS !== 'undefined' && WORK_EDITIONS[item.id]) || null; }
+function _selEdition(item) {
+  const eds = _workEditions(item); if (!eds || !eds.length) return null;
+  const k = _dpEditionSel[item.id] || eds[0].key;
+  return eds.find(e => e.key === k) || eds[0];
+}
+/* Prix (promo appliquée) de l'édition sélectionnée — même contrat que priceHTML. */
+function _editionPriceHTML(item) {
+  const ed = _selEdition(item);
+  if (!ed || item.isFree || item.basePrice == null) return priceHTML(item);
+  const base = +(item.basePrice + (ed.delta || 0)).toFixed(2);
+  const p = activePromo(item);
+  if (!p) return `<span class="glg-price"><span class="glg-price-now price-display" data-base-price="${base}">${formatPrice(base, LANG)}</span></span>`;
+  const now = +(base * (1 - p.pct / 100)).toFixed(2);
+  return `<span class="glg-price glg-price--promo">` +
+    `<span class="glg-price-pct">−${p.pct}%</span>` +
+    `<s class="glg-price-old price-display" data-base-price="${base}">${formatPrice(base, LANG)}</s>` +
+    `<span class="glg-price-now price-display" data-base-price="${now}">${formatPrice(now, LANG)}</span></span>`;
+}
+function _editionPerksHTML(item) {
+  const ed = _selEdition(item);
+  if (!ed || !ed.perks || !ed.perks.length) return '';
+  return `<div class="dp-ed-perks-in">
+    <span class="dp-ed-inc">${_edt('includes')}</span>
+    ${ed.perks.map(p => `<span class="dp-ed-perk"><span aria-hidden="true">✓</span> ${_edt(p)}</span>`).join('')}
+  </div>`;
+}
+function _dpEditionsHTML(item) {
+  const eds = _workEditions(item); if (!eds) return '';
+  const sel = _selEdition(item);
+  const p = activePromo(item);
+  return `
+  <div class="dp-editions" role="radiogroup" aria-label="${_edt('editions')}">
+    ${eds.map(e => {
+      const base = +(item.basePrice + (e.delta || 0)).toFixed(2);
+      const now = p ? +(base * (1 - p.pct / 100)).toFixed(2) : base;
+      return `
+      <button type="button" class="dp-ed ${e.key === sel.key ? 'on' : ''}" role="radio" aria-checked="${e.key === sel.key}"
+              data-ed="${e.key}" onclick="dpSelectEdition('${item.id}','${e.key}')">
+        <span class="dp-ed-name">${_edt(e.key)}</span>
+        <span class="dp-ed-price price-display" data-base-price="${now}">${formatPrice(now, LANG)}</span>
+      </button>`;
+    }).join('')}
+  </div>
+  <div id="dp-ed-perks">${_editionPerksHTML(item)}</div>`;
+}
+function dpSelectEdition(workId, key) {
+  _dpEditionSel[workId] = key;
+  const item = ALL_WORKS.find(w => w.id === workId); if (!item) return;
+  document.querySelectorAll('.dp-ed').forEach(b => {
+    const on = b.dataset.ed === key;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  const priceBox = document.querySelector('.dp-buybox-price');
+  if (priceBox) priceBox.innerHTML = _editionPriceHTML(item);
+  const perks = document.getElementById('dp-ed-perks');
+  if (perks) perks.innerHTML = _editionPerksHTML(item);
+  window.GLG_SFX?.play('toggle');
+}
+
+/* Ligne « Offre de précommande jusqu'au … » (buybox des fiches). */
+const _PROMO_T = {
+  ends:  { fr:'Offre de précommande jusqu’au %s', en:'Pre-order offer until %s', es:'Oferta de reserva hasta el %s', de:'Vorbestellerangebot bis %s', it:'Offerta preordine fino al %s', ar:'عرض الطلب المسبق حتى %s', zh:'预购优惠截止至%s', ja:'予約特典は%sまで', ru:'Скидка за предзаказ до %s', pl:'Oferta przedsprzedaży do %s' },
+  offer: { fr:'Offre de précommande', en:'Pre-order offer', es:'Oferta de reserva', de:'Vorbestellerangebot', it:'Offerta preordine', ar:'عرض الطلب المسبق', zh:'预购优惠', ja:'予約特典', ru:'Скидка за предзаказ', pl:'Oferta przedsprzedaży' },
+};
+function promoEndsHTML(item) {
+  const p = activePromo(item);
+  if (!p) return '';
+  const T = k => (_PROMO_T[k][LANG] || _PROMO_T[k].en);
+  if (!p.until) return `<div class="dp-promo-note">${T('offer')}</div>`;
+  let d = p.until;
+  try { d = new Date(p.until + 'T12:00:00').toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'long', year:'numeric' }); } catch (e) {}
+  return `<div class="dp-promo-note">${T('ends').replace('%s', d)}</div>`;
 }
 
 /* ── Localised item content helper ── */
@@ -311,6 +452,7 @@ function buildGate() {
   `).join('');
 
   _startGateClock(); // live system clock in the HUD
+  window.GLG_GATE_FIELD?.start(); // champ de drapeaux cinématique (dégrade proprement si absent/reduced-motion)
 
   // ── Hover: dim others + crossfade wash ──────────────────────────
   // mouseleave on the GRID CONTAINER — moving between buttons never fires
@@ -319,10 +461,12 @@ function buildGate() {
 
   function activateFlag(code) {
     setGateWash(code); // gradient is set synchronously, THEN container fades in via CSS
+    window.GLG_GATE_FIELD?.setTint(code); // réveille en couleur les drapeaux de cette langue dans le champ
   }
   function deactivateFlag() {
     btns.forEach(b => b.classList.remove('dimmed'));
     setGateWash(null); // container fades out (1.4 s CSS transition)
+    window.GLG_GATE_FIELD?.setTint(null);
   }
 
   btns.forEach(btn => {
@@ -351,6 +495,7 @@ function buildGate() {
 function selectLang(code) {
   LANG = code;
   _stopGateClock(); // gate is about to close
+  window.GLG_GATE_FIELD?.burst(code); // impulsion : les drapeaux de la langue choisie fusent vers le haut
   document.documentElement.lang = code;
   document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
 
@@ -395,6 +540,7 @@ function selectLang(code) {
   setTimeout(() => {
     gate.style.display = 'none';
     gate.classList.remove('gate--has-back'); // clean up back-button state
+    window.GLG_GATE_FIELD?.stop(); // gèle le champ : le gate est caché
     document.documentElement.style.overflow = ''; // re-enable scrolling (iOS Safari fix)
     document.body.style.overflow = '';
 
@@ -406,6 +552,19 @@ function selectLang(code) {
     initFxRates();
     autoTranslateFallback(code);
     _langSelected = true; // back button is now eligible to show on future re-opens
+
+    // Deep-link ?work=<id> : ouvrir la fiche demandée pendant que le loader
+    // couvre encore la page (même chemin que le clic d'une carte —
+    // age-gating et SEO gérés par showPage/buildDetail).
+    if (window._bootWorkId) {
+      const _bw = window._bootWorkId; window._bootWorkId = null;
+      showPage('detail', _bw);
+    } else if (window._bootPage) {
+      // Raccourcis PWA (#works/#shop/#profile…) : router après construction.
+      // profile/settings retombent proprement sur leur état déconnecté.
+      const _bp = window._bootPage; window._bootPage = null;
+      showPage(_bp);
+    }
 
     // Trigger the fade once the browser has committed the built DOM to screen.
     // Strategy: double-rAF ensures at least two paint frames have run, then a
@@ -427,7 +586,7 @@ function selectLang(code) {
     // the loader always clears. Idempotent with the rAF path above.
     setTimeout(() => { loader.classList.add('fade'); }, 650);
     setTimeout(() => { loader.style.display = 'none'; loader.classList.remove('show'); }, 2100);
-  }, 2000);
+  }, 700); // était 2000 — la construction du DOM prend <100 ms ; on garde un court battement cinématique
 }
 
 /* ══════════════════════════════════════════
@@ -461,6 +620,7 @@ function reopenLangGate() {
   });
 
   _startGateClock(); // resume live HUD clock
+  window.GLG_GATE_FIELD?.start(); // relance le champ de drapeaux
 
   // Show the back button only if a language was already chosen (not on first visit)
   if (_langSelected) {
@@ -486,6 +646,7 @@ function closeGateBack() {
   if (!gate) return;
 
   _stopGateClock();
+  window.GLG_GATE_FIELD?.stop(); // gèle le champ pendant la fermeture
 
   // Hide back button immediately so it doesn't linger during fade-out
   gate.classList.remove('gate--has-back');
@@ -551,6 +712,13 @@ function applyTranslations() {
     setText('nl-'  + navKeys[i], label);
     setText('nml-' + navKeys[i], label);
   });
+  // Bibliothèque — libellé hors tableau nav (id dédié, i18n _LIB_T)
+  setText('nl-library',  _lbt('navLabel'));
+  setText('nml-library', _lbt('navLabel'));
+  // La bibliothèque déjà rendue se reconstruit dans la nouvelle langue
+  if ($('library-root')?.childElementCount) buildLibraryPage();
+  // Menu du compte (avatar) : régénère ses libellés dans la nouvelle langue
+  if ($('nav-account-menu')) _buildAccountMenu();
   // Hero
   setText('hero-eye',    t('heroEye'));
   setHTML('hero-slogan', t('heroSlogan'));
@@ -656,12 +824,10 @@ function applyTranslations() {
   setText('cp-titles',  _cpt('titles'));
   setText('cd-promise', _cpt('direct'));
 
-  // Shop page
-  setText('shop-eye',          t('shopEye')      || 'Under Construction');
-  setHTML('shop-sub',          t('shopSub')       || 'Our shop is being assembled...');
-  setText('shop-btn-works-txt',t('shopBtnWorks')  || 'Explore Our Works');
-  setText('shop-btn-home-txt', t('shopBtnHome')   || 'Back to Home');
-  setText('shop-status-txt',   t('shopStatus')    || 'Coming Soon');
+  // Boutique v1 — contenu 100% généré par buildShopPage() (i18n interne
+  // _SHOP_T). Si la page est déjà construite, on la reconstruit dans la
+  // nouvelle langue.
+  if ($('shop-root')?.childElementCount) buildShopPage();
 
   // Search UI
   setText('search-label-txt', t('searchLabel') || 'Search a game or film');
@@ -682,22 +848,48 @@ function initSite() {
   buildAboutPage();
   buildFeaturedWork();
   buildRoadmap();
+  buildLauncherTeaser();
   initNav();
   initScrollProgress();
   initReveal();
   initCounters();
   initAnimations();
   initWorksFilters();
+  buildWorksDeals();   // rail "Offres du moment" (après la barre de filtres)
   initContactEnhancements();
   initAuthUI();
   initA11y();
   applyWorksPageLabels();
+  initAnimIdleObserver();
   // Initial SEO for the active page (re-runs on each language change via initSite)
   updateSEO(document.querySelector('.nav-link.active')?.dataset.nav || 'home', null);
   _siteBuilt = true; // enables age-gated re-render on auth changes
   // Touch swipe is now built into buildCarousel() — no separate init needed
   // Notify the GSAP animation layer that the site is ready
   document.dispatchEvent(new CustomEvent('glg:site-built'));
+}
+
+/* ══════════════════════════════════════════
+   PERF — PAUSE DES ANIMATIONS HORS ÉCRAN
+   ──────────────────────────────────────────
+   Les bandes à motifs (glgDrift), le héro (heroDrift + halo) et le marquee
+   tournent en boucle infinie. Hors écran, elles coûtaient du compositing
+   pour rien → jank en bas de l'accueil. Un IntersectionObserver pose
+   `.glg-anim-idle` (animation-play-state:paused, CSS glg-aaa §56) sur
+   toute section signature sortie du viewport. Ré-appelable (idempotent) :
+   ré-observer un élément déjà suivi est un no-op, et les éléments injectés
+   plus tard (boutique, roadmap) sont couverts par les appels post-build.
+══════════════════════════════════════════ */
+let _glgIdleIO = null;
+function initAnimIdleObserver() {
+  if (!('IntersectionObserver' in window)) return;
+  if (!_glgIdleIO) {
+    _glgIdleIO = new IntersectionObserver(entries => {
+      entries.forEach(en => en.target.classList.toggle('glg-anim-idle', !en.isIntersecting));
+    }, { rootMargin: '140px 0px' });
+  }
+  document.querySelectorAll('.hero, .marquee-bar, .glg-band, .glg-pattern, .showcase-section, .puzzle-strips, .works-hero')
+    .forEach(el => _glgIdleIO.observe(el));
 }
 
 /* ══════════════════════════════════════════
@@ -747,8 +939,8 @@ function _pageVeilReveal() {
   // setTimeout (pas rAF) : fiable même si la frame est throttlée (onglet en
   // arrière-plan). L'état final opacity:0 s'applique quoi qu'il arrive → jamais
   // d'écran noir bloqué. Un 2ᵉ timer fait office de filet de sécurité.
-  setTimeout(() => { if (_veilEl) _veilEl.style.opacity = '0'; }, 40);
-  setTimeout(() => { if (_veilEl) _veilEl.style.opacity = '0'; }, 650);
+  setTimeout(() => { if (_veilEl) { _veilEl.style.opacity = '0'; _veilEl.classList.add('revealing'); } }, 40);
+  setTimeout(() => { if (_veilEl) { _veilEl.style.opacity = '0'; _veilEl.classList.remove('revealing'); } }, 650);
 }
 
 /* Saut instantané en haut de page — réinitialise Lenis (smooth-scroll) puis le
@@ -796,10 +988,18 @@ function showPage(name, itemId = null) {
     if (name === 'profile') buildProfilePage();
     /* Build the dedicated settings page on demand */
     if (name === 'settings') buildSettingsPage();
+    /* Build the store page on demand (deals + catalogue + teasers) */
+    if (name === 'shop') buildShopPage();
+    /* Build the player's game library on demand (Rockstar/Steam-style) */
+    if (name === 'library') buildLibraryPage();
   }
 
-  // Update browser URL without reload
-  const url = itemId ? `#${name}/${itemId}` : `#${name}`;
+  // Update browser URL without reload.
+  // Fiches → ?work=<id> (URL indexable/partageable, honorée au boot) ;
+  // autres pages → fragment (pathname explicite pour purger un ?work résiduel).
+  const url = itemId
+    ? `${location.pathname}?work=${encodeURIComponent(itemId)}`
+    : `${location.pathname}#${name}`;
   window.history.pushState({ page: name, id: itemId }, '', url);
 
   setTimeout(initReveal, 80);
@@ -832,7 +1032,7 @@ function updateSEO(name, item) {
   if (item) {
     title = `${item.title} — ${BASE}`;
     desc  = (getItemField(item, 'tagline') || (getItemField(item, 'description') || [])[0] || '').slice(0, 300);
-    url   = `${origin}/#detail/${item.id}`;
+    url   = `${origin}/?work=${item.id}`; // URL réelle (non-fragment) = indexable + partageable
     image = `${origin}/${item.cover}`;
   } else {
     const navBtn = document.querySelector(`.nav-link[data-nav="${name}"]`);
@@ -843,6 +1043,9 @@ function updateSEO(name, item) {
   }
 
   document.title = title;
+  // Canonical par page : la fiche pointe vers sa propre URL ?work=<id>
+  const _canon = document.head.querySelector('link[rel="canonical"]');
+  if (_canon) _canon.setAttribute('href', item ? url : `${origin}/`);
   _setMeta('name', 'description', desc);
   _setMeta('property', 'og:title', title);
   _setMeta('property', 'og:description', desc);
@@ -868,7 +1071,9 @@ function updateSEO(name, item) {
     data.gamePlatform = (item.platforms || []).map(p => PLATS[p]?.name).filter(Boolean);
   }
   if (item.basePrice) {
-    data.offers = { '@type': 'Offer', price: item.basePrice, priceCurrency: 'EUR', availability: 'https://schema.org/PreOrder' };
+    data.offers = { '@type': 'Offer', price: promoPrice(item), priceCurrency: 'EUR', availability: 'https://schema.org/PreOrder' };
+    const _pr = activePromo(item);
+    if (_pr && _pr.until) data.offers.priceValidUntil = _pr.until;
   }
   if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'glg-jsonld-work'; document.head.appendChild(ld); }
   ld.textContent = JSON.stringify(data);
@@ -884,6 +1089,8 @@ window.addEventListener('popstate', e => {
     if (page) page.classList.add('active');
     if (state.page === 'profile') buildProfilePage();
     if (state.page === 'settings') buildSettingsPage();
+    if (state.page === 'shop') buildShopPage();
+    if (state.page === 'library') buildLibraryPage();
     if (state.page === 'works') requestAnimationFrame(buildCarousels);
     _scrollTopInstant();
   }
@@ -997,7 +1204,7 @@ function cardHTML(item, typeLabel) {
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
-        <div class="c-card-yr">${item.year} · <span class="price-display" data-base-price="${item.basePrice ?? ''}">${getPrice(item)}</span></div>
+        <div class="c-card-yr">${item.year} · ${priceHTML(item, { size:'sm' })}</div>
         <span class="c-card-cta" aria-hidden="true"><span class="c-card-cta-arrow">→</span></span>
       </div>
     </div>
@@ -1046,6 +1253,366 @@ function applyWorksFilter(f) {
   else if (f === 'games') { show(sections[0], false); show(sections[1], true);  if (band) band.style.display = 'none'; }
   else { sections.forEach(s => show(s, true)); if (band) band.style.display = ''; }
   requestAnimationFrame(buildCarousels); // re-measure visible carousels
+}
+
+/* ══════════════════════════════════════════
+   BOUTIQUE v1 — vraie page magasin (remplace le "OOPS" en travaux)
+   Offres du moment (promos actives) + catalogue complet (cartes store
+   réutilisées : prix, promos, wishlist) + teasers "Prochainement".
+══════════════════════════════════════════ */
+const _SHOP_T = {
+  eye:      { fr:'Boutique officielle', en:'Official store', es:'Tienda oficial', de:'Offizieller Store', it:'Store ufficiale', ar:'المتجر الرسمي', zh:'官方商店', ja:'公式ストア', ru:'Официальный магазин', pl:'Oficjalny sklep' },
+  title:    { fr:'BOUTIQUE', en:'STORE', es:'TIENDA', de:'STORE', it:'STORE', ar:'المتجر', zh:'商店', ja:'ストア', ru:'МАГАЗИН', pl:'SKLEP' },
+  sub:      { fr:'Figurines, peluches, vêtements et pièces collector à l\'effigie de nos mondes. L\'atelier prépare ses premières séries.', en:'Figurines, plushes, apparel and collector pieces from our worlds. The workshop is crafting its first runs.', es:'Figuras, peluches, ropa y piezas de coleccionista de nuestros mundos. El taller prepara sus primeras series.', de:'Figuren, Plüschtiere, Kleidung und Sammlerstücke aus unseren Welten. Die Werkstatt fertigt ihre ersten Serien.', it:'Figure, peluche, abbigliamento e pezzi da collezione dai nostri mondi. L\'atelier prepara le prime serie.', ar:'مجسّمات ودمى قطيفة وملابس وقطع للمقتنين من عوالمنا. الورشة تُعِدّ أولى سلاسلها.', zh:'来自我们世界的手办、毛绒玩具、服饰与典藏藏品。工坊正在打造第一批作品。', ja:'私たちの世界から生まれたフィギュア、ぬいぐるみ、アパレル、コレクターズアイテム。工房が最初のシリーズを製作中。', ru:'Фигурки, плюшевые игрушки, одежда и коллекционные предметы из наших миров. Мастерская готовит первые серии.', pl:'Figurki, pluszaki, odzież i przedmioty kolekcjonerskie z naszych światów. Warsztat przygotowuje pierwsze serie.' },
+  gamesNotice: { fr:'Vous cherchez nos jeux et films interactifs ?', en:'Looking for our games and interactive films?', es:'¿Buscas nuestros juegos y films interactivos?', de:'Du suchst unsere Spiele und interaktiven Filme?', it:'Cerchi i nostri giochi e film interattivi?', ar:'تبحث عن ألعابنا وأفلامنا التفاعلية؟', zh:'在找我们的游戏与互动电影？', ja:'ゲームやインタラクティブフィルムをお探しですか？', ru:'Ищете наши игры и интерактивные фильмы?', pl:'Szukasz naszych gier i filmów interaktywnych?' },
+  gamesNoticeSub: { fr:'Précommandes, offres et fiches détaillées vivent dans Nos Œuvres.', en:'Pre-orders, deals and full pages live in Our Works.', es:'Las reservas, ofertas y fichas completas están en Nuestras Obras.', de:'Vorbestellungen, Angebote und Detailseiten findest du unter Unsere Werke.', it:'Preordini, offerte e schede complete vivono in Le Nostre Opere.', ar:'الطلبات المسبقة والعروض والصفحات الكاملة في «أعمالنا».', zh:'预购、优惠与完整页面都在「我们的作品」。', ja:'予約、セール、詳細ページは「作品一覧」にあります。', ru:'Предзаказы, скидки и страницы игр — в разделе «Наши работы».', pl:'Przedsprzedaż, oferty i pełne strony znajdziesz w Naszych Dziełach.' },
+  gamesCta: { fr:'Voir Nos Œuvres', en:'Browse Our Works', es:'Ver Nuestras Obras', de:'Zu unseren Werken', it:'Vai alle Opere', ar:'تصفّح أعمالنا', zh:'前往我们的作品', ja:'作品一覧へ', ru:'К нашим работам', pl:'Zobacz Nasze Dzieła' },
+  figurines:{ fr:'Figurines', en:'Figurines', es:'Figuras', de:'Figuren', it:'Figurine', ar:'مجسّمات', zh:'手办', ja:'フィギュア', ru:'Фигурки', pl:'Figurki' },
+  plush:    { fr:'Peluches', en:'Plushes', es:'Peluches', de:'Plüschtiere', it:'Peluche', ar:'دمى قطيفة', zh:'毛绒玩具', ja:'ぬいぐるみ', ru:'Плюшевые игрушки', pl:'Pluszaki' },
+  apparel:  { fr:'Vêtements', en:'Apparel', es:'Ropa', de:'Kleidung', it:'Abbigliamento', ar:'ملابس', zh:'服饰', ja:'アパレル', ru:'Одежда', pl:'Odzież' },
+  deals:    { fr:'Offres du moment', en:'Current deals', es:'Ofertas del momento', de:'Aktuelle Angebote', it:'Offerte del momento', ar:'العروض الحالية', zh:'当前优惠', ja:'開催中のセール', ru:'Текущие скидки', pl:'Aktualne oferty' },
+  dealsSub: { fr:'Remises de précommande — appliquées automatiquement au panier.', en:'Pre-order discounts — applied automatically at checkout.', es:'Descuentos de reserva — aplicados automáticamente.', de:'Vorbesteller-Rabatte — automatisch angewendet.', it:'Sconti preordine — applicati automaticamente.', ar:'خصومات الطلب المسبق — تُطبَّق تلقائياً.', zh:'预购折扣——自动生效。', ja:'予約割引 — 自動的に適用されます。', ru:'Скидки за предзаказ — применяются автоматически.', pl:'Zniżki przedsprzedażowe — naliczane automatycznie.' },
+  catalog:  { fr:'Tout le catalogue', en:'Full catalogue', es:'Catálogo completo', de:'Gesamter Katalog', it:'Catalogo completo', ar:'الكتالوج الكامل', zh:'完整目录', ja:'全カタログ', ru:'Весь каталог', pl:'Pełny katalog' },
+  catalogSub:{ fr:'Huit mondes. Un seul standard : l\'intention.', en:'Eight worlds. One standard: intention.', es:'Ocho mundos. Un solo estándar: la intención.', de:'Acht Welten. Ein Standard: Intention.', it:'Otto mondi. Un solo standard: l\'intenzione.', ar:'ثمانية عوالم. معيار واحد: القصد.', zh:'八个世界。一个标准：用心。', ja:'8つの世界。基準はただひとつ、意図。', ru:'Восемь миров. Один стандарт: замысел.', pl:'Osiem światów. Jeden standard: intencja.' },
+  soon:     { fr:'Prochainement', en:'Coming next', es:'Próximamente', de:'Demnächst', it:'Prossimamente', ar:'قريباً', zh:'即将推出', ja:'近日登場', ru:'Скоро', pl:'Wkrótce' },
+  soonSub:  { fr:'La boutique s\'agrandira au fil des sorties.', en:'The store grows with every release.', es:'La tienda crece con cada lanzamiento.', de:'Der Store wächst mit jeder Veröffentlichung.', it:'Lo store cresce a ogni uscita.', ar:'يكبر المتجر مع كل إصدار.', zh:'商店随每次发售而成长。', ja:'ストアはリリースごとに成長します。', ru:'Магазин растёт с каждым релизом.', pl:'Sklep rośnie z każdą premierą.' },
+  soonTag:  { fr:'Bientôt', en:'Coming soon', es:'Próximamente', de:'Bald', it:'Presto', ar:'قريباً', zh:'敬请期待', ja:'まもなく', ru:'Скоро', pl:'Wkrótce' },
+  merch:    { fr:'Produits dérivés', en:'Merch', es:'Merchandising', de:'Merch', it:'Merch', ar:'منتجات', zh:'周边商品', ja:'グッズ', ru:'Мерч', pl:'Gadżety' },
+  artbooks: { fr:'Artbooks', en:'Art books', es:'Art books', de:'Artbooks', it:'Artbook', ar:'كتب فنية', zh:'画集', ja:'アートブック', ru:'Артбуки', pl:'Artbooki' },
+  ost:      { fr:'Bandes originales', en:'Soundtracks', es:'Bandas sonoras', de:'Soundtracks', it:'Colonne sonore', ar:'الموسيقى التصويرية', zh:'原声音乐', ja:'サウンドトラック', ru:'Саундтреки', pl:'Ścieżki dźwiękowe' },
+  collector:{ fr:'Éditions collector', en:'Collector editions', es:'Ediciones de coleccionista', de:'Collector-Editionen', it:'Edizioni collector', ar:'إصدارات المقتنين', zh:'典藏版', ja:'コレクターズ版', ru:'Коллекционные издания', pl:'Edycje kolekcjonerskie' },
+  view:     { fr:'Voir la fiche', en:'View page', es:'Ver ficha', de:'Zur Seite', it:'Vedi la scheda', ar:'عرض الصفحة', zh:'查看页面', ja:'ページを見る', ru:'К странице', pl:'Zobacz stronę' },
+};
+const _st = k => (_SHOP_T[k] && (_SHOP_T[k][LANG] || _SHOP_T[k].en)) || '';
+
+/* Carte d'offre (précommande) — partagée entre la page Nos Œuvres (rail
+   "Offres du moment") et tout futur usage store. */
+function _shopDealHTML(w) {
+  const tint = w.tint || '#ffffff';
+  const tintRgb = hexToRgb(tint) || '255,255,255';
+  return `
+    <article class="shop-deal reveal" style="--tint:${tint};--tint-rgb:${tintRgb}" role="button" tabindex="0"
+             aria-label="${w.title}" onclick="showPage('detail','${w.id}')"
+             onkeydown="if(event.key==='Enter')showPage('detail','${w.id}')">
+      <div class="shop-deal-cover"><img src="${av(w.cover)}" alt="" loading="lazy" decoding="async"></div>
+      <div class="shop-deal-info">
+        <span class="shop-deal-type">${getCatLabel(w)} · ${w.year}</span>
+        <h3 class="shop-deal-title">${w.title}</h3>
+        <p class="shop-deal-tagline">${getItemField(w, 'tagline') || ''}</p>
+        <div class="shop-deal-price">${priceHTML(w)}</div>
+        ${promoEndsHTML(w)}
+        <span class="shop-deal-cta">${_st('view')} <span aria-hidden="true">${_ARR()}</span></span>
+      </div>
+      <button class="c-wish ${wishHas(w.id)?'on':''}" data-wish="${w.id}" aria-pressed="${wishHas(w.id)}"
+              aria-label="${_wt('add')}" onclick="event.stopPropagation();toggleWish('${w.id}',this)">${_HEART_SVG}</button>
+    </article>`;
+}
+
+/* Rail "Offres du moment" sur NOS ŒUVRES — la section d'achat des jeux et
+   films. (La Boutique, elle, est dédiée au merchandising.) Inséré après la
+   barre de filtres ; disparaît proprement s'il n'y a aucune promo active. */
+function buildWorksDeals() {
+  const page = $('page-works'); if (!page) return;
+  let host = page.querySelector('#works-deals');
+  const deals = filterByAge(ALL_WORKS).filter(w => activePromo(w));
+  if (!deals.length) { host?.remove(); return; }
+  if (!host) {
+    host = document.createElement('section');
+    host.id = 'works-deals';
+    host.className = 'shop-sec shop-sec--deals works-deals';
+    const anchor = page.querySelector('.works-filters') || page.querySelector('.works-hero');
+    if (anchor) anchor.insertAdjacentElement('afterend', host);
+    else page.prepend(host);
+  }
+  host.innerHTML = `
+    <div class="shop-sec-head reveal">
+      <div>
+        <div class="dp-sec-label">${_st('deals')}</div>
+        <p class="shop-sec-sub">${_st('dealsSub')}</p>
+      </div>
+    </div>
+    <div class="shop-deals">${deals.map(_shopDealHTML).join('')}</div>`;
+}
+
+/* BOUTIQUE = MERCHANDISING UNIQUEMENT (décision studio) : figurines,
+   peluches, vêtements, artbooks, BO, collector — les jeux/films s'achètent
+   dans Nos Œuvres (bandeau de renvoi en bas de page). */
+function buildShopPage() {
+  const root = $('shop-root');
+  if (!root) return;
+
+  const CATS = [
+    ['figurines', '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M8 11.5c1-1.2 2.4-1.9 4-1.9s3 .7 4 1.9M12 9.6V16m0 0l-2.6 4.4M12 16l2.6 4.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5.5 21h13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>'],
+    ['plush', '<svg viewBox="0 0 24 24" fill="none"><circle cx="7.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="16.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="12.5" r="6" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="11.5" r=".8" fill="currentColor"/><circle cx="14" cy="11.5" r=".8" fill="currentColor"/><path d="M10.6 14.6c.9.7 1.9.7 2.8 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'],
+    ['apparel', '<svg viewBox="0 0 24 24" fill="none"><path d="M9 4L4 7l1.8 3.4L8 9.5V20h8V9.5l2.2.9L20 7l-5-3a3 3 0 01-6 0z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>'],
+    ['artbooks', '<svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.3"/><path d="M5 17h13" stroke="currentColor" stroke-width="1.3"/></svg>'],
+    ['ost', '<svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="17" r="2.4" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="15" r="2.4" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 17V6l10-2v11" stroke="currentColor" stroke-width="1.3"/></svg>'],
+    ['collector', '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.5 5 5.5.8-4 3.9.95 5.5L12 16.5 7.05 18.1 8 12.7 4 8.8 9.5 8 12 3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>'],
+  ];
+
+  root.innerHTML = `
+    <div class="works-hero glg-pattern glg-line-after">
+      <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:60s;--glg-direction:reverse"></div>
+      <p class="section-eye reveal">${_st('eye')}</p>
+      <h1 class="section-h reveal" style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px">${_st('title')}</h1>
+      <p class="reveal" id="shop-sub" style="font-size:.87rem;color:var(--greyt);max-width:480px;line-height:1.82;margin-top:16px">${_st('sub')}</p>
+    </div>
+
+    <section class="shop-sec shop-sec--soon">
+      <div class="shop-sec-head reveal">
+        <div>
+          <div class="dp-sec-label">${_st('soon')}</div>
+          <p class="shop-sec-sub">${_st('soonSub')}</p>
+        </div>
+      </div>
+      <div class="merch-grid">
+        ${CATS.map(([key, svg], i) => `
+        <div class="merch-cat reveal" style="transition-delay:${i * 0.05}s">
+          <span class="merch-cat-soon">${_st('soonTag')}</span>
+          <div class="merch-cat-ico">${svg}</div>
+          <span class="merch-cat-name">${_st(key)}</span>
+        </div>`).join('')}
+      </div>
+    </section>
+
+    <section class="shop-sec shop-sec--redirect">
+      <div class="shop-redirect reveal">
+        <div class="shop-redirect-txt">
+          <h2 class="shop-redirect-title">${_st('gamesNotice')}</h2>
+          <p class="shop-sec-sub">${_st('gamesNoticeSub')}</p>
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="showPage('works')">${_st('gamesCta')} <span aria-hidden="true">${_ARR()}</span></button>
+      </div>
+    </section>`;
+  initAnimIdleObserver(); // le hero à motifs injecté ci-dessus doit aussi se mettre en pause hors écran
+}
+
+/* ══════════════════════════════════════════
+   BIBLIOTHÈQUE (façon Rockstar/Steam) — jeux possédés du joueur
+   Données : profiles.library [{id,platform,at}] (RPC grant_game à l'achat).
+   JOUER / INSTALLER → hand-off vers le launcher via le protocole glg://
+   (même mécanique que steam://) ; le launcher confirme l'action chez lui.
+══════════════════════════════════════════ */
+const _LIB_T = {
+  navLabel:   { fr:'Bibliothèque', en:'Library', es:'Biblioteca', de:'Bibliothek', it:'Libreria', ar:'المكتبة', zh:'游戏库', ja:'ライブラリ', ru:'Библиотека', pl:'Biblioteka' },
+  inLib:      { fr:'Dans ta bibliothèque', en:'In your library', es:'En tu biblioteca', de:'In deiner Bibliothek', it:'Nella tua libreria', ar:'في مكتبتك', zh:'已在你的游戏库中', ja:'ライブラリに追加済み', ru:'В вашей библиотеке', pl:'W twojej bibliotece' },
+  eyebrow:    { fr:'Ma bibliothèque', en:'My library', es:'Mi biblioteca', de:'Meine Bibliothek', it:'La mia libreria', ar:'مكتبتي', zh:'我的游戏库', ja:'マイライブラリ', ru:'Моя библиотека', pl:'Moja biblioteka' },
+  play:       { fr:'Jouer', en:'Play', es:'Jugar', de:'Spielen', it:'Gioca', ar:'العب', zh:'开始游戏', ja:'プレイ', ru:'Играть', pl:'Graj' },
+  install:    { fr:'Installer', en:'Install', es:'Instalar', de:'Installieren', it:'Installa', ar:'تثبيت', zh:'安装', ja:'インストール', ru:'Установить', pl:'Zainstaluj' },
+  signedOut:  { fr:'Connecte-toi pour retrouver tous les jeux que tu possèdes, prêts à installer et à lancer.', en:'Sign in to find every game you own, ready to install and launch.', es:'Inicia sesión para encontrar todos los juegos que posees, listos para instalar y jugar.', de:'Melde dich an, um alle deine Spiele zu finden — bereit zum Installieren und Starten.', it:'Accedi per ritrovare tutti i giochi che possiedi, pronti da installare e avviare.', ar:'سجّل الدخول لتجد كل ألعابك جاهزة للتثبيت والتشغيل.', zh:'登录后即可找到你拥有的所有游戏，随时安装与启动。', ja:'サインインすると、所有しているすべてのゲームをインストール・起動できます。', ru:'Войдите, чтобы увидеть все ваши игры — готовые к установке и запуску.', pl:'Zaloguj się, aby zobaczyć wszystkie posiadane gry — gotowe do instalacji i uruchomienia.' },
+  empty:      { fr:'Aucun jeu pour le moment', en:'No games yet', es:'Aún no hay juegos', de:'Noch keine Spiele', it:'Ancora nessun gioco', ar:'لا ألعاب بعد', zh:'暂无游戏', ja:'まだゲームがありません', ru:'Пока нет игр', pl:'Brak gier' },
+  emptyNote:  { fr:'Tes achats GEEKLEARN GAMES — et tes jeux des comptes liés Steam, Epic ou PlayStation — apparaîtront ici, prêts à installer.', en:'Your GEEKLEARN GAMES purchases — and games from linked Steam, Epic or PlayStation accounts — will appear here, ready to install.', es:'Tus compras de GEEKLEARN GAMES — y los juegos de cuentas vinculadas de Steam, Epic o PlayStation — aparecerán aquí.', de:'Deine GEEKLEARN-GAMES-Käufe — und Spiele verknüpfter Steam-, Epic- oder PlayStation-Konten — erscheinen hier.', it:'I tuoi acquisti GEEKLEARN GAMES — e i giochi degli account collegati Steam, Epic o PlayStation — appariranno qui.', ar:'ستظهر هنا مشترياتك من GEEKLEARN GAMES — وألعاب حساباتك المرتبطة على Steam وEpic وPlayStation.', zh:'你在 GEEKLEARN GAMES 的购买——以及已绑定的 Steam、Epic 或 PlayStation 账户中的游戏——都会显示在这里。', ja:'GEEKLEARN GAMESでの購入と、連携済みのSteam・Epic・PlayStationアカウントのゲームがここに表示されます。', ru:'Ваши покупки в GEEKLEARN GAMES — и игры привязанных аккаунтов Steam, Epic или PlayStation — появятся здесь.', pl:'Twoje zakupy w GEEKLEARN GAMES — oraz gry z połączonych kont Steam, Epic i PlayStation — pojawią się tutaj.' },
+  browse:     { fr:'Parcourir Nos Œuvres', en:'Browse Our Works', es:'Ver Nuestras Obras', de:'Unsere Werke ansehen', it:'Sfoglia le Opere', ar:'تصفّح أعمالنا', zh:'浏览我们的作品', ja:'作品一覧を見る', ru:'К нашим работам', pl:'Przeglądaj Nasze Dzieła' },
+  ownedOn:    { fr:'Possédé sur %s', en:'Owned on %s', es:'En propiedad en %s', de:'Im Besitz auf %s', it:'Posseduto su %s', ar:'مملوك على %s', zh:'拥有于%s', ja:'%sで所有', ru:'Куплено в %s', pl:'Posiadane na %s' },
+  since:      { fr:'Ajouté le %s', en:'Added %s', es:'Añadido el %s', de:'Hinzugefügt am %s', it:'Aggiunto il %s', ar:'أُضيف في %s', zh:'添加于%s', ja:'%sに追加', ru:'Добавлено %s', pl:'Dodano %s' },
+  handoffPlayT:{ fr:'Ouvrir le launcher pour jouer ?', en:'Open the launcher to play?', es:'¿Abrir el launcher para jugar?', de:'Launcher zum Spielen öffnen?', it:'Aprire il launcher per giocare?', ar:'فتح المشغّل للعب؟', zh:'打开启动器开始游戏？', ja:'ランチャーを開いてプレイしますか？', ru:'Открыть лаунчер, чтобы играть?', pl:'Otworzyć launcher, aby zagrać?' },
+  handoffInstT:{ fr:'Ouvrir le launcher pour installer ?', en:'Open the launcher to install?', es:'¿Abrir el launcher para instalar?', de:'Launcher zum Installieren öffnen?', it:'Aprire il launcher per installare?', ar:'فتح المشغّل للتثبيت؟', zh:'打开启动器进行安装？', ja:'ランチャーを開いてインストールしますか？', ru:'Открыть лаунчер для установки?', pl:'Otworzyć launcher, aby zainstalować?' },
+  handoffBody: { fr:'%s va s’ouvrir dans le launcher GEEKLEARN GAMES — tu confirmeras l’action là-bas.', en:'%s will open in the GEEKLEARN GAMES launcher — you’ll confirm the action there.', es:'%s se abrirá en el launcher de GEEKLEARN GAMES — confirmarás la acción allí.', de:'%s öffnet sich im GEEKLEARN-GAMES-Launcher — dort bestätigst du die Aktion.', it:'%s si aprirà nel launcher GEEKLEARN GAMES — confermerai l’azione lì.', ar:'سيُفتح %s في مشغّل GEEKLEARN GAMES — وستؤكد الإجراء هناك.', zh:'%s 将在 GEEKLEARN GAMES 启动器中打开——你将在那里确认操作。', ja:'%sはGEEKLEARN GAMESランチャーで開きます — 操作はそこで確認します。', ru:'%s откроется в лаунчере GEEKLEARN GAMES — действие вы подтвердите там.', pl:'%s otworzy się w launcherze GEEKLEARN GAMES — tam potwierdzisz działanie.' },
+  open:       { fr:'Ouvrir le launcher', en:'Open launcher', es:'Abrir el launcher', de:'Launcher öffnen', it:'Apri il launcher', ar:'فتح المشغّل', zh:'打开启动器', ja:'ランチャーを開く', ru:'Открыть лаунчер', pl:'Otwórz launcher' },
+  missT:      { fr:'Launcher introuvable', en:'Launcher not found', es:'Launcher no encontrado', de:'Launcher nicht gefunden', it:'Launcher non trovato', ar:'المشغّل غير موجود', zh:'未找到启动器', ja:'ランチャーが見つかりません', ru:'Лаунчер не найден', pl:'Nie znaleziono launchera' },
+  missNote:   { fr:'Le launcher GEEKLEARN GAMES n’est pas encore installé sur cette machine. Il arrive très bientôt en téléchargement — tes jeux restent liés à ton compte, rien n’est perdu.', en:'The GEEKLEARN GAMES launcher isn’t installed on this machine yet. It’s coming very soon — your games stay tied to your account, nothing is lost.', es:'El launcher de GEEKLEARN GAMES aún no está instalado en este equipo. Llegará muy pronto — tus juegos permanecen vinculados a tu cuenta.', de:'Der GEEKLEARN-GAMES-Launcher ist auf diesem Rechner noch nicht installiert. Er kommt sehr bald — deine Spiele bleiben mit deinem Konto verknüpft.', it:'Il launcher GEEKLEARN GAMES non è ancora installato su questa macchina. Arriverà molto presto — i tuoi giochi restano legati al tuo account.', ar:'مشغّل GEEKLEARN GAMES غير مثبّت على هذا الجهاز بعد. سيتوفر قريباً جداً — تبقى ألعابك مرتبطة بحسابك.', zh:'这台设备尚未安装 GEEKLEARN GAMES 启动器。它很快就会推出——你的游戏始终绑定在你的账户上。', ja:'このマシンにはGEEKLEARN GAMESランチャーがまだインストールされていません。まもなく登場します — ゲームはアカウントに紐づいたままです。', ru:'Лаунчер GEEKLEARN GAMES ещё не установлен на этом компьютере. Он скоро выйдет — ваши игры остаются привязанными к аккаунту.', pl:'Launcher GEEKLEARN GAMES nie jest jeszcze zainstalowany na tym komputerze. Pojawi się już wkrótce — twoje gry pozostają przypisane do konta.' },
+  ok:         { fr:'Compris', en:'Got it', es:'Entendido', de:'Verstanden', it:'Capito', ar:'فهمت', zh:'知道了', ja:'了解', ru:'Понятно', pl:'Rozumiem' },
+};
+const _lbt = k => (_LIB_T[k] && (_LIB_T[k][LANG] || _LIB_T[k].en)) || '';
+/* Flèche directionnelle : « → » pointe EN ARRIÈRE en RTL (arabe) — miroir. */
+const _ARR = () => (LANG === 'ar' ? '←' : '→');
+const _LIB_PLAT_NAME = pid => (pid === 'glg' || !pid) ? 'GEEKLEARN GAMES' : ((typeof PLATS !== 'undefined' && PLATS[pid] && PLATS[pid].name) || pid);
+
+let _libSelected = null;
+
+/* Le joueur possède-t-il cette œuvre ? Lit le cache de profil maintenu par
+   refreshAccountUI — synchrone, utilisable par buildDetail. */
+function _ownsWork(id) {
+  const lib = _accountProfile && _accountProfile.library;
+  return Array.isArray(lib) && lib.some(e => e && e.id === id);
+}
+
+async function buildLibraryPage() {
+  const root = $('library-root');
+  if (!root) return;
+  const configured = !!window.GLG_AUTH?.isConfigured?.();
+  const user = configured ? await GLG_AUTH.getUser() : null;
+
+  if (!user) {
+    root.innerHTML = `
+      <section class="pp-signed-out"><div class="pp-so-inner reveal">
+        <div class="pp-so-badge">${_ACCOUNT_ICON}</div>
+        <h1 class="pp-so-title">${_lbt('navLabel')}</h1>
+        <p class="pp-so-desc">${_lbt('signedOut')}</p>
+        <div class="pp-so-actions">
+          <button class="btn btn-primary" onclick="openAuthModal('login')">${_ppt('signIn')}</button>
+          <button class="btn btn-outline" onclick="openAuthModal('signup')">${_ppt('createAcc')}</button>
+        </div>
+      </div></section>`;
+    setTimeout(initReveal, 60);
+    return;
+  }
+
+  const p = (await GLG_AUTH.getProfile()) || {};
+  const lib = (Array.isArray(p.library) ? p.library : [])
+    .map(e => ({ e, w: ALL_WORKS.find(w => w.id === e.id) }))
+    .filter(x => x.w && !isMatureHidden(x.w));
+
+  if (!lib.length) {
+    root.innerHTML = `
+      <section class="pp-signed-out"><div class="pp-so-inner reveal">
+        <div class="pp-so-badge">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5h16v13H4z" stroke="currentColor" stroke-width="1.4"/><path d="M4 9h16M8 5.5V9" stroke="currentColor" stroke-width="1.4"/><path d="M9.5 13.5l2 2 3.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1 class="pp-so-title">${_lbt('empty')}</h1>
+        <p class="pp-so-desc">${_lbt('emptyNote')}</p>
+        <div class="pp-so-actions">
+          <button class="btn btn-primary" onclick="showPage('works')">${_lbt('browse')}</button>
+        </div>
+      </div></section>`;
+    setTimeout(initReveal, 60);
+    return;
+  }
+
+  if (!_libSelected || !lib.some(x => x.w.id === _libSelected)) _libSelected = lib[0].w.id;
+  const recent = Array.isArray(p.recent_games) ? p.recent_games : [];
+
+  root.innerHTML = `
+    <div class="lib-shell">
+      <aside class="lib-rail" aria-label="${_lbt('eyebrow')}">
+        <div class="lib-rail-head">
+          <span>${_lbt('eyebrow')}</span>
+          <span class="lib-count">${lib.length}</span>
+        </div>
+        <div class="lib-rail-list">
+          ${lib.map(x => `
+          <button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="${x.w.id}" aria-current="${x.w.id === _libSelected ? 'true' : 'false'}">
+            <span class="lib-item-cover"><img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async"></span>
+            <span class="lib-item-name">${x.w.title}</span>
+          </button>`).join('')}
+        </div>
+      </aside>
+      <div class="lib-stage" id="lib-stage">${_libStageHTML(lib.find(x => x.w.id === _libSelected), recent)}</div>
+    </div>`;
+
+  root.querySelectorAll('[data-lib]').forEach(b => b.addEventListener('click', () => {
+    _libSelected = b.dataset.lib;
+    root.querySelectorAll('[data-lib]').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-current', x === b ? 'true' : 'false'); });
+    const stage = $('lib-stage');
+    if (stage) {
+      stage.classList.remove('lib-stage--in');
+      stage.innerHTML = _libStageHTML(lib.find(x => x.w.id === _libSelected), recent);
+      setTimeout(() => stage.classList.add('lib-stage--in'), 20); // setTimeout, pas rAF (onglet caché)
+    }
+  }));
+  setTimeout(() => $('lib-stage')?.classList.add('lib-stage--in'), 30);
+}
+
+/* Vitrine du jeu sélectionné (key art plein cadre + actions launcher). */
+function _libStageHTML(x, recent) {
+  if (!x) return '';
+  const w = x.e ? x.w : x, e = x.e || {};
+  const tint = w.tint || '#ffffff';
+  const rgb  = hexToRgb(tint) || '255,255,255';
+  const rec  = (recent || []).find(r => r.id === w.id);
+  let playedTxt = '';
+  if (rec && rec.mins > 0) {
+    const mins = Math.max(0, parseInt(rec.mins, 10) || 0);
+    let h = '';
+    try { h = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: mins >= 600 ? 0 : 1 }).format(mins / 60); } catch (err) { h = (mins / 60).toFixed(1); }
+    playedTxt = mins >= 60 ? _rgt('playedH').replace('%s', h) : _rgt('playedM').replace('%s', String(mins));
+  }
+  let sinceTxt = '';
+  if (e.at) { try { sinceTxt = _lbt('since').replace('%s', new Date(e.at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'long', year:'numeric' })); } catch (err) {} }
+  const troph = _gameTrophySummary(w.id);
+  return `
+    <div class="lib-hero" style="--tint:${tint};--tint-rgb:${rgb}">
+      <div class="lib-hero-bg" style="background-image:url('${av(w.cover)}')"></div>
+      <div class="lib-hero-veil"></div>
+      <div class="lib-hero-body">
+        <span class="lib-eyebrow">${getCatLabel(w)} · ${w.year}</span>
+        ${w.logo ? `<img class="lib-logo" src="${av(w.logo)}" alt="${w.title}">` : `<h1 class="lib-title">${w.title}</h1>`}
+        <p class="lib-tagline">${getItemField(w, 'tagline') || ''}</p>
+        <div class="lib-ctas">
+          <button class="btn btn-primary btn-lg lib-play" onclick="launcherHandoff('${w.id}','play')">▶ ${_lbt('play')}</button>
+          <button class="btn btn-outline btn-lg" onclick="launcherHandoff('${w.id}','install')">${_lbt('install')}</button>
+        </div>
+        <div class="lib-meta">
+          <span>${_lbt('ownedOn').replace('%s', escHtml(_LIB_PLAT_NAME(e.platform)))}</span>
+          ${sinceTxt ? `<span class="lib-meta-dot">·</span><span>${sinceTxt}</span>` : ''}
+          ${playedTxt ? `<span class="lib-meta-dot">·</span><span>${playedTxt}</span>` : ''}
+        </div>
+        <div class="lib-links">
+          <button class="lib-link" onclick="showPage('detail','${w.id}')">${_st('view')} <span aria-hidden="true">${_ARR()}</span></button>
+          ${troph ? `<button class="lib-link" onclick="openTrophyList('${w.id}')">${_tt('section')} <span aria-hidden="true">${_ARR()}</span></button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── HAND-OFF LAUNCHER (glg:// — même mécanique que steam://) ───────────
+   Le site demande, le launcher confirme. Si le protocole n'est pas
+   enregistré (launcher absent), la page ne perd jamais le focus →
+   on bascule la modale en état "launcher introuvable". */
+function launcherHandoff(gameId, verb) {
+  const w = ALL_WORKS.find(i => i.id === gameId);
+  if (!w) return;
+  document.getElementById('glg-handoff')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'glg-handoff';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', verb === 'play' ? _lbt('handoffPlayT') : _lbt('handoffInstT'));
+  ov.innerHTML = `
+    <div class="handoff-card">
+      <div class="handoff-ico" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M13.5 4.5c2.6-1.4 5-1.5 6-1 .5 1 .4 3.4-1 6-1.1 2-2.9 4-5.2 5.6l-.6 3.2-2.4-1.4-2.7 1.6.3-3.1-2.2-2.2-3.1.3 1.6-2.7L2.8 8.4 6 7.8C7.6 5.5 11.4 5.6 13.5 4.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="14.5" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+      </div>
+      <h3 class="handoff-title" id="ho-title">${verb === 'play' ? _lbt('handoffPlayT') : _lbt('handoffInstT')}</h3>
+      <p class="handoff-body" id="ho-body">${_lbt('handoffBody').replace('%s', `<b>${escHtml(w.title)}</b>`)}</p>
+      <div class="handoff-actions" id="ho-actions">
+        <button class="btn btn-primary" id="ho-open">${_lbt('open')}</button>
+        <button class="auth-link" id="ho-cancel">${_mt('cancel')}</button>
+      </div>
+      <p class="handoff-proto" aria-hidden="true">glg://${verb}/${escHtml(gameId)}</p>
+    </div>`;
+  const opener = document.activeElement; // restituer le focus à la fermeture (a11y)
+  const close = () => {
+    ov.remove(); document.removeEventListener('keydown', onKey);
+    if (opener && document.contains(opener)) { try { opener.focus(); } catch (e) {} }
+  };
+  const onKey = ev => {
+    if (ev.key === 'Escape') { close(); return; }
+    if (ev.key === 'Tab') { // piège de focus : Tab circule DANS la modale
+      const f = [...ov.querySelectorAll('button:not([disabled])')];
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+    }
+  };
+  ov.addEventListener('click', ev => { if (ev.target === ov) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  setTimeout(() => { ov.classList.add('open'); ov.querySelector('#ho-open')?.focus(); }, 20); // setTimeout, pas rAF
+
+  ov.querySelector('#ho-cancel')?.addEventListener('click', close);
+  ov.querySelector('#ho-open')?.addEventListener('click', () => {
+    const btn = ov.querySelector('#ho-open');
+    btn.disabled = true;
+    let left = false;
+    const onBlur = () => { left = true; };
+    window.addEventListener('blur', onBlur, { once: true });
+    // Navigation vers le protocole custom : no-op silencieux s'il n'est pas
+    // enregistré ; sinon l'OS ouvre le launcher (qui prend le focus).
+    try { window.location.href = `glg://${verb}/${encodeURIComponent(gameId)}`; } catch (err) {}
+    setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      if (left || document.hidden) { close(); return; }   // launcher ouvert
+      // Launcher absent → état "introuvable" (le télécharger arrive avec Tauri)
+      ov.querySelector('#ho-title').textContent = _lbt('missT');
+      ov.querySelector('#ho-body').textContent = _lbt('missNote');
+      ov.querySelector('#ho-actions').innerHTML = `<button class="btn btn-outline" id="ho-ok">${_lbt('ok')}</button>`;
+      const ok = ov.querySelector('#ho-ok');
+      ok?.addEventListener('click', close);
+      ok?.focus(); // l'élément focalisé vient d'être détruit → re-ancrer le focus
+    }, 1500);
+  });
 }
 
 /* ══════════════════════════════════════════
@@ -1181,20 +1748,109 @@ function buildRoadmap() {
       ${items.map((it, i) => {
         const tint = it.tint || '#ffffff';
         const rgb  = hexToRgb(tint) || '255,255,255';
+        const ghostYear = (String(it.year).match(/\d{4}/g) || []).pop() || '';
         return `
         <button class="rm-node ${i % 2 ? 'rm-node--r reveal reveal-right' : 'rm-node--l reveal reveal-left'}" style="--tint:${tint};--tint-rgb:${rgb}"
                 onclick="showPage('detail','${it.id}')" aria-label="${it.title} — ${it.year}">
           <span class="rm-dot" aria-hidden="true"></span>
           <span class="rm-card">
-            <span class="rm-date">${it.year}</span>
-            <span class="rm-type">${getCatLabel(it)}</span>
+            <span class="rm-card-top">
+              <img class="rm-cover" src="${av(it.cover)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">
+              <span class="rm-card-meta">
+                <span class="rm-date">${it.year}</span>
+                <span class="rm-type">${getCatLabel(it)}</span>
+              </span>
+            </span>
             <span class="rm-name">${it.title}</span>
             <span class="rm-tag">${getItemField(it, 'tagline')}</span>
             <span class="rm-go">${L(_ROADMAP_T.cta)} <span class="rm-go-arr">→</span></span>
           </span>
+          ${ghostYear ? `<span class="rm-ghost" aria-hidden="true">${ghostYear}</span>` : ''}
         </button>`;
       }).join('')}
     </div>`;
+}
+
+/* ══════════════════════════════════════════
+   ACCUEIL — « LE LAUNCHER ARRIVE » (annonce du standalone V1.0.0)
+   Fenêtre stylisée (chrome + rail bibliothèque esquissé) + 4 piliers +
+   plateformes. Le launcher web étant complet, cette section vend l'app
+   de bureau qui reprendra le même compte, la même bibliothèque.
+══════════════════════════════════════════ */
+const _LNCH_T = {
+  eyebrow: { fr:'Application de bureau · bientôt', en:'Desktop app · coming soon', es:'Aplicación de escritorio · muy pronto', de:'Desktop-App · bald verfügbar', it:'App desktop · in arrivo', ar:'تطبيق سطح المكتب · قريباً', zh:'桌面应用 · 即将推出', ja:'デスクトップアプリ · 近日公開', ru:'Настольное приложение · скоро', pl:'Aplikacja desktopowa · już wkrótce' },
+  title:   { fr:'LE LAUNCHER ARRIVE', en:'THE LAUNCHER IS COMING', es:'EL LAUNCHER LLEGA', de:'DER LAUNCHER KOMMT', it:'IL LAUNCHER STA ARRIVANDO', ar:'المشغّل قادم', zh:'启动器即将登场', ja:'ランチャーがやってくる', ru:'ЛАУНЧЕР УЖЕ БЛИЗКО', pl:'LAUNCHER NADCHODZI' },
+  sub:     { fr:'Tout ce que tu utilises ici — compte, bibliothèque, amis, trophées — dans une application installée, plus rapide, avec mises à jour automatiques signées.', en:'Everything you use here — account, library, friends, trophies — in an installed app: faster, with signed automatic updates.', es:'Todo lo que usas aquí — cuenta, biblioteca, amigos, trofeos — en una aplicación instalada, más rápida y con actualizaciones automáticas firmadas.', de:'Alles, was du hier nutzt — Konto, Bibliothek, Freunde, Trophäen — in einer installierten App: schneller, mit signierten automatischen Updates.', it:'Tutto quello che usi qui — account, libreria, amici, trofei — in un\'app installata: più veloce, con aggiornamenti automatici firmati.', ar:'كل ما تستخدمه هنا — الحساب والمكتبة والأصدقاء والجوائز — في تطبيق مثبّت، أسرع، مع تحديثات تلقائية موقَّعة.', zh:'你在这里使用的一切——账户、游戏库、好友、奖杯——都将进入一款安装式应用：更快，且带有签名的自动更新。', ja:'ここで使うすべて — アカウント、ライブラリ、フレンド、トロフィー — がインストール型アプリに。より速く、署名付き自動アップデート対応。', ru:'Всё, чем вы пользуетесь здесь — аккаунт, библиотека, друзья, трофеи — в установленном приложении: быстрее, с подписанными автообновлениями.', pl:'Wszystko, czego używasz tutaj — konto, biblioteka, znajomi, trofea — w zainstalowanej aplikacji: szybszej, z podpisanymi automatycznymi aktualizacjami.' },
+  f1t: { fr:'Une seule identité', en:'One identity', es:'Una sola identidad', de:'Eine Identität', it:'Un\'unica identità', ar:'هوية واحدة', zh:'同一身份', ja:'ひとつのアカウント', ru:'Единый аккаунт', pl:'Jedna tożsamość' },
+  f1d: { fr:'Même compte, même bibliothèque, mêmes amis — le site et l\'app ne font qu\'un.', en:'Same account, same library, same friends — site and app are one.', es:'Misma cuenta, misma biblioteca, mismos amigos — el sitio y la app son uno.', de:'Gleiches Konto, gleiche Bibliothek, gleiche Freunde — Website und App sind eins.', it:'Stesso account, stessa libreria, stessi amici — sito e app sono una cosa sola.', ar:'الحساب نفسه والمكتبة نفسها والأصدقاء أنفسهم — الموقع والتطبيق واحد.', zh:'同一账户、同一游戏库、同样的好友——网站与应用合而为一。', ja:'同じアカウント、同じライブラリ、同じフレンド — サイトとアプリはひとつ。', ru:'Тот же аккаунт, та же библиотека, те же друзья — сайт и приложение едины.', pl:'To samo konto, ta sama biblioteka, ci sami znajomi — strona i aplikacja to jedno.' },
+  f2t: { fr:'Installation & jeu en un clic', en:'One-click install & play', es:'Instalar y jugar en un clic', de:'Installieren & Spielen mit einem Klick', it:'Installa e gioca in un clic', ar:'تثبيت ولعب بنقرة', zh:'一键安装与启动', ja:'ワンクリックでインストール&プレイ', ru:'Установка и запуск в один клик', pl:'Instalacja i gra jednym kliknięciem' },
+  f2d: { fr:'Le bouton Jouer du site ouvre l\'app (glg://) — elle télécharge, installe et lance.', en:'The site\'s Play button opens the app (glg://) — it downloads, installs and launches.', es:'El botón Jugar del sitio abre la app (glg://): descarga, instala y lanza.', de:'Der Spielen-Button der Website öffnet die App (glg://) — sie lädt, installiert und startet.', it:'Il pulsante Gioca del sito apre l\'app (glg://): scarica, installa e avvia.', ar:'زر اللعب في الموقع يفتح التطبيق (glg://) — فيُنزّل ويثبّت ويشغّل.', zh:'网站上的“开始游戏”按钮会打开应用（glg://）——由它完成下载、安装与启动。', ja:'サイトのプレイボタンがアプリ（glg://）を開き、ダウンロード・インストール・起動まで行います。', ru:'Кнопка «Играть» на сайте открывает приложение (glg://) — оно скачивает, устанавливает и запускает.', pl:'Przycisk Graj na stronie otwiera aplikację (glg://) — ona pobiera, instaluje i uruchamia.' },
+  f3t: { fr:'Mises à jour signées', en:'Signed updates', es:'Actualizaciones firmadas', de:'Signierte Updates', it:'Aggiornamenti firmati', ar:'تحديثات موقَّعة', zh:'签名更新', ja:'署名付きアップデート', ru:'Подписанные обновления', pl:'Podpisane aktualizacje' },
+  f3d: { fr:'Jeux et launcher se mettent à jour tout seuls, avec vérification cryptographique.', en:'Games and launcher update themselves, cryptographically verified.', es:'Los juegos y el launcher se actualizan solos, con verificación criptográfica.', de:'Spiele und Launcher aktualisieren sich selbst — kryptografisch verifiziert.', it:'Giochi e launcher si aggiornano da soli, con verifica crittografica.', ar:'تتحدّث الألعاب والمشغّل تلقائياً مع تحقق تشفيري.', zh:'游戏与启动器自动更新，并经过加密校验。', ja:'ゲームもランチャーも自動更新。暗号署名で検証されます。', ru:'Игры и лаунчер обновляются сами, с криптографической проверкой.', pl:'Gry i launcher aktualizują się same, z weryfikacją kryptograficzną.' },
+  f4t: { fr:'Sécurité intégrale', en:'Full security', es:'Seguridad total', de:'Volle Sicherheit', it:'Sicurezza totale', ar:'أمان كامل', zh:'全面安全', ja:'万全のセキュリティ', ru:'Полная защита', pl:'Pełne bezpieczeństwo' },
+  f4d: { fr:'2FA type Steam Guard, données chiffrées, vie privée respectée — déjà actifs ici.', en:'Steam Guard-style 2FA, encrypted data, privacy respected — already live here.', es:'2FA al estilo Steam Guard, datos cifrados, privacidad respetada — ya activos aquí.', de:'2FA im Steam-Guard-Stil, verschlüsselte Daten, gewahrte Privatsphäre — hier bereits aktiv.', it:'2FA in stile Steam Guard, dati cifrati, privacy rispettata — già attivi qui.', ar:'مصادقة ثنائية بأسلوب Steam Guard وبيانات مشفّرة وخصوصية محترمة — مفعّلة هنا بالفعل.', zh:'Steam 令牌式两步验证、数据加密、尊重隐私——这些已在此生效。', ja:'Steam Guard式2FA、暗号化データ、プライバシー尊重 — すでにここで稼働中。', ru:'2FA в стиле Steam Guard, шифрование данных, уважение к приватности — уже работает здесь.', pl:'2FA w stylu Steam Guard, szyfrowane dane, poszanowanie prywatności — już działa tutaj.' },
+  notify:  { fr:'Être prévenu de la sortie', en:'Get notified at launch', es:'Avísame en el lanzamiento', de:'Zum Start benachrichtigen', it:'Avvisami al lancio', ar:'أعلمني عند الصدور', zh:'发布时通知我', ja:'リリース時に通知を受け取る', ru:'Сообщить о выходе', pl:'Powiadom mnie o premierze' },
+  version: { fr:'V1.0.0 · Windows & macOS', en:'V1.0.0 · Windows & macOS', es:'V1.0.0 · Windows y macOS', de:'V1.0.0 · Windows & macOS', it:'V1.0.0 · Windows e macOS', ar:'V1.0.0 · Windows وmacOS', zh:'V1.0.0 · Windows 与 macOS', ja:'V1.0.0 · Windows & macOS', ru:'V1.0.0 · Windows и macOS', pl:'V1.0.0 · Windows i macOS' },
+};
+const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
+
+function buildLauncherTeaser() {
+  const home = $('page-home'); if (!home) return;
+  let host = $('home-launcher');
+  if (!host) {
+    host = document.createElement('section');
+    host.id = 'home-launcher';
+    host.className = 'glg-launcher-teaser';
+    const cta = home.querySelector('.glg-cta-band');
+    if (cta && cta.parentElement) cta.parentElement.insertBefore(host, cta);
+    else home.querySelector('.page-footer-slot')?.before(host);
+  }
+  const FEATS = [
+    ['f1t','f1d','<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.4" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M5.4 19c1-3 3.5-4.6 6.6-4.6s5.6 1.6 6.6 4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>'],
+    ['f2t','f2d','<svg viewBox="0 0 24 24" fill="none"><path d="M8 5.5l10 6.5-10 6.5v-13z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>'],
+    ['f3t','f3d','<svg viewBox="0 0 24 24" fill="none"><path d="M19.5 9.5A7.5 7.5 0 006 7M4.5 14.5A7.5 7.5 0 0018 17" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M19.8 4.6v4.2h-4.2M4.2 19.4v-4.2h4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+    ['f4t','f4d','<svg viewBox="0 0 24 24" fill="none"><path d="M12 3L5 5.6v5.2c0 4.6 3 7.7 7 9.4 4-1.7 7-4.8 7-9.4V5.6L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 11.4l2.2 2.2 3.8-4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+  ];
+  host.innerHTML = `
+    <div class="lt-inner">
+      <div class="lt-copy">
+        <p class="section-eye reveal">${_lnt('eyebrow')}</p>
+        <h2 class="section-h reveal" style="margin:12px 0 16px">${_lnt('title')}</h2>
+        <p class="lt-sub reveal">${_lnt('sub')}</p>
+        <div class="lt-feats">
+          ${FEATS.map(([t, d, svg], i) => `
+          <div class="lt-feat reveal" style="transition-delay:${i * 0.05}s">
+            <span class="lt-feat-ico" aria-hidden="true">${svg}</span>
+            <span class="lt-feat-txt"><b>${_lnt(t)}</b><span>${_lnt(d)}</span></span>
+          </div>`).join('')}
+        </div>
+        <div class="lt-actions reveal">
+          <button class="btn btn-primary btn-lg" onclick="showPage('contact')">${_lnt('notify')}</button>
+          <span class="lt-version">${_lnt('version')}</span>
+        </div>
+      </div>
+      <div class="lt-visual reveal" aria-hidden="true">
+        <div class="lt-window">
+          <div class="lt-window-bar"><span></span><span></span><span></span></div>
+          <div class="lt-window-body">
+            <div class="lt-w-rail">
+              <span class="lt-w-logo"><img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'"></span>
+              <span class="lt-w-line" style="width:72%"></span>
+              <span class="lt-w-line" style="width:58%"></span>
+              <span class="lt-w-line lt-w-line--on" style="width:80%"></span>
+              <span class="lt-w-line" style="width:64%"></span>
+              <span class="lt-w-line" style="width:70%"></span>
+            </div>
+            <div class="lt-w-stage">
+              <span class="lt-w-title"></span>
+              <span class="lt-w-sub"></span>
+              <span class="lt-w-btn">▶</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  initAnimIdleObserver();
 }
 
 /* ══════════════════════════════════════════
@@ -1401,7 +2057,7 @@ function dpSsUpdate(id) {
 }
 
 /* ── Sticky bar ── */
-let _dpStickyObs = null;
+let _dpStickyObs = null, _dpStickyEndObs = null;
 function initDpSticky() {
   const bar  = document.querySelector('#page-detail .dp-sticky') || $('dp-sticky');
   const hero = document.querySelector('#page-detail .dp-hero');
@@ -1412,16 +2068,29 @@ function initDpSticky() {
     bar.setAttribute('aria-hidden', e.isIntersecting ? 'true' : 'false');
   }, { threshold: 0.1 });
   _dpStickyObs.observe(hero);
+  // Dock mobile : la barre s'efface dès que "À découvrir aussi" OU le footer
+  // est à l'écran (sinon elle chevauche la fin de page).
+  const ends = ['#page-detail .dp-related', '#page-detail footer', '#page-detail .footer']
+    .map(sel => document.querySelector(sel)).filter(Boolean);
+  if (_dpStickyEndObs) _dpStickyEndObs.disconnect();
+  if (ends.length) {
+    const vis = new Set();
+    _dpStickyEndObs = new IntersectionObserver(entries => {
+      entries.forEach(e => e.isIntersecting ? vis.add(e.target) : vis.delete(e.target));
+      bar.classList.toggle('dp-sticky--end', vis.size > 0);
+    }, { threshold: 0.05 });
+    ends.forEach(el => _dpStickyEndObs.observe(el));
+  }
 }
 
 /* ── 18+ gate screens (anonymous confirm / minor block) ── */
 const _AGE_T = {
-  title:  { fr:'Contenu 18+', en:'18+ Content', es:'Contenido +18', de:'18+ Inhalt', it:'Contenuto 18+' },
-  q:      { fr:"Ce titre est réservé aux personnes majeures (18 ans et plus). Confirmes-tu avoir 18 ans ou plus ?", en:'This title is rated 18+. Please confirm you are 18 or older.', es:'Este título es solo para mayores de 18. ¿Confirmas que tienes 18 años o más?', de:'Dieser Titel ist ab 18. Bestätigst du, dass du 18 oder älter bist?', it:'Questo titolo è 18+. Confermi di avere almeno 18 anni?' },
-  yes:    { fr:"Oui, j'ai 18 ans ou plus", en:"Yes, I'm 18 or older", es:'Sí, tengo 18 o más', de:'Ja, ich bin 18 oder älter', it:'Sì, ho almeno 18 anni' },
-  no:     { fr:'Non, retour', en:'No, go back', es:'No, volver', de:'Nein, zurück', it:'No, indietro' },
-  blocked:{ fr:"Ce contenu n'est pas disponible.", en:'This content is not available.', es:'Este contenido no está disponible.', de:'Dieser Inhalt ist nicht verfügbar.', it:'Questo contenuto non è disponibile.' },
-  back:   { fr:'Retour aux œuvres', en:'Back to works', es:'Volver a las obras', de:'Zurück zu den Werken', it:'Torna alle opere' },
+  title:  { fr:'Contenu 18+', en:'18+ Content', es:'Contenido +18', de:'18+ Inhalt', it:'Contenuto 18+', ar:'محتوى +18', zh:'18+ 内容', ja:'18歳以上向けコンテンツ', ru:'Контент 18+', pl:'Treści 18+' },
+  q:      { fr:"Ce titre est réservé aux personnes majeures (18 ans et plus). Confirmes-tu avoir 18 ans ou plus ?", en:'This title is rated 18+. Please confirm you are 18 or older.', es:'Este título es solo para mayores de 18. ¿Confirmas que tienes 18 años o más?', de:'Dieser Titel ist ab 18. Bestätigst du, dass du 18 oder älter bist?', it:'Questo titolo è 18+. Confermi di avere almeno 18 anni?', ar:'هذا العنوان مخصص للبالغين (18 عامًا فأكثر). هل تؤكد أنك تبلغ 18 عامًا أو أكثر؟', zh:'本作品仅限18岁及以上人士。请确认您已年满18岁。', ja:'このタイトルは18歳以上対象です。18歳以上であることを確認してください。', ru:'Этот тайтл предназначен для лиц 18+. Подтвердите, что вам есть 18 лет.', pl:'Ten tytuł jest przeznaczony dla osób 18+. Potwierdź, że masz ukończone 18 lat.' },
+  yes:    { fr:"Oui, j'ai 18 ans ou plus", en:"Yes, I'm 18 or older", es:'Sí, tengo 18 o más', de:'Ja, ich bin 18 oder älter', it:'Sì, ho almeno 18 anni', ar:'نعم، عمري 18 عامًا أو أكثر', zh:'是的，我已年满18岁', ja:'はい、18歳以上です', ru:'Да, мне есть 18 лет', pl:'Tak, mam ukończone 18 lat' },
+  no:     { fr:'Non, retour', en:'No, go back', es:'No, volver', de:'Nein, zurück', it:'No, indietro', ar:'لا، العودة', zh:'否，返回', ja:'いいえ、戻る', ru:'Нет, назад', pl:'Nie, wróć' },
+  blocked:{ fr:"Ce contenu n'est pas disponible.", en:'This content is not available.', es:'Este contenido no está disponible.', de:'Dieser Inhalt ist nicht verfügbar.', it:'Questo contenuto non è disponibile.', ar:'هذا المحتوى غير متاح.', zh:'此内容不可用。', ja:'このコンテンツは利用できません。', ru:'Этот контент недоступен.', pl:'Ta treść jest niedostępna.' },
+  back:   { fr:'Retour aux œuvres', en:'Back to works', es:'Volver a las obras', de:'Zurück zu den Werken', it:'Torna alle opere', ar:'العودة إلى الأعمال', zh:'返回作品', ja:'作品一覧へ戻る', ru:'Назад к работам', pl:'Powrót do prac' },
 };
 function _aget(k) { const m = _AGE_T[k]; return m ? (m[LANG] || m.en) : k; }
 function _matureBlockedHTML() {
@@ -1494,7 +2163,9 @@ function buildDetail(id) {
   const localFeatures    = getItemField(item, 'features');
   const localCat         = getCatLabel(item);
   const localStatus      = getStatusLabel(item);
-  const localPrice       = getPrice(item);
+  const localPrice       = getPriceNow(item); // remise déduite (promo éventuelle)
+  const basePriceNow     = (item.isFree || item.basePrice == null) ? '' : promoPrice(item);
+  const owned            = _ownsWork(item.id); // possédé → JOUER/INSTALLER au lieu d'ACHETER
 
   // Build marquee content (repeated twice for seamless loop)
   const mqItems = [
@@ -1502,7 +2173,7 @@ function buildDetail(id) {
     `<span class="dp-mq-item">${t('infoYear')} <b>${item.year}</b></span><span class="dp-mq-dot">✦</span>`,
     `<span class="dp-mq-item">${t('infoStudio')} <b>GEEKLEARN GAMES</b></span><span class="dp-mq-dot">✦</span>`,
     `<span class="dp-mq-item">${t('infoStatus')} <b>${localStatus}</b></span><span class="dp-mq-dot">✦</span>`,
-    `<span class="dp-mq-item">${t('infoPrice')} <b class="price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</b></span><span class="dp-mq-dot">✦</span>`,
+    `<span class="dp-mq-item">${t('infoPrice')} <b class="price-display" data-base-price="${basePriceNow}">${localPrice}</b></span><span class="dp-mq-dot">✦</span>`,
   ].join('');
   // One base set; _seamlessMarquee() fills + duplicates it after render (gap-proof loop)
 
@@ -1536,9 +2207,9 @@ function buildDetail(id) {
         <p class="dp-hero-tagline">${localTagline}</p>
         ${_workTagsHTML(item)}
         <div class="dp-hero-cta">
-          <button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">
-            ${t('buyNow')} — ${localPrice}
-          </button>
+          ${owned
+            ? `<button class="btn btn-primary btn-lg" onclick="launcherHandoff('${item.id}','play')">▶ ${_lbt('play')}</button>`
+            : `<button class="btn btn-primary btn-lg" onclick="openBuyModal('${item.id}')">${t('buyNow')} — ${localPrice}</button>`}
           <button class="btn btn-outline btn-lg" onclick="openTrailerModal('${item.id}')">
             ▶ ${t('trailerBtn')}
           </button>
@@ -1552,13 +2223,18 @@ function buildDetail(id) {
     </div>
 
     <!-- ──────── STICKY BAR ──────── -->
-    <div class="dp-sticky" id="dp-sticky" aria-hidden="true">
+    <div class="dp-sticky dp-sticky--v2" id="dp-sticky" aria-hidden="true">
       <div class="dp-sticky-inner">
+        <span class="dp-sticky-cover" aria-hidden="true"><img src="${av(item.cover)}" alt="" loading="lazy" onerror="this.style.opacity=0"></span>
         <span class="dp-sticky-title">${item.title}</span>
         <span class="dp-sticky-sep">·</span>
         <span class="dp-sticky-cat">${localCat}</span>
-        <span class="dp-sticky-price price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</span>
-        <button class="dp-sticky-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} →</button>
+        <button class="dp-sticky-wish ${wishHas(item.id)?'on':''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)" aria-label="${_wt('add')}">${_HEART_SVG}</button>
+        ${owned
+          ? `<span class="dp-sticky-price dp-sticky-owned">${_lbt('inLib')}</span>
+        <button class="dp-sticky-buy" onclick="launcherHandoff('${item.id}','play')">▶ ${_lbt('play')}</button>`
+          : `<span class="dp-sticky-price">${priceHTML(item, { size:'sm' })}</span>
+        <button class="dp-sticky-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} ${_ARR()}</button>`}
       </div>
     </div>
 
@@ -1623,8 +2299,14 @@ function buildDetail(id) {
           </div>
         </div>
 
+        <!-- Update journal (Steam-style news) -->
+        ${dpNewsSectionHTML(item)}
+
         <!-- Trophies teaser (store-style) -->
         ${dpTrophySectionHTML(item)}
+
+        <!-- Player reviews (Steam-style) -->
+        ${dpReviewsShellHTML(item)}
 
       </div>
 
@@ -1637,9 +2319,18 @@ function buildDetail(id) {
             : `<div class="dp-buybox-title">${item.title}</div>`}
           <div class="dp-buybox-meta">${localCat} · ${item.year}</div>
           <div class="dp-buybox-status"><span class="dp-buybox-dot"></span>${localStatus}</div>
-          <div class="dp-buybox-price price-display" data-base-price="${item.basePrice ?? ''}">${localPrice}</div>
-          <button class="btn btn-primary dp-buybox-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} →</button>
-          <button class="dp-buybox-trailer" onclick="openTrailerModal('${item.id}')">▶ ${t('trailerBtn')}</button>
+          ${owned ? `
+          <div class="dp-buybox-owned">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${_lbt('inLib')}
+          </div>
+          <button class="btn btn-primary dp-buybox-buy" onclick="launcherHandoff('${item.id}','play')">▶ ${_lbt('play')}</button>
+          <button class="dp-buybox-trailer" onclick="launcherHandoff('${item.id}','install')">${_lbt('install')}</button>` : `
+          ${_dpEditionsHTML(item)}
+          <div class="dp-buybox-price">${_editionPriceHTML(item)}</div>
+          ${promoEndsHTML(item)}
+          <button class="btn btn-primary dp-buybox-buy" onclick="openBuyModal('${item.id}')">${t('buyNow')} ${_ARR()}</button>
+          <button class="dp-buybox-trailer" onclick="openTrailerModal('${item.id}')">▶ ${t('trailerBtn')}</button>`}
           <button class="dp-buybox-wish ${wishHas(item.id)?'on':''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)">
             <span class="dp-wish-ico">${_HEART_SVG}</span>
             <span class="dp-wish-label" data-wish-label>${wishHas(item.id)?_wt('inList'):_wt('add')}</span>
@@ -1648,18 +2339,20 @@ function buildDetail(id) {
             <div class="dp-sec-label">${t('platHead')}</div>
             <div class="dp-buybox-plats">
               ${item.platforms.map(p => `
-                <button class="dp-buybox-plat" onclick="openBuyModal('${item.id}')" title="${PLATS[p].cta}">
+                <button class="dp-buybox-plat" onclick="openBuyModal('${item.id}')" title="${_platCta(p)}">
                   <span class="dp-buybox-plat-ico" style="background:${PLATS[p].bg}">${PLATS[p].icon}</span>
                   <span class="dp-buybox-plat-name">${PLATS[p].name}</span>
                   <svg class="dp-buybox-plat-arr" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </button>`).join('')}
             </div>
           </div>
+          ${_dpCapsHTML(item)}
           <div class="dp-buybox-facts">
             <div class="dp-fact"><span>${t('infoStudio') || 'Studio'}</span><b>GEEKLEARN GAMES</b></div>
             <div class="dp-fact"><span>${t('infoType') || 'Type'}</span><b>${localCat}</b></div>
             <div class="dp-fact"><span>${t('infoYear') || 'Year'}</span><b>${item.year}</b></div>
             ${_gameTrophySummary(item.id) ? `<div class="dp-fact dp-fact--btn" role="button" tabindex="0" onclick="openTrophyList('${item.id}')"><span>${_tt('section')}</span><b>${_gameTrophySummary(item.id).total} · ${_gameTrophySummary(item.id).tiers.platinum} ${_tt('platinum')} →</b></div>` : ''}
+            <div class="dp-fact dp-fact--btn" id="dp-fact-rev" role="button" tabindex="0" style="display:none" onclick="document.getElementById('dp-reviews')?.scrollIntoView({behavior:'smooth',block:'start'})"><span>${_rvt('section')}</span><b></b></div>
             <div class="dp-fact"><span>${_dx('players')}</span><b>${_dx('solo')}</b></div>
             <div class="dp-fact"><span>${_dx('languages')}</span><b>10</b></div>
             <div class="dp-fact"><span>${_dx('rating')}</span><b>${item.mature ? _dx('ratingAdult') : _dx('ratingTeen')}</b></div>
@@ -1696,6 +2389,9 @@ function buildDetail(id) {
   // Init sticky bar (observe hero)
   initDpSticky();
 
+  // Load player reviews (async — Supabase; shell renders instantly)
+  _loadDpReviews(item);
+
   // Init scroll reveals on newly injected elements
   initReveal();
 
@@ -1710,6 +2406,46 @@ function buildDetail(id) {
 }
 
 /* ══════════════════════════════════════════
+   JOURNAL DES MISES À JOUR (fiches, style Steam)
+   Données : WORK_NEWS (data.js). Œuvre sans entrée → section absente.
+══════════════════════════════════════════ */
+const _NEWS_T = {
+  head: { fr:'Actualités & mises à jour', en:'News & updates', es:'Noticias y actualizaciones', de:'Neuigkeiten & Updates', it:'Notizie e aggiornamenti', ar:'الأخبار والتحديثات', zh:'新闻与更新', ja:'ニュースとアップデート', ru:'Новости и обновления', pl:'Aktualności i aktualizacje' },
+  tags: {
+    update:   { fr:'Mise à jour', en:'Update', es:'Actualización', de:'Update', it:'Aggiornamento', ar:'تحديث', zh:'更新', ja:'アップデート', ru:'Обновление', pl:'Aktualizacja' },
+    devlog:   { fr:'Devlog', en:'Devlog', es:'Devlog', de:'Devlog', it:'Devlog', ar:'مذكرات التطوير', zh:'开发日志', ja:'開発日誌', ru:'Девлог', pl:'Devlog' },
+    announce: { fr:'Annonce', en:'Announcement', es:'Anuncio', de:'Ankündigung', it:'Annuncio', ar:'إعلان', zh:'公告', ja:'お知らせ', ru:'Анонс', pl:'Ogłoszenie' },
+  },
+};
+function dpNewsSectionHTML(item) {
+  const list = (typeof WORK_NEWS !== 'undefined' && WORK_NEWS[item.id]) || [];
+  if (!list.length) return '';
+  const entries = [...list].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4);
+  return `
+    <div class="dp-news" id="dp-news">
+      <div class="dp-sec-label reveal">${_NEWS_T.head[LANG] || _NEWS_T.head.en}</div>
+      <div class="dp-news-list">
+        ${entries.map((n, i) => {
+          let d = n.date;
+          try { d = new Date(n.date + 'T12:00:00').toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'short', year:'numeric' }); } catch (e) {}
+          const tag = _NEWS_T.tags[n.tag] || _NEWS_T.tags.update;
+          return `
+          <article class="dp-news-item reveal" style="transition-delay:${i * 0.05}s">
+            <div class="dp-news-side">
+              <time class="dp-news-date" datetime="${n.date}">${d}</time>
+              <span class="dp-news-tag dp-news-tag--${n.tag}">${tag[LANG] || tag.en}</span>
+            </div>
+            <div class="dp-news-main">
+              <h3 class="dp-news-title">${n.title[LANG] || n.title.en}</h3>
+              <p class="dp-news-body">${n.body[LANG] || n.body.en}</p>
+            </div>
+          </article>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════
    RELATED WORKS (bottom of detail page)
 ══════════════════════════════════════════ */
 const _RELATED_LABELS = {
@@ -1720,10 +2456,12 @@ const _RELATED_LABELS = {
 const _RELATED_SUB = {
   fr:'D’autres univers signés GEEKLEARN GAMES.', en:'More universes crafted by GEEKLEARN GAMES.',
   es:'Más universos de GEEKLEARN GAMES.', de:'Weitere Welten von GEEKLEARN GAMES.',
-  it:'Altri universi firmati GEEKLEARN GAMES.',
+  it:'Altri universi firmati GEEKLEARN GAMES.', ar:'عوالم أخرى من توقيع GEEKLEARN GAMES.',
+  zh:'更多出自 GEEKLEARN GAMES 的世界。', ja:'GEEKLEARN GAMESが手がけた別の世界たち。',
+  ru:'Другие миры от GEEKLEARN GAMES.', pl:'Inne światy od GEEKLEARN GAMES.',
 };
-const _RELATED_ALL  = { fr:'Tout voir', en:'View all', es:'Ver todo', de:'Alle ansehen', it:'Vedi tutto' };
-const _RELATED_VIEW = { fr:'Voir la fiche', en:'View page', es:'Ver ficha', de:'Ansehen', it:'Scheda' };
+const _RELATED_ALL  = { fr:'Tout voir', en:'View all', es:'Ver todo', de:'Alle ansehen', it:'Vedi tutto', ar:'عرض الكل', zh:'查看全部', ja:'すべて見る', ru:'Смотреть все', pl:'Zobacz wszystko' };
+const _RELATED_VIEW = { fr:'Voir la fiche', en:'View page', es:'Ver ficha', de:'Ansehen', it:'Scheda', ar:'عرض الصفحة', zh:'查看页面', ja:'ページを見る', ru:'К странице', pl:'Zobacz stronę' };
 const _rl = (m) => m[LANG] || m.en;
 
 function relatedWorksHTML(item) {
@@ -1754,7 +2492,7 @@ function relatedWorksHTML(item) {
               <h3 class="dp-rel-name">${w.title}</h3>
               <div class="dp-rel-sub2">
                 <span class="dp-rel-status ${w.status}"><span class="dp-rel-dot"></span>${getStatusLabel(w)}</span>
-                <span class="dp-rel-price price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span>
+                <span class="dp-rel-price">${priceHTML(w, { size:'sm' })}</span>
               </div>
             </div>
           </article>`;
@@ -1833,24 +2571,44 @@ function lightboxNav(dir) {
 /* ══════════════════════════════════════════
    BUY MODAL
 ══════════════════════════════════════════ */
+/* « Acheter sur %s » — localisé (PLATS.cta était de l'anglais en dur). */
+const _BUYON_T = { fr:'Acheter sur %s', en:'Buy on %s', es:'Comprar en %s', de:'Kaufen auf %s', it:'Acquista su %s', ar:'اشترِ على %s', zh:'在%s购买', ja:'%sで購入', ru:'Купить в %s', pl:'Kup na %s' };
+const _platCta = p => (_BUYON_T[LANG] || _BUYON_T.en).replace('%s', (PLATS[p] && PLATS[p].name) || p);
+/* Note honnête de la modale d'achat (les stores n'ont pas encore d'URL). */
+const _BUYNOTE_T = {
+  fr:'Les précommandes ouvriront ici à l’approche de la sortie — ajoute le titre à ta liste de souhaits pour être prévenu.',
+  en:'Pre-orders will open here as release approaches — wishlist the title to get notified.',
+  es:'Las reservas se abrirán aquí cuando se acerque el lanzamiento — añade el título a tu lista de deseos para recibir aviso.',
+  de:'Vorbestellungen öffnen hier, wenn der Release näher rückt — setz den Titel auf deine Wunschliste, um benachrichtigt zu werden.',
+  it:'I preordini apriranno qui all’avvicinarsi dell’uscita — aggiungi il titolo alla lista dei desideri per essere avvisato.',
+  ar:'ستُفتح الطلبات المسبقة هنا مع اقتراب الإصدار — أضف اللعبة إلى قائمة رغباتك ليصلك إشعار.',
+  zh:'临近发售时预购将在此开启——将作品加入心愿单即可收到通知。',
+  ja:'発売が近づくとここで予約が始まります — ウィッシュリストに追加して通知を受け取りましょう。',
+  ru:'Предзаказы откроются здесь ближе к выходу — добавьте игру в список желаемого, чтобы получить уведомление.',
+  pl:'Przedsprzedaż ruszy tutaj przed premierą — dodaj tytuł do listy życzeń, aby dostać powiadomienie.',
+};
 function openBuyModal(id) {
   const item = ALL_WORKS.find(i => i.id === id);
   if (!item) return;
   setText('modal-eye', t('buyModal'));
   setText('modal-title', item.title);
-  setText('modal-sub', `${getPrice(item)} · ${getStatusLabel(item)}`);
+  setText('modal-sub', `${getPriceNow(item)} · ${getStatusLabel(item)}`);
+  // Rangées de plateformes NON cliquables (aucune URL de store n'existe
+  // encore) : fini le faux bouton — état honnête + wishlist pour être prévenu.
   setHTML('modal-plats', item.platforms.map(p => `
-    <button class="plat-btn" onclick="void(0)">
+    <div class="plat-btn plat-btn--static">
       <div class="plat-ico-lg" style="background:${PLATS[p].bg}">${PLATS[p].icon}</div>
       <div>
         <div class="plat-nm">${PLATS[p].name}</div>
-        <div class="plat-cta">${PLATS[p].cta}</div>
+        <div class="plat-cta">${_platCta(p)}</div>
       </div>
-      <svg class="plat-arr" width="13" height="13" viewBox="0 0 16 16" fill="none">
-        <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
-  `).join(''));
+    </div>
+  `).join('') + `
+    <p class="buy-note">${_BUYNOTE_T[LANG] || _BUYNOTE_T.en}</p>
+    <button class="btn btn-outline buy-wish ${wishHas(item.id) ? 'on' : ''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)">
+      <span class="dp-wish-ico">${_HEART_SVG}</span>
+      <span data-wish-label>${wishHas(item.id) ? _wt('inList') : _wt('add')}</span>
+    </button>`);
   $('modal-buy').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -1932,6 +2690,7 @@ function footerHTML() {
         <div class="footer-links">
           <button onclick="showPage('home')">${nav[0]}</button>
           <button onclick="showPage('works')">${nav[1]}</button>
+          <button class="footer-lib" onclick="showPage('library')">${_lbt('navLabel')}</button>
           <button onclick="showPage('shop')">${nav[2]}</button>
           <button onclick="showPage('about')">${nav[3]}</button>
           <button onclick="showPage('contact')">${nav[4]}</button>
@@ -2018,7 +2777,11 @@ function initReveal() {
   if (!_revealObs) {
     _revealObs = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) { _revealShow(e.target); _revealObs.unobserve(e.target); } });
-    }, { threshold: 0.02, rootMargin: '0px 0px -20px 0px' });
+      // rootMargin bas POSITIF : la révélation démarre ~28% de viewport AVANT
+      // l'entrée à l'écran. Avec le scroll fluide (Lenis), l'ancien -20px
+      // faisait traverser du noir : les cartes apparaissaient en retard
+      // (très visible sur la roadmap de l'accueil).
+    }, { threshold: 0, rootMargin: '0px 0px 28% 0px' });
   }
   // Scope to the ACTIVE page. Elements already on screen are revealed immediately
   // (the IntersectionObserver is unreliable for display:none → block transitions,
@@ -2362,12 +3125,12 @@ const _WISH_KEY = 'glg_wishlist';
 let _wishlist = [];
 
 const _WISH_T = {
-  add:       { fr:'Ajouter à ma liste',  en:'Add to wishlist' },
-  inList:    { fr:'Dans ma liste',       en:'In your wishlist' },
-  title:     { fr:'Liste de souhaits',   en:'Wishlist' },
-  empty:     { fr:'Ta liste de souhaits est vide.', en:'Your wishlist is empty.' },
-  emptyCta:  { fr:'Parcourir les œuvres', en:'Browse the works' },
-  remove:    { fr:'Retirer de la liste', en:'Remove from list' },
+  add:       { fr:'Ajouter à ma liste',  en:'Add to wishlist', es:'Añadir a deseos', de:'Zur Wunschliste', ar:'أضِف إلى قائمة الرغبات', zh:'加入心愿单', ja:'ウィッシュリストに追加', ru:'В список желаемого', pl:'Dodaj do listy życzeń', it:'Aggiungi alla lista' },
+  inList:    { fr:'Dans ma liste',       en:'In your wishlist', es:'En tu lista', de:'In deiner Wunschliste', ar:'في قائمة رغباتك', zh:'已在心愿单', ja:'ウィッシュリストに登録済み', ru:'В списке желаемого', pl:'Na liście życzeń', it:'Nella tua lista' },
+  title:     { fr:'Liste de souhaits',   en:'Wishlist', es:'Lista de deseos', de:'Wunschliste', ar:'قائمة الرغبات', zh:'心愿单', ja:'ウィッシュリスト', ru:'Список желаемого', pl:'Lista życzeń', it:'Lista dei desideri' },
+  empty:     { fr:'Ta liste de souhaits est vide.', en:'Your wishlist is empty.', es:'Tu lista de deseos está vacía.', de:'Deine Wunschliste ist leer.', ar:'قائمة رغباتك فارغة.', zh:'你的心愿单是空的。', ja:'ウィッシュリストは空です。', ru:'Ваш список желаемого пуст.', pl:'Twoja lista życzeń jest pusta.', it:'La tua lista dei desideri è vuota.' },
+  emptyCta:  { fr:'Parcourir les œuvres', en:'Browse the works', es:'Explorar las obras', de:'Werke durchstöbern', ar:'تصفّح الأعمال', zh:'浏览作品', ja:'作品を見る', ru:'Смотреть работы', pl:'Przeglądaj prace', it:'Sfoglia le opere' },
+  remove:    { fr:'Retirer de la liste', en:'Remove from list', es:'Quitar de la lista', de:'Aus Liste entfernen', ar:'إزالة من القائمة', zh:'从列表移除', ja:'リストから削除', ru:'Убрать из списка', pl:'Usuń z listy', it:'Rimuovi dalla lista' },
 };
 function _wt(k){ const m=_WISH_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -2417,57 +3180,57 @@ function _refreshWishButtons(){
 document.addEventListener('glg:wishlist-changed', _refreshWishButtons);
 
 const _AUTH_T = {
-  account:{fr:'Compte',en:'Account'}, signIn:{fr:'Se connecter',en:'Sign in'},
-  signUp:{fr:'Créer un compte',en:'Create account'}, myAccount:{fr:'Mon compte',en:'My account'},
-  email:{fr:'E-mail',en:'Email'}, password:{fr:'Mot de passe',en:'Password'},
-  username:{fr:"Pseudo",en:'Username'}, age:{fr:'Âge',en:'Age'},
-  gender:{fr:'Genre',en:'Gender'}, male:{fr:'Homme',en:'Male'}, female:{fr:'Femme',en:'Female'},
-  other:{fr:'Autre',en:'Other'}, specify:{fr:'Préciser',en:'Please specify'},
-  consent:{fr:"J'accepte que mes données soient utilisées pour gérer mon compte.",en:'I agree that my data is used to manage my account.'},
-  submitLogin:{fr:'Connexion',en:'Log in'}, submitSignup:{fr:'Créer mon compte',en:'Create my account'},
-  working:{fr:'Veuillez patienter…',en:'Please wait…'},
-  logout:{fr:'Se déconnecter',en:'Log out'}, save:{fr:'Enregistrer',en:'Save'},
-  saved:{fr:'Enregistré ✓',en:'Saved ✓'}, del:{fr:'Supprimer mon compte',en:'Delete my account'},
-  delConfirm:{fr:'Supprimer définitivement ton compte ? Cette action est irréversible.',en:'Permanently delete your account? This cannot be undone.'},
-  memberSince:{fr:'Membre depuis',en:'Member since'},
-  haveAccount:{fr:'Déjà un compte ?',en:'Already have an account?'},
-  noAccount:{fr:'Pas encore de compte ?',en:'No account yet?'},
-  checkEmail:{fr:'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.',en:'Account created! Check your inbox to confirm your email.'},
-  welcome:{fr:'Connecté ✓',en:'Signed in ✓'},
-  pwWeak:{fr:'Mot de passe trop faible (8+ caractères, mélange maj/min/chiffre/symbole).',en:'Password too weak (8+ chars, mix upper/lower/digit/symbol).'},
-  pwStrength:{fr:['Très faible','Faible','Correct','Bon','Excellent'],en:['Very weak','Weak','Fair','Good','Strong']},
-  uTaken:{fr:'Ce pseudo est déjà pris.',en:'This username is taken.'},
-  uAvail:{fr:'Pseudo disponible ✓',en:'Username available ✓'},
-  uShort:{fr:'3 caractères minimum.',en:'At least 3 characters.'},
-  uInvalid:{fr:'Lettres, chiffres, . _ - uniquement.',en:'Letters, numbers, . _ - only.'},
-  emailTaken:{fr:'Cet e-mail est déjà utilisé.',en:'This email is already in use.'},
-  emailInvalid:{fr:'E-mail invalide.',en:'Invalid email.'},
-  badCreds:{fr:'E-mail ou mot de passe incorrect.',en:'Wrong email or password.'},
-  notConfirmed:{fr:'E-mail pas encore confirmé — clique le lien reçu par mail.',en:'Email not confirmed yet — click the link sent to your inbox.'},
-  ageMin:{fr:'Tu dois avoir au moins 13 ans.',en:'You must be at least 13.'},
-  required:{fr:'Champ requis.',en:'Required field.'},
-  genderReq:{fr:'Choisis une option.',en:'Please choose an option.'},
-  consentReq:{fr:'Tu dois accepter pour continuer.',en:'You must accept to continue.'},
-  fail:{fr:"Échec — réessaie.",en:'Failed — please try again.'},
-  rateLimit:{fr:"Trop de tentatives. Patiente quelques minutes (limite d'e-mails du plan gratuit), ou désactive temporairement la confirmation e-mail dans Supabase.",en:'Too many attempts. Wait a few minutes (free-tier email limit), or temporarily disable email confirmation in Supabase.'},
-  notConfigured:{fr:'Les comptes ne sont pas encore activés sur ce site.',en:'Accounts are not enabled on this site yet.'},
-  close:{fr:'Fermer',en:'Close'},
-  profileItem:{fr:'Profil',en:'Profile'}, optionsItem:{fr:'Options',en:'Options'},
-  chooseAvatar:{fr:'Choisir un avatar',en:'Choose an avatar'},
-  avatarChange:{fr:"Changer d'avatar",en:'Change avatar'},
-  presetsLabel:{fr:'Personnages',en:'Characters'},
-  customLabel:{fr:'Image personnelle',en:'Custom image'},
-  uploadBtn:{fr:'Téléverser une image',en:'Upload an image'},
-  back:{fr:'Retour',en:'Back'},
-  modOff:{fr:"Upload perso bientôt disponible (modération requise). Choisis un personnage pour l'instant.",en:'Custom upload coming soon (moderation required). Pick a character for now.'},
-  imgType:{fr:'Format non supporté (PNG, JPG, WEBP).',en:'Unsupported format (PNG, JPG, WEBP).'},
-  imgSize:{fr:'Image trop lourde (max 2 Mo).',en:'Image too large (max 2 MB).'},
-  imgRejected:{fr:'Image refusée par la modération.',en:'Image rejected by moderation.'},
-  imgUploaded:{fr:'Avatar mis à jour ✓',en:'Avatar updated ✓'},
-  dobLbl:{fr:'Date de naissance',en:'Date of birth'},
-  dayLbl:{fr:'Jour',en:'Day'}, monthLbl:{fr:'Mois',en:'Month'}, yearLbl:{fr:'Année',en:'Year'},
-  showPw:{fr:'Afficher le mot de passe',en:'Show password'}, hidePw:{fr:'Masquer le mot de passe',en:'Hide password'},
-  dobInvalid:{fr:'Date de naissance invalide.',en:'Invalid date of birth.'},
+  account:{fr:'Compte',en:'Account',es:'Cuenta',de:'Konto',ar:'الحساب',zh:'账号',ja:'アカウント',ru:'Аккаунт',pl:'Konto',it:'Account'}, signIn:{fr:'Se connecter',en:'Sign in',es:'Iniciar sesión',de:'Anmelden',ar:'تسجيل الدخول',zh:'登录',ja:'サインイン',ru:'Войти',pl:'Zaloguj się',it:'Accedi'},
+  signUp:{fr:'Créer un compte',en:'Create account',es:'Crear cuenta',de:'Konto erstellen',ar:'إنشاء حساب',zh:'创建账号',ja:'アカウント作成',ru:'Создать аккаунт',pl:'Utwórz konto',it:'Crea un account'}, myAccount:{fr:'Mon compte',en:'My account',es:'Mi cuenta',de:'Mein Konto',ar:'حسابي',zh:'我的账号',ja:'マイアカウント',ru:'Мой аккаунт',pl:'Moje konto',it:'Il mio account'},
+  email:{fr:'E-mail',en:'Email',es:'Correo',de:'E-Mail',ar:'البريد الإلكتروني',zh:'邮箱',ja:'メール',ru:'Эл. почта',pl:'E-mail',it:'E-mail'}, password:{fr:'Mot de passe',en:'Password',es:'Contraseña',de:'Passwort',ar:'كلمة المرور',zh:'密码',ja:'パスワード',ru:'Пароль',pl:'Hasło',it:'Password'},
+  username:{fr:"Pseudo",en:'Username',es:'Usuario',de:'Benutzername',ar:'اسم المستخدم',zh:'用户名',ja:'ユーザー名',ru:'Никнейм',pl:'Nazwa użytkownika',it:'Nome utente'}, age:{fr:'Âge',en:'Age',es:'Edad',de:'Alter',ar:'العمر',zh:'年龄',ja:'年齢',ru:'Возраст',pl:'Wiek',it:'Età'},
+  gender:{fr:'Genre',en:'Gender',es:'Género',de:'Geschlecht',ar:'الجنس',zh:'性别',ja:'性別',ru:'Пол',pl:'Płeć',it:'Genere'}, male:{fr:'Homme',en:'Male',es:'Hombre',de:'Männlich',ar:'ذكر',zh:'男',ja:'男性',ru:'Мужской',pl:'Mężczyzna',it:'Uomo'}, female:{fr:'Femme',en:'Female',es:'Mujer',de:'Weiblich',ar:'أنثى',zh:'女',ja:'女性',ru:'Женский',pl:'Kobieta',it:'Donna'},
+  other:{fr:'Autre',en:'Other',es:'Otro',de:'Andere',ar:'آخر',zh:'其他',ja:'その他',ru:'Другой',pl:'Inna',it:'Altro'}, specify:{fr:'Préciser',en:'Please specify',es:'Especificar',de:'Bitte angeben',ar:'يرجى التحديد',zh:'请说明',ja:'詳細を入力',ru:'Уточните',pl:'Określ',it:'Specifica'},
+  consent:{fr:"J'accepte que mes données soient utilisées pour gérer mon compte.",en:'I agree that my data is used to manage my account.',es:'Acepto que mis datos se usen para gestionar mi cuenta.',de:'Ich stimme zu, dass meine Daten zur Verwaltung meines Kontos verwendet werden.',ar:'أوافق على استخدام بياناتي لإدارة حسابي.',zh:'我同意将我的数据用于管理我的账号。',ja:'アカウント管理のためにデータが利用されることに同意します。',ru:'Я согласен на использование моих данных для управления аккаунтом.',pl:'Zgadzam się na wykorzystanie moich danych do zarządzania kontem.',it:"Acconsento all'uso dei miei dati per gestire il mio account."},
+  submitLogin:{fr:'Connexion',en:'Log in',es:'Entrar',de:'Einloggen',ar:'دخول',zh:'登录',ja:'ログイン',ru:'Вход',pl:'Zaloguj',it:'Entra'}, submitSignup:{fr:'Créer mon compte',en:'Create my account',es:'Crear mi cuenta',de:'Mein Konto erstellen',ar:'إنشاء حسابي',zh:'创建我的账号',ja:'アカウントを作成',ru:'Создать аккаунт',pl:'Utwórz konto',it:'Crea il mio account'},
+  working:{fr:'Veuillez patienter…',en:'Please wait…',es:'Espera un momento…',de:'Bitte warten…',ar:'يرجى الانتظار…',zh:'请稍候…',ja:'お待ちください…',ru:'Подождите…',pl:'Proszę czekać…',it:'Attendere…'},
+  logout:{fr:'Se déconnecter',en:'Log out',es:'Cerrar sesión',de:'Abmelden',ar:'تسجيل الخروج',zh:'退出登录',ja:'ログアウト',ru:'Выйти',pl:'Wyloguj się',it:'Esci'}, save:{fr:'Enregistrer',en:'Save',es:'Guardar',de:'Speichern',ar:'حفظ',zh:'保存',ja:'保存',ru:'Сохранить',pl:'Zapisz',it:'Salva'},
+  saved:{fr:'Enregistré ✓',en:'Saved ✓',es:'Guardado ✓',de:'Gespeichert ✓',ar:'تم الحفظ ✓',zh:'已保存 ✓',ja:'保存しました ✓',ru:'Сохранено ✓',pl:'Zapisano ✓',it:'Salvato ✓'}, del:{fr:'Supprimer mon compte',en:'Delete my account',es:'Eliminar mi cuenta',de:'Mein Konto löschen',ar:'حذف حسابي',zh:'删除我的账号',ja:'アカウントを削除',ru:'Удалить аккаунт',pl:'Usuń moje konto',it:'Elimina il mio account'},
+  delConfirm:{fr:'Supprimer définitivement ton compte ? Cette action est irréversible.',en:'Permanently delete your account? This cannot be undone.',es:'¿Eliminar tu cuenta de forma permanente? Esta acción no se puede deshacer.',de:'Konto endgültig löschen? Das kann nicht rückgängig gemacht werden.',ar:'حذف حسابك نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.',zh:'永久删除你的账号？此操作无法撤销。',ja:'アカウントを完全に削除しますか？この操作は取り消せません。',ru:'Удалить аккаунт навсегда? Это действие необратимо.',pl:'Trwale usunąć konto? Tej operacji nie można cofnąć.',it:"Eliminare definitivamente il tuo account? L'azione è irreversibile."},
+  memberSince:{fr:'Membre depuis',en:'Member since',es:'Miembro desde',de:'Mitglied seit',ar:'عضو منذ',zh:'注册于',ja:'登録日',ru:'В сообществе с',pl:'Członek od',it:'Membro dal'},
+  haveAccount:{fr:'Déjà un compte ?',en:'Already have an account?',es:'¿Ya tienes una cuenta?',de:'Schon ein Konto?',ar:'لديك حساب بالفعل؟',zh:'已有账号？',ja:'すでにアカウントをお持ちですか？',ru:'Уже есть аккаунт?',pl:'Masz już konto?',it:'Hai già un account?'},
+  noAccount:{fr:'Pas encore de compte ?',en:'No account yet?',es:'¿Aún no tienes cuenta?',de:'Noch kein Konto?',ar:'ليس لديك حساب بعد؟',zh:'还没有账号？',ja:'アカウントをお持ちでない方',ru:'Ещё нет аккаунта?',pl:'Nie masz jeszcze konta?',it:'Non hai ancora un account?'},
+  checkEmail:{fr:'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.',en:'Account created! Check your inbox to confirm your email.',es:'¡Cuenta creada! Revisa tu correo para confirmar tu dirección.',de:'Konto erstellt! Prüfe dein Postfach, um deine E-Mail zu bestätigen.',ar:'تم إنشاء الحساب! تحقق من بريدك لتأكيد عنوانك.',zh:'账号已创建！请查收邮件以确认你的邮箱。',ja:'アカウントを作成しました！メールを確認してアドレスを認証してください。',ru:'Аккаунт создан! Проверьте почту, чтобы подтвердить адрес.',pl:'Konto utworzone! Sprawdź skrzynkę, aby potwierdzić adres e-mail.',it:"Account creato! Controlla la tua casella per confermare l'indirizzo."},
+  welcome:{fr:'Connecté ✓',en:'Signed in ✓',es:'Sesión iniciada ✓',de:'Angemeldet ✓',ar:'تم تسجيل الدخول ✓',zh:'已登录 ✓',ja:'サインインしました ✓',ru:'Вы вошли ✓',pl:'Zalogowano ✓',it:'Accesso effettuato ✓'},
+  pwWeak:{fr:'Mot de passe trop faible (8+ caractères, mélange maj/min/chiffre/symbole).',en:'Password too weak (8+ chars, mix upper/lower/digit/symbol).',es:'Contraseña demasiado débil (8+ caracteres, mezcla mayús/minús/dígito/símbolo).',de:'Passwort zu schwach (8+ Zeichen, Mix aus Groß-/Kleinbuchstaben/Ziffer/Symbol).',ar:'كلمة المرور ضعيفة جدًا (8 أحرف على الأقل، مزيج من حروف كبيرة وصغيرة ورقم ورمز).',zh:'密码太弱（至少8位，需含大小写字母、数字和符号）。',ja:'パスワードが弱すぎます（8文字以上、大小英字・数字・記号の混在）。',ru:'Слишком слабый пароль (8+ символов, смесь заглавных/строчных/цифр/символов).',pl:'Hasło zbyt słabe (min. 8 znaków, duże/małe litery, cyfra, symbol).',it:'Password troppo debole (8+ caratteri, mix maiusc/minusc/cifra/simbolo).'},
+  pwStrength:{fr:['Très faible','Faible','Correct','Bon','Excellent'],en:['Very weak','Weak','Fair','Good','Strong'],es:['Muy débil','Débil','Aceptable','Buena','Excelente'],de:['Sehr schwach','Schwach','Mittel','Gut','Stark'],ar:['ضعيفة جدًا','ضعيفة','مقبولة','جيدة','قوية'],zh:['非常弱','弱','一般','良好','很强'],ja:['非常に弱い','弱い','普通','良い','強い'],ru:['Очень слабый','Слабый','Средний','Хороший','Надёжный'],pl:['Bardzo słabe','Słabe','Średnie','Dobre','Mocne'],it:['Molto debole','Debole','Discreta','Buona','Forte']},
+  uTaken:{fr:'Ce pseudo est déjà pris.',en:'This username is taken.',es:'Este nombre de usuario ya está en uso.',de:'Dieser Benutzername ist bereits vergeben.',ar:'اسم المستخدم هذا مأخوذ بالفعل.',zh:'该用户名已被使用。',ja:'このユーザー名は既に使われています。',ru:'Этот никнейм уже занят.',pl:'Ta nazwa użytkownika jest już zajęta.',it:'Questo nome utente è già in uso.'},
+  uAvail:{fr:'Pseudo disponible ✓',en:'Username available ✓',es:'Nombre disponible ✓',de:'Benutzername verfügbar ✓',ar:'اسم المستخدم متاح ✓',zh:'用户名可用 ✓',ja:'このユーザー名は使えます ✓',ru:'Никнейм свободен ✓',pl:'Nazwa dostępna ✓',it:'Nome utente disponibile ✓'},
+  uShort:{fr:'3 caractères minimum.',en:'At least 3 characters.',es:'Mínimo 3 caracteres.',de:'Mindestens 3 Zeichen.',ar:'3 أحرف على الأقل.',zh:'至少3个字符。',ja:'3文字以上。',ru:'Минимум 3 символа.',pl:'Co najmniej 3 znaki.',it:'Minimo 3 caratteri.'},
+  uInvalid:{fr:'Lettres, chiffres, . _ - uniquement.',en:'Letters, numbers, . _ - only.',es:'Solo letras, números, . _ -',de:'Nur Buchstaben, Zahlen, . _ -',ar:'حروف وأرقام و . _ - فقط.',zh:'仅限字母、数字和 . _ -',ja:'英数字と . _ - のみ。',ru:'Только буквы, цифры, . _ -',pl:'Tylko litery, cyfry, . _ -',it:'Solo lettere, numeri, . _ -'},
+  emailTaken:{fr:'Cet e-mail est déjà utilisé.',en:'This email is already in use.',es:'Este correo ya está en uso.',de:'Diese E-Mail wird bereits verwendet.',ar:'هذا البريد مستخدم بالفعل.',zh:'该邮箱已被使用。',ja:'このメールは既に使われています。',ru:'Эта почта уже используется.',pl:'Ten e-mail jest już używany.',it:'Questa e-mail è già in uso.'},
+  emailInvalid:{fr:'E-mail invalide.',en:'Invalid email.',es:'Correo no válido.',de:'Ungültige E-Mail.',ar:'بريد إلكتروني غير صالح.',zh:'邮箱无效。',ja:'無効なメールアドレス。',ru:'Неверный e-mail.',pl:'Nieprawidłowy e-mail.',it:'E-mail non valida.'},
+  badCreds:{fr:'E-mail ou mot de passe incorrect.',en:'Wrong email or password.',es:'Correo o contraseña incorrectos.',de:'E-Mail oder Passwort falsch.',ar:'البريد أو كلمة المرور غير صحيحة.',zh:'邮箱或密码错误。',ja:'メールまたはパスワードが正しくありません。',ru:'Неверная почта или пароль.',pl:'Błędny e-mail lub hasło.',it:'E-mail o password errati.'},
+  notConfirmed:{fr:'E-mail pas encore confirmé — clique le lien reçu par mail.',en:'Email not confirmed yet — click the link sent to your inbox.',es:'Correo aún sin confirmar: haz clic en el enlace que te enviamos.',de:'E-Mail noch nicht bestätigt – klicke auf den zugesandten Link.',ar:'لم يتم تأكيد البريد بعد — انقر على الرابط المُرسل إلى بريدك.',zh:'邮箱尚未确认——请点击邮件中的链接。',ja:'メール未確認です——受信したリンクをクリックしてください。',ru:'Почта ещё не подтверждена — нажмите на ссылку из письма.',pl:'E-mail nie został jeszcze potwierdzony — kliknij link z wiadomości.',it:'E-mail non ancora confermata — clicca il link ricevuto.'},
+  ageMin:{fr:'Tu dois avoir au moins 13 ans.',en:'You must be at least 13.',es:'Debes tener al menos 13 años.',de:'Du musst mindestens 13 Jahre alt sein.',ar:'يجب أن يكون عمرك 13 عامًا على الأقل.',zh:'你必须年满13岁。',ja:'13歳以上である必要があります。',ru:'Вам должно быть не менее 13 лет.',pl:'Musisz mieć co najmniej 13 lat.',it:'Devi avere almeno 13 anni.'},
+  required:{fr:'Champ requis.',en:'Required field.',es:'Campo obligatorio.',de:'Pflichtfeld.',ar:'حقل مطلوب.',zh:'必填项。',ja:'必須項目です。',ru:'Обязательное поле.',pl:'Pole wymagane.',it:'Campo obbligatorio.'},
+  genderReq:{fr:'Choisis une option.',en:'Please choose an option.',es:'Elige una opción.',de:'Bitte eine Option wählen.',ar:'يرجى اختيار خيار.',zh:'请选择一个选项。',ja:'選択してください。',ru:'Выберите вариант.',pl:'Wybierz opcję.',it:"Scegli un'opzione."},
+  consentReq:{fr:'Tu dois accepter pour continuer.',en:'You must accept to continue.',es:'Debes aceptar para continuar.',de:'Du musst zustimmen, um fortzufahren.',ar:'يجب أن توافق للمتابعة.',zh:'你必须同意才能继续。',ja:'続行するには同意が必要です。',ru:'Чтобы продолжить, нужно согласие.',pl:'Musisz zaakceptować, aby kontynuować.',it:'Devi accettare per continuare.'},
+  fail:{fr:"Échec — réessaie.",en:'Failed — please try again.',es:'Error: inténtalo de nuevo.',de:'Fehlgeschlagen – bitte erneut versuchen.',ar:'فشل — حاول مرة أخرى.',zh:'失败——请重试。',ja:'失敗しました——もう一度お試しください。',ru:'Не удалось — попробуйте снова.',pl:'Niepowodzenie — spróbuj ponownie.',it:'Operazione fallita — riprova.'},
+  rateLimit:{fr:"Trop de tentatives. Patiente quelques minutes (limite d'e-mails du plan gratuit), ou désactive temporairement la confirmation e-mail dans Supabase.",en:'Too many attempts. Wait a few minutes (free-tier email limit), or temporarily disable email confirmation in Supabase.',es:'Demasiados intentos. Espera unos minutos (límite de correos del plan gratuito) o desactiva temporalmente la confirmación por correo en Supabase.',de:'Zu viele Versuche. Warte einige Minuten (E-Mail-Limit im Gratis-Tarif) oder deaktiviere die E-Mail-Bestätigung in Supabase vorübergehend.',ar:'محاولات كثيرة جدًا. انتظر بضع دقائق (حد رسائل الخطة المجانية)، أو عطّل تأكيد البريد مؤقتًا في Supabase.',zh:'尝试次数过多。请等待几分钟（免费套餐邮件限制），或在 Supabase 中暂时关闭邮箱确认。',ja:'試行回数が多すぎます。数分お待ちください（無料プランのメール制限）。または Supabase でメール確認を一時的に無効化してください。',ru:'Слишком много попыток. Подождите несколько минут (лимит писем бесплатного тарифа) или временно отключите подтверждение почты в Supabase.',pl:'Zbyt wiele prób. Poczekaj kilka minut (limit e-maili w darmowym planie) lub tymczasowo wyłącz potwierdzanie e-mail w Supabase.',it:'Troppi tentativi. Attendi qualche minuto (limite e-mail del piano gratuito) o disattiva temporaneamente la conferma e-mail in Supabase.'},
+  notConfigured:{fr:'Les comptes ne sont pas encore activés sur ce site.',en:'Accounts are not enabled on this site yet.',es:'Las cuentas aún no están activadas en este sitio.',de:'Konten sind auf dieser Seite noch nicht aktiviert.',ar:'الحسابات غير مفعّلة على هذا الموقع بعد.',zh:'本站尚未启用账号功能。',ja:'このサイトではアカウント機能はまだ有効ではありません。',ru:'Аккаунты на этом сайте пока не включены.',pl:'Konta nie są jeszcze włączone na tej stronie.',it:'Gli account non sono ancora attivi su questo sito.'},
+  close:{fr:'Fermer',en:'Close',es:'Cerrar',de:'Schließen',ar:'إغلاق',zh:'关闭',ja:'閉じる',ru:'Закрыть',pl:'Zamknij',it:'Chiudi'},
+  profileItem:{fr:'Profil',en:'Profile',es:'Perfil',de:'Profil',ar:'الملف الشخصي',zh:'个人资料',ja:'プロフィール',ru:'Профиль',pl:'Profil',it:'Profilo'}, optionsItem:{fr:'Options',en:'Options',es:'Opciones',de:'Optionen',ar:'الخيارات',zh:'选项',ja:'オプション',ru:'Настройки',pl:'Opcje',it:'Opzioni'},
+  chooseAvatar:{fr:'Choisir un avatar',en:'Choose an avatar',es:'Elegir un avatar',de:'Avatar wählen',ar:'اختر صورة رمزية',zh:'选择头像',ja:'アバターを選ぶ',ru:'Выбрать аватар',pl:'Wybierz awatar',it:'Scegli un avatar'},
+  avatarChange:{fr:"Changer d'avatar",en:'Change avatar',es:'Cambiar avatar',de:'Avatar ändern',ar:'تغيير الصورة الرمزية',zh:'更换头像',ja:'アバターを変更',ru:'Сменить аватар',pl:'Zmień awatar',it:'Cambia avatar'},
+  presetsLabel:{fr:'Personnages',en:'Characters',es:'Personajes',de:'Charaktere',ar:'الشخصيات',zh:'角色',ja:'キャラクター',ru:'Персонажи',pl:'Postacie',it:'Personaggi'},
+  customLabel:{fr:'Image personnelle',en:'Custom image',es:'Imagen personal',de:'Eigenes Bild',ar:'صورة شخصية',zh:'自定义图片',ja:'カスタム画像',ru:'Своё изображение',pl:'Własny obraz',it:'Immagine personale'},
+  uploadBtn:{fr:'Téléverser une image',en:'Upload an image',es:'Subir una imagen',de:'Bild hochladen',ar:'رفع صورة',zh:'上传图片',ja:'画像をアップロード',ru:'Загрузить изображение',pl:'Prześlij obraz',it:"Carica un'immagine"},
+  back:{fr:'Retour',en:'Back',es:'Volver',de:'Zurück',ar:'رجوع',zh:'返回',ja:'戻る',ru:'Назад',pl:'Wstecz',it:'Indietro'},
+  modOff:{fr:"Upload perso bientôt disponible (modération requise). Choisis un personnage pour l'instant.",en:'Custom upload coming soon (moderation required). Pick a character for now.',es:'La subida personalizada llegará pronto (requiere moderación). Elige un personaje por ahora.',de:'Eigener Upload kommt bald (Moderation erforderlich). Wähle vorerst einen Charakter.',ar:'رفع الصور المخصصة قريبًا (يتطلب إشرافًا). اختر شخصية الآن.',zh:'自定义上传即将推出（需审核）。请暂时选择一个角色。',ja:'カスタムアップロードは近日対応（要モデレーション）。今はキャラクターを選んでください。',ru:'Загрузка своих изображений скоро (нужна модерация). Пока выберите персонажа.',pl:'Własny upload wkrótce (wymaga moderacji). Na razie wybierz postać.',it:'Caricamento personalizzato in arrivo (richiede moderazione). Per ora scegli un personaggio.'},
+  imgType:{fr:'Format non supporté (PNG, JPG, WEBP).',en:'Unsupported format (PNG, JPG, WEBP).',es:'Formato no admitido (PNG, JPG, WEBP).',de:'Format nicht unterstützt (PNG, JPG, WEBP).',ar:'صيغة غير مدعومة (PNG، JPG، WEBP).',zh:'不支持的格式（PNG、JPG、WEBP）。',ja:'対応していない形式です（PNG, JPG, WEBP）。',ru:'Формат не поддерживается (PNG, JPG, WEBP).',pl:'Nieobsługiwany format (PNG, JPG, WEBP).',it:'Formato non supportato (PNG, JPG, WEBP).'},
+  imgSize:{fr:'Image trop lourde (max 2 Mo).',en:'Image too large (max 2 MB).',es:'Imagen demasiado grande (máx. 2 MB).',de:'Bild zu groß (max. 2 MB).',ar:'الصورة كبيرة جدًا (الحد الأقصى 2 ميغابايت).',zh:'图片过大（最大2 MB）。',ja:'画像が大きすぎます（最大2 MB）。',ru:'Изображение слишком большое (макс. 2 МБ).',pl:'Obraz zbyt duży (maks. 2 MB).',it:'Immagine troppo pesante (max 2 MB).'},
+  imgRejected:{fr:'Image refusée par la modération.',en:'Image rejected by moderation.',es:'Imagen rechazada por moderación.',de:'Bild von der Moderation abgelehnt.',ar:'تم رفض الصورة من قبل الإشراف.',zh:'图片被审核拒绝。',ja:'画像がモデレーションにより拒否されました。',ru:'Изображение отклонено модерацией.',pl:'Obraz odrzucony przez moderację.',it:'Immagine rifiutata dalla moderazione.'},
+  imgUploaded:{fr:'Avatar mis à jour ✓',en:'Avatar updated ✓',es:'Avatar actualizado ✓',de:'Avatar aktualisiert ✓',ar:'تم تحديث الصورة الرمزية ✓',zh:'头像已更新 ✓',ja:'アバターを更新しました ✓',ru:'Аватар обновлён ✓',pl:'Awatar zaktualizowany ✓',it:'Avatar aggiornato ✓'},
+  dobLbl:{fr:'Date de naissance',en:'Date of birth',es:'Fecha de nacimiento',de:'Geburtsdatum',ar:'تاريخ الميلاد',zh:'出生日期',ja:'生年月日',ru:'Дата рождения',pl:'Data urodzenia',it:'Data di nascita'},
+  dayLbl:{fr:'Jour',en:'Day',es:'Día',de:'Tag',ar:'اليوم',zh:'日',ja:'日',ru:'День',pl:'Dzień',it:'Giorno'}, monthLbl:{fr:'Mois',en:'Month',es:'Mes',de:'Monat',ar:'الشهر',zh:'月',ja:'月',ru:'Месяц',pl:'Miesiąc',it:'Mese'}, yearLbl:{fr:'Année',en:'Year',es:'Año',de:'Jahr',ar:'السنة',zh:'年',ja:'年',ru:'Год',pl:'Rok',it:'Anno'},
+  showPw:{fr:'Afficher le mot de passe',en:'Show password',es:'Mostrar contraseña',de:'Passwort anzeigen',ar:'إظهار كلمة المرور',zh:'显示密码',ja:'パスワードを表示',ru:'Показать пароль',pl:'Pokaż hasło',it:'Mostra password'}, hidePw:{fr:'Masquer le mot de passe',en:'Hide password',es:'Ocultar contraseña',de:'Passwort verbergen',ar:'إخفاء كلمة المرور',zh:'隐藏密码',ja:'パスワードを隠す',ru:'Скрыть пароль',pl:'Ukryj hasło',it:'Nascondi password'},
+  dobInvalid:{fr:'Date de naissance invalide.',en:'Invalid date of birth.',es:'Fecha de nacimiento no válida.',de:'Ungültiges Geburtsdatum.',ar:'تاريخ ميلاد غير صالح.',zh:'出生日期无效。',ja:'無効な生年月日です。',ru:'Неверная дата рождения.',pl:'Nieprawidłowa data urodzenia.',it:'Data di nascita non valida.'},
 };
 function _at(k){ const m=_AUTH_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -2478,6 +3241,11 @@ const _AUTH_MONTHS = {
   es:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
   de:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
   it:['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'],
+  ar:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+  zh:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+  ja:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+  ru:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+  pl:['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
 };
 const _EYE_SVG = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>`;
 const _EYE_OFF_SVG = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true"><path d="M3 3l18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10.6 6.2A10.8 10.8 0 0112 6c6.5 0 10 7 10 7a18 18 0 01-3.2 3.9M6.3 6.4A18 18 0 002 13s3.5 7 10 7a10.6 10.6 0 004.2-.85" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
@@ -2522,8 +3290,8 @@ let _accountProfile = null;
 
 /* Circular avatar markup: photo if set, else first-letter disc */
 function _avatarDiscHTML(profile, user) {
-  const url  = profile?.avatar_url;
-  const init = ((profile?.username || user?.email || '?')[0] || '?').toUpperCase();
+  const url  = safeMediaUrl(profile?.avatar_url);
+  const init = escHtml(((profile?.username || user?.email || '?')[0] || '?').toUpperCase());
   return url
     ? `<img class="ava-img" src="${url}" alt="" onerror="this.remove()"><span class="ava-init ava-init--fallback">${init}</span>`
     : `<span class="ava-init">${init}</span>`;
@@ -2536,6 +3304,8 @@ function _buildAccountButton() {
   btn.id = 'nav-account-btn';
   btn.setAttribute('aria-label', _at('account'));
   btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'nav-account-menu');
   btn.title = _at('account');
   btn.innerHTML = `<span class="nav-account-ava">${_ACCOUNT_ICON}</span><span class="nav-account-name"></span>`;
   btn.addEventListener('click', e => {
@@ -2553,23 +3323,38 @@ function _buildAccountButton() {
 
 /* Dropdown shown when clicking the avatar (logged in) */
 function _buildAccountMenu() {
-  if ($('nav-account-menu')) return;
+  // Contenu du menu — regénéré à chaque appel (les libellés suivent la langue)
+  const itemsHTML = `
+    <button class="acct-menu-item" data-act="profile" role="menuitem">${_at('profileItem')}</button>
+    <button class="acct-menu-item" data-act="library" role="menuitem">${_lbt('navLabel')}</button>
+    <button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>
+    <button class="acct-menu-item acct-menu-item--danger" data-act="logout" role="menuitem">${_at('logout')}</button>`;
+  const existing = $('nav-account-menu');
+  if (existing) { existing.innerHTML = itemsHTML; return; } // listeners délégués conservés
   const menu = document.createElement('div');
   menu.id = 'nav-account-menu';
   menu.className = 'acct-menu';
   menu.setAttribute('role', 'menu');
-  menu.innerHTML = `
-    <button class="acct-menu-item" data-act="profile" role="menuitem">${_at('profileItem')}</button>
-    <button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>
-    <button class="acct-menu-item acct-menu-item--danger" data-act="logout" role="menuitem">${_at('logout')}</button>`;
+  menu.innerHTML = itemsHTML;
   document.body.appendChild(menu);
   menu.addEventListener('click', async e => {
     const act = e.target.closest('.acct-menu-item')?.dataset.act;
     if (!act) return;
     closeAccountMenu();
     if (act === 'profile') { _viewProfileId = null; showPage('profile'); }
+    else if (act === 'library') showPage('library');
     else if (act === 'options') showPage('settings');
     else if (act === 'logout') { await GLG_AUTH.signOut(); refreshAccountUI(); }
+  });
+  // Navigation clavier du menu (pattern ARIA menu) : flèches + Échap
+  menu.addEventListener('keydown', e => {
+    const items = [...menu.querySelectorAll('.acct-menu-item')];
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { closeAccountMenu(); $('nav-account-btn')?.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0])?.focus(); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); (items[i - 1] || items[items.length - 1])?.focus(); }
+    else if (e.key === 'Home')      { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End')       { e.preventDefault(); items[items.length - 1]?.focus(); }
   });
   // Close on outside click / escape
   document.addEventListener('click', e => {
@@ -2584,14 +3369,20 @@ function toggleAccountMenu() {
   if (menu.classList.contains('open')) { closeAccountMenu(); return; }
   // Refresh labels (language may have changed)
   menu.querySelector('[data-act="profile"]').textContent = _at('profileItem');
+  menu.querySelector('[data-act="library"]') && (menu.querySelector('[data-act="library"]').textContent = _lbt('navLabel'));
   menu.querySelector('[data-act="options"]').textContent = _at('optionsItem');
   menu.querySelector('[data-act="logout"]').textContent  = _at('logout');
   const r = btn.getBoundingClientRect();
   menu.style.top   = (r.bottom + 8) + 'px';
   menu.style.right = (window.innerWidth - r.right) + 'px';
   menu.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  setTimeout(() => menu.querySelector('.acct-menu-item')?.focus(), 20); // focus premier item (a11y)
 }
-function closeAccountMenu() { $('nav-account-menu')?.classList.remove('open'); }
+function closeAccountMenu() {
+  $('nav-account-menu')?.classList.remove('open');
+  $('nav-account-btn')?.setAttribute('aria-expanded', 'false');
+}
 
 let _authTab = 'login';
 function _buildAuthModal() {
@@ -2625,7 +3416,7 @@ async function renderAuthModal() {
 
   const notice = configured ? '' : `<div class="auth-notice">${_at('notConfigured')}</div>`;
   m.innerHTML = `
-    <div class="auth-box" role="dialog" aria-modal="true">
+    <div class="auth-box" role="dialog" aria-modal="true" aria-label="${_at(_authTab === 'login' ? 'signIn' : 'signUp')}">
       <button class="auth-close" aria-label="${_at('close')}" onclick="closeAuthModal()">
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
@@ -2701,7 +3492,7 @@ function _signupFormHTML() {
     </form>`;
 }
 
-function _showErr(id, msg) { const e = $(id); if (e) { e.textContent = msg; e.hidden = false; } }
+function _showErr(id, msg) { const e = $(id); if (e) { e.setAttribute('role', 'alert'); e.textContent = msg; e.hidden = false; } } // role=alert → lu par les lecteurs d'écran
 function _hideErr(id) { const e = $(id); if (e) e.hidden = true; }
 
 function _wireLogin() {
@@ -2719,6 +3510,47 @@ function _wireLogin() {
       const map = { badCredentials:_at('badCreds'), rateLimit:_at('rateLimit'), notConfirmed:_at('notConfirmed') };
       _showErr('al-err', map[r.code] || _at('fail')); return;
     }
+    // ── 2FA (style Steam Guard) : si le compte a un facteur TOTP vérifié,
+    // la session est encore en aal1 → exiger le code à 6 chiffres avant
+    // d'ouvrir le compte. Annuler = déconnexion (jamais de demi-session).
+    try {
+      const aal = await GLG_AUTH.mfaAal?.();
+      if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') { _renderTotpStep(); return; }
+    } catch (err) {}
+    closeAuthModal(); refreshAccountUI();
+  });
+}
+
+/* Étape TOTP de la modale de connexion (après mot de passe correct). */
+function _renderTotpStep() {
+  const m = $('glg-auth-modal'); if (!m) return;
+  m.querySelector('.auth-box')?.setAttribute('aria-label', _mt('stepTitle')); // nom accessible de l'étape
+  const box = m.querySelector('.auth-body') || m;
+  box.innerHTML = `
+    <form id="auth-totp" class="auth-totp" novalidate>
+      <div class="auth-totp-ico" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg>
+      </div>
+      <h3 class="auth-totp-title">${_mt('stepTitle')}</h3>
+      <p class="auth-totp-sub">${_mt('stepSub')}</p>
+      <input type="text" id="at-code" class="auth-totp-input" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" pattern="[0-9]*" placeholder="••••••" aria-label="${_mt('stepTitle')}">
+      <p class="auth-err" id="at-err" hidden></p>
+      <button type="submit" class="btn btn-primary auth-submit" id="at-submit">${_mt('verify')}</button>
+      <button type="button" class="auth-link" id="at-cancel">${_mt('cancel')}</button>
+    </form>`;
+  const input = $('at-code'); input?.focus();
+  input?.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+  $('at-cancel')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); });
+  $('auth-totp')?.addEventListener('submit', async e => {
+    e.preventDefault(); _hideErr('at-err');
+    const code = (input?.value || '').trim();
+    if (code.length !== 6) { _showErr('at-err', _mt('badCode')); return; }
+    const btn = $('at-submit'); const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = _at('working');
+    const r = await GLG_AUTH.mfaChallengeVerify?.(code);
+    btn.disabled = false; btn.textContent = orig;
+    if (!r || !r.ok) { _showErr('at-err', _mt('badCode')); return; }
     closeAuthModal(); refreshAccountUI();
   });
 }
@@ -2798,8 +3630,35 @@ function _wireSignup() {
    Réellement fonctionnelles côté client : réduction d'animations,
    couleur d'accent, filtres de notifications, confidentialité.
 ══════════════════════════════════════════════════════════ */
+/* ── 2FA TOTP (Steam Guard maison) — i18n ── */
+const _MFA_T = {
+  title:    { fr:'Authentification à deux facteurs', en:'Two-factor authentication', es:'Autenticación en dos pasos', de:'Zwei-Faktor-Authentifizierung', it:'Autenticazione a due fattori', ar:'المصادقة الثنائية', zh:'两步验证', ja:'二段階認証', ru:'Двухфакторная аутентификация', pl:'Uwierzytelnianie dwuskładnikowe' },
+  desc:     { fr:'Protège ton compte comme Steam Guard : un code à 6 chiffres depuis ton application d’authentification (Google Authenticator, Authy…) sera demandé à chaque connexion.', en:'Protect your account Steam Guard-style: a 6-digit code from your authenticator app (Google Authenticator, Authy…) will be required at every sign-in.', es:'Protege tu cuenta al estilo Steam Guard: se pedirá un código de 6 dígitos de tu app de autenticación en cada inicio de sesión.', de:'Schütze dein Konto im Steam-Guard-Stil: Bei jeder Anmeldung wird ein 6-stelliger Code aus deiner Authenticator-App verlangt.', it:'Proteggi il tuo account in stile Steam Guard: a ogni accesso verrà richiesto un codice a 6 cifre dalla tua app di autenticazione.', ar:'احمِ حسابك على طريقة Steam Guard: سيُطلب رمز من 6 أرقام من تطبيق المصادقة عند كل تسجيل دخول.', zh:'像 Steam 令牌一样保护你的账户：每次登录都需要输入身份验证器应用中的6位验证码。', ja:'Steam Guardのようにアカウントを保護：ログインごとに認証アプリの6桁コードが必要になります。', ru:'Защитите аккаунт в стиле Steam Guard: при каждом входе потребуется 6-значный код из приложения-аутентификатора.', pl:'Chroń konto w stylu Steam Guard: przy każdym logowaniu wymagany będzie 6-cyfrowy kod z aplikacji uwierzytelniającej.' },
+  enable:   { fr:'Activer le 2FA', en:'Enable 2FA', es:'Activar 2FA', de:'2FA aktivieren', it:'Attiva 2FA', ar:'تفعيل المصادقة الثنائية', zh:'启用两步验证', ja:'二段階認証を有効化', ru:'Включить 2FA', pl:'Włącz 2FA' },
+  disable:  { fr:'Désactiver', en:'Disable', es:'Desactivar', de:'Deaktivieren', it:'Disattiva', ar:'تعطيل', zh:'停用', ja:'無効化', ru:'Отключить', pl:'Wyłącz' },
+  active:   { fr:'2FA actif — ton compte est protégé', en:'2FA active — your account is protected', es:'2FA activo — tu cuenta está protegida', de:'2FA aktiv — dein Konto ist geschützt', it:'2FA attivo — il tuo account è protetto', ar:'المصادقة الثنائية مفعّلة — حسابك محمي', zh:'两步验证已启用——你的账户受到保护', ja:'二段階認証が有効 — アカウントは保護されています', ru:'2FA включена — ваш аккаунт защищён', pl:'2FA aktywne — twoje konto jest chronione' },
+  scan:     { fr:'1. Scanne ce QR code avec ton application d’authentification', en:'1. Scan this QR code with your authenticator app', es:'1. Escanea este código QR con tu app de autenticación', de:'1. Scanne diesen QR-Code mit deiner Authenticator-App', it:'1. Scansiona questo codice QR con la tua app di autenticazione', ar:'1. امسح رمز QR بتطبيق المصادقة', zh:'1. 用身份验证器应用扫描此二维码', ja:'1. 認証アプリでこのQRコードをスキャン', ru:'1. Отсканируйте этот QR-код приложением-аутентификатором', pl:'1. Zeskanuj ten kod QR aplikacją uwierzytelniającą' },
+  manual:   { fr:'Ou saisis cette clé manuellement :', en:'Or enter this key manually:', es:'O introduce esta clave manualmente:', de:'Oder gib diesen Schlüssel manuell ein:', it:'Oppure inserisci questa chiave manualmente:', ar:'أو أدخل هذا المفتاح يدوياً:', zh:'或手动输入此密钥：', ja:'または、このキーを手動で入力：', ru:'Или введите этот ключ вручную:', pl:'Lub wpisz ten klucz ręcznie:' },
+  confirm:  { fr:'2. Saisis le code à 6 chiffres généré', en:'2. Enter the generated 6-digit code', es:'2. Introduce el código de 6 dígitos generado', de:'2. Gib den generierten 6-stelligen Code ein', it:'2. Inserisci il codice a 6 cifre generato', ar:'2. أدخل الرمز المكوَّن من 6 أرقام', zh:'2. 输入生成的6位验证码', ja:'2. 生成された6桁コードを入力', ru:'2. Введите сгенерированный 6-значный код', pl:'2. Wpisz wygenerowany 6-cyfrowy kod' },
+  verify:   { fr:'Vérifier', en:'Verify', es:'Verificar', de:'Bestätigen', it:'Verifica', ar:'تحقّق', zh:'验证', ja:'確認', ru:'Подтвердить', pl:'Zweryfikuj' },
+  cancel:   { fr:'Annuler', en:'Cancel', es:'Cancelar', de:'Abbrechen', it:'Annulla', ar:'إلغاء', zh:'取消', ja:'キャンセル', ru:'Отмена', pl:'Anuluj' },
+  badCode:  { fr:'Code invalide — réessaie.', en:'Invalid code — try again.', es:'Código no válido — inténtalo de nuevo.', de:'Ungültiger Code — versuch es erneut.', it:'Codice non valido — riprova.', ar:'رمز غير صالح — حاول مجدداً.', zh:'验证码无效——请重试。', ja:'コードが無効です — もう一度お試しください。', ru:'Неверный код — попробуйте ещё раз.', pl:'Nieprawidłowy kod — spróbuj ponownie.' },
+  stepTitle:{ fr:'Vérification en deux étapes', en:'Two-step verification', es:'Verificación en dos pasos', de:'Bestätigung in zwei Schritten', it:'Verifica in due passaggi', ar:'التحقق بخطوتين', zh:'两步验证', ja:'2段階認証', ru:'Двухэтапная проверка', pl:'Weryfikacja dwuetapowa' },
+  stepSub:  { fr:'Saisis le code à 6 chiffres de ton application d’authentification.', en:'Enter the 6-digit code from your authenticator app.', es:'Introduce el código de 6 dígitos de tu app de autenticación.', de:'Gib den 6-stelligen Code aus deiner Authenticator-App ein.', it:'Inserisci il codice a 6 cifre della tua app di autenticazione.', ar:'أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة.', zh:'请输入身份验证器应用中的6位验证码。', ja:'認証アプリの6桁コードを入力してください。', ru:'Введите 6-значный код из приложения-аутентификатора.', pl:'Wpisz 6-cyfrowy kod z aplikacji uwierzytelniającej.' },
+  disableConfirm: { fr:'Désactiver la double authentification ? Ton compte sera moins protégé.', en:'Disable two-factor authentication? Your account will be less protected.', es:'¿Desactivar la autenticación en dos pasos? Tu cuenta estará menos protegida.', de:'Zwei-Faktor-Authentifizierung deaktivieren? Dein Konto ist dann weniger geschützt.', it:'Disattivare l’autenticazione a due fattori? Il tuo account sarà meno protetto.', ar:'تعطيل المصادقة الثنائية؟ سيصبح حسابك أقل حماية.', zh:'停用两步验证？你的账户保护将降低。', ja:'二段階認証を無効にしますか？アカウントの保護が弱くなります。', ru:'Отключить двухфакторную аутентификацию? Ваш аккаунт будет защищён хуже.', pl:'Wyłączyć uwierzytelnianie dwuskładnikowe? Twoje konto będzie słabiej chronione.' },
+  err:      { fr:'Opération impossible pour le moment.', en:'Operation unavailable right now.', es:'Operación no disponible ahora mismo.', de:'Vorgang derzeit nicht möglich.', it:'Operazione non disponibile al momento.', ar:'العملية غير متاحة حالياً.', zh:'操作暂时不可用。', ja:'現在この操作はできません。', ru:'Операция сейчас недоступна.', pl:'Operacja chwilowo niedostępna.' },
+};
+const _mt = k => (_MFA_T[k] && (_MFA_T[k][LANG] || _MFA_T[k].en)) || '';
+
 const _OPT_T = {
   settings:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
+  sfx:{fr:'Sons d’interface',en:'Interface sounds',es:'Sonidos de interfaz',de:'Interface-Sounds',it:'Suoni dell’interfaccia',ar:'أصوات الواجهة',zh:'界面音效',ja:'インターフェース音',ru:'Звуки интерфейса',pl:'Dźwięki interfejsu'},
+  sfxD:{fr:'Retour sonore discret sur les boutons et menus (façon launcher).',en:'Subtle audio feedback on buttons and menus (launcher-style).',es:'Respuesta sonora sutil en botones y menús.',de:'Dezentes Klangfeedback auf Buttons und Menüs.',it:'Feedback sonoro discreto su pulsanti e menu.',ar:'ارتجاع صوتي خفيف للأزرار والقوائم.',zh:'按钮与菜单的轻微音效反馈。',ja:'ボタンやメニューの控えめな音のフィードバック。',ru:'Деликатный звуковой отклик кнопок и меню.',pl:'Subtelny dźwiękowy feedback przycisków i menu.'},
+  privShowRecent:{fr:'Afficher mon activité de jeu',en:'Show my game activity',es:'Mostrar mi actividad de juego',de:'Meine Spielaktivität anzeigen',it:'Mostra la mia attività di gioco',ar:'إظهار نشاطي في اللعب',zh:'显示我的游戏动态',ja:'ゲームアクティビティを表示',ru:'Показывать мою игровую активность',pl:'Pokazuj moją aktywność w grach'},
+  privShowRecentD:{fr:'Tes jeux récents et ton temps de jeu sur ton profil public.',en:'Your recent games and playtime on your public profile.',es:'Tus juegos recientes y tiempo de juego en tu perfil público.',de:'Deine letzten Spiele und Spielzeit im öffentlichen Profil.',it:'I tuoi giochi recenti e il tempo di gioco sul profilo pubblico.',ar:'ألعابك الأخيرة ووقت اللعب في ملفك العام.',zh:'公开资料中的最近游戏与游戏时长。',ja:'公開プロフィールの最近のゲームとプレイ時間。',ru:'Недавние игры и время в игре в публичном профиле.',pl:'Ostatnie gry i czas gry w profilu publicznym.'},
+  whatsNew:{fr:'Quoi de neuf',en:'What’s new',es:'Novedades',de:'Was ist neu',it:'Novità',ar:'ما الجديد',zh:'新变化',ja:'新着情報',ru:'Что нового',pl:'Co nowego'},
+  releaseTag:{fr:'Version majeure',en:'Major release',es:'Versión principal',de:'Hauptversion',it:'Release principale',ar:'إصدار رئيسي',zh:'重大版本',ja:'メジャーリリース',ru:'Крупный релиз',pl:'Wydanie główne'},
+  updateTag:{fr:'Mise à jour',en:'Update',es:'Actualización',de:'Update',it:'Aggiornamento',ar:'تحديث',zh:'更新',ja:'アップデート',ru:'Обновление',pl:'Aktualizacja'},
   tabProfile:{fr:'Profil',en:'Profile',es:'Perfil',de:'Profil',it:'Profilo',ar:'الملف',zh:'资料',ja:'プロフィール',ru:'Профиль',pl:'Profil'},
   tabPerso:{fr:'Personnalisation',en:'Personalization',es:'Personalización',de:'Personalisierung',it:'Personalizzazione',ar:'التخصيص',zh:'个性化',ja:'カスタマイズ',ru:'Оформление',pl:'Personalizacja'},
   tabNotif:{fr:'Notifications',en:'Notifications',es:'Notificaciones',de:'Mitteilungen',it:'Notifiche',ar:'الإشعارات',zh:'通知',ja:'通知',ru:'Уведомления',pl:'Powiadomienia'},
@@ -2838,10 +3697,11 @@ function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
 
 let _userPrefs = null;
-function _defaultPrefs(){ return { accent:null, reducedMotion:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true} }; }
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true} }; }
 function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
   accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
   reducedMotion:!!p.reducedMotion,
+  sfx:!!p.sfx,
   notif:Object.assign({},d.notif,p.notif||{}),
   privacy:Object.assign({},d.privacy,p.privacy||{}) }; }
 function _applyPrefs(p){
@@ -2849,6 +3709,7 @@ function _applyPrefs(p){
   document.documentElement.classList.toggle('glg-reduce-motion', _userPrefs.reducedMotion);
   if (_userPrefs.accent) document.documentElement.style.setProperty('--user-accent', _userPrefs.accent);
   else document.documentElement.style.removeProperty('--user-accent');
+  window.GLG_SFX?.setEnabled(_userPrefs.sfx); // sons d'interface (opt-in)
   return _userPrefs;
 }
 async function _savePrefs(patch){
@@ -2864,15 +3725,49 @@ function _toggleHTML(id, label, desc, on){
 }
 const _ACCENTS = ['#00d4ff','#a878e0','#e5564e','#ffb44c','#4cc38a','#ff7ab8'];
 
-/* Onglets des paramètres (partagés modale + page dédiée). */
+/* « Quoi de neuf » — journal des versions (GLG_CHANGELOG, data.js).
+   Le launcher standalone lira la même structure pour ses notes de MAJ. */
+function _changelogHTML() {
+  const log = (typeof GLG_CHANGELOG !== 'undefined' && Array.isArray(GLG_CHANGELOG)) ? GLG_CHANGELOG : [];
+  if (!log.length) return '';
+  return log.map((rel, i) => {
+    let d = rel.date || '';
+    try { d = new Date(rel.date + 'T12:00:00').toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'long', year:'numeric' }); } catch (e) {}
+    return `
+    <div class="chg-release ${i === 0 ? 'chg-release--current' : ''}">
+      <div class="chg-head">
+        <span class="chg-v">v${rel.v}</span>
+        <span class="chg-tag">${_ot(rel.tag === 'release' ? 'releaseTag' : 'updateTag')}</span>
+        <span class="chg-date">${d}</span>
+      </div>
+      <ul class="chg-notes">
+        ${(rel.notes || []).map(n => `<li>${n[LANG] || n.en}</li>`).join('')}
+      </ul>
+    </div>`;
+  }).join('');
+}
+
+/* Onglets des paramètres (partagés modale + page dédiée) — iconés (launcher). */
+const _SET_TAB_ICONS = {
+  profile: '<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.4" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M3 13.4c.9-2.2 2.7-3.4 5-3.4s4.1 1.2 5 3.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  perso:   '<svg viewBox="0 0 16 16" fill="none"><path d="M3 5h7M12.5 5H13M3 11h.5M6 11h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="11" cy="5" r="1.7" stroke="currentColor" stroke-width="1.3"/><circle cx="4.6" cy="11" r="1.7" stroke="currentColor" stroke-width="1.3"/></svg>',
+  notif:   '<svg viewBox="0 0 16 16" fill="none"><path d="M8 2.2c-2.3 0-3.7 1.7-3.7 3.9 0 3.1-1.1 4-1.1 4h9.6s-1.1-.9-1.1-4c0-2.2-1.4-3.9-3.7-3.9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6.7 12.6a1.4 1.4 0 002.6 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  privacy: '<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8L3 3.6v3.6c0 3.2 2.1 5.4 5 6.6 2.9-1.2 5-3.4 5-6.6V3.6L8 1.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.8 7.8l1.6 1.6 2.8-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  account: '<svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="8" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M8.6 8H14M12 8v2.4M14 8v1.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  updates: '<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 6.5A5.5 5.5 0 003.6 5M2.6 9.5A5.5 5.5 0 0012.4 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13.6 2.6v3h-3M2.4 13.4v-3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
 function _settingsTabs(){
-  return `
-        <button class="set-tab active" data-tab="profile">${_ot('tabProfile')}</button>
-        <button class="set-tab" data-tab="perso">${_ot('tabPerso')}</button>
-        <button class="set-tab" data-tab="notif">${_ot('tabNotif')}</button>
-        <button class="set-tab" data-tab="privacy">${_ot('tabPrivacy')}</button>
-        <button class="set-tab" data-tab="account">${_ot('tabAccount')}</button>
-        <button class="set-tab" data-tab="updates">${_ot('tabUpdates')}</button>`;
+  const tab = (key, label, active) => `
+        <button class="set-tab ${active ? 'active' : ''}" data-tab="${key}">
+          <span class="set-tab-ico" aria-hidden="true">${_SET_TAB_ICONS[key] || ''}</span>
+          <span>${label}</span>
+        </button>`;
+  return tab('profile', _ot('tabProfile'), true)
+       + tab('perso',   _ot('tabPerso'))
+       + tab('notif',   _ot('tabNotif'))
+       + tab('privacy', _ot('tabPrivacy'))
+       + tab('account', _ot('tabAccount'))
+       + tab('updates', _ot('tabUpdates'));
 }
 /* Panneaux des paramètres (partagés modale + page dédiée). */
 function _settingsPanels(p, u, pr){
@@ -2905,7 +3800,10 @@ function _settingsPanels(p, u, pr){
             <button type="button" class="set-accent set-accent--none ${!pr.accent?'on':''}" data-accent="" title="${_ot('accentNone')}">∅</button>
             ${_ACCENTS.map(c=>`<button type="button" class="set-accent ${pr.accent&&pr.accent.toLowerCase()===c?'on':''}" data-accent="${c}" style="--sw:${c}" aria-label="${c}"></button>`).join('')}
           </div>
-          <div class="set-toggle-list">${_toggleHTML('ap-rmotion', _ot('reducedMotion'), _ot('reducedMotionD'), pr.reducedMotion)}</div>
+          <div class="set-toggle-list">
+            ${_toggleHTML('ap-rmotion', _ot('reducedMotion'), _ot('reducedMotionD'), pr.reducedMotion)}
+            ${_toggleHTML('ap-sfx', _ot('sfx'), _ot('sfxD'), pr.sfx)}
+          </div>
         </div>
         <div class="set-panel" data-panel="notif" hidden>
           <div class="set-toggle-list">
@@ -2919,6 +3817,7 @@ function _settingsPanels(p, u, pr){
             ${_toggleHTML('ap-p-tro',  _ot('privShowTrophies'), '', pr.privacy.showTrophies)}
             ${_toggleHTML('ap-p-wish', _ot('privShowWishlist'), '', pr.privacy.showWishlist)}
             ${_toggleHTML('ap-p-onl',  _ot('privShowOnline'),   '', pr.privacy.showOnline)}
+            ${_toggleHTML('ap-p-rec',  _ot('privShowRecent'),   _ot('privShowRecentD'), pr.privacy.showRecent)}
           </div>
         </div>
         <div class="set-panel" data-panel="account" hidden>
@@ -2928,6 +3827,8 @@ function _settingsPanels(p, u, pr){
           <label class="auth-field"><span>${_ot('confirmPw')}</span><input type="password" id="ap-pw2" autocomplete="new-password"></label>
           <p class="auth-err" id="ap-pw-err" hidden></p>
           <button type="button" class="btn btn-outline set-w" id="ap-pw-save">${_ot('updatePw')}</button>
+          <div class="set-group-label">${_mt('title')}</div>
+          <div class="set-mfa" id="ap-mfa"><p class="set-update-status">…</p></div>
           <div class="set-group-label">${_ot('language')}</div>
           <button type="button" class="set-link-btn" id="ap-lang-btn">🌐 ${_ot('changeLang')}</button>
           <div class="auth-profile-actions">
@@ -2942,6 +3843,8 @@ function _settingsPanels(p, u, pr){
           </div>
           <p class="set-update-status" id="ap-update-status">${_ot('upToDate')}</p>
           <p class="set-update-note">${_ot('launcherNote')}</p>
+          <div class="set-group-label" style="margin-top:26px">${_ot('whatsNew')}</div>
+          <div class="set-changelog">${_changelogHTML()}</div>
         </div>`;
 }
 
@@ -2972,7 +3875,8 @@ async function buildSettingsPage(){
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '';
   host.innerHTML = `
     <section class="settings-page">
-      <div class="settings-page-head">
+      <div class="settings-page-head settings-page-head--v2">
+        <div class="settings-head-bg" aria-hidden="true" ${p.banner_url && safeMediaUrl(p.banner_url) ? `style="background-image:url('${safeMediaUrl(p.banner_url)}')"` : ''}></div>
         <button type="button" class="auth-avatar auth-avatar--btn settings-head-ava" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
           ${_avatarDiscHTML(p, user)}
           <span class="auth-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
@@ -3030,15 +3934,21 @@ function _wireSettings(root) {
   }));
   // Réduction d'animations
   $('ap-rmotion')?.addEventListener('change', e => _savePrefs({ reducedMotion: e.target.checked }));
+  // Sons d'interface (opt-in) — petit "confirm" immédiat comme feedback
+  $('ap-sfx')?.addEventListener('change', async e => {
+    await _savePrefs({ sfx: e.target.checked });
+    if (e.target.checked) window.GLG_SFX?.play('confirm');
+  });
   // Notifications
   const notifSave = () => _savePrefs({ notif:{ friendReq:$('ap-n-freq').checked, friendAcc:$('ap-n-facc').checked, release:$('ap-n-rel').checked } });
   ['ap-n-freq','ap-n-facc','ap-n-rel'].forEach(id => $(id)?.addEventListener('change', notifSave));
   // Confidentialité (impacte l'affichage du profil)
   const privSave = async () => {
-    await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showOnline:$('ap-p-onl').checked } });
+    await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showOnline:$('ap-p-onl').checked, showRecent:$('ap-p-rec')?.checked !== false } });
+    GLG_PRESENCE.setVisible($('ap-p-onl').checked);   // bascule visible/invisible immédiate
     if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
   };
-  ['ap-p-tro','ap-p-wish','ap-p-onl'].forEach(id => $(id)?.addEventListener('change', privSave));
+  ['ap-p-tro','ap-p-wish','ap-p-onl','ap-p-rec'].forEach(id => $(id)?.addEventListener('change', privSave));
   // Changement de mot de passe
   $('ap-pw-save')?.addEventListener('click', async () => {
     _hideErr('ap-pw-err');
@@ -3053,12 +3963,34 @@ function _wireSettings(root) {
     btn.textContent = _ot('pwChanged'); $('ap-pw1').value = ''; $('ap-pw2').value = '';
     setTimeout(() => { btn.textContent = orig; }, 2200);
   });
-  // Vérification de mise à jour (placeholder — réelle dans le launcher standalone)
-  q('#ap-update-check')?.addEventListener('click', () => {
+  // Vérification de mise à jour — RÉELLE quand le service worker est actif
+  // (prod PWA) : update() → si une version attend, on l'active et on recharge
+  // sous le veil de transition. Sinon (dev / Tauri futur) : état "à jour".
+  q('#ap-update-check')?.addEventListener('click', async () => {
     const st = q('#ap-update-status'); const btn = q('#ap-update-check'); if (!st || !btn) return;
     const orig = btn.textContent; btn.disabled = true; btn.textContent = _ot('checking'); st.textContent = _ot('checking');
-    setTimeout(() => { btn.disabled = false; btn.textContent = orig; st.textContent = _ot('upToDate'); }, 1100);
+    let reloaded = false;
+    try {
+      const reg = window._glgSwReg || (('serviceWorker' in navigator) ? await navigator.serviceWorker.getRegistration() : null);
+      if (reg){
+        await reg.update();
+        const waiting = reg.waiting;
+        if (waiting){
+          st.textContent = _ot('checking');
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (reloaded) return; reloaded = true;
+            _pageVeilCover();                       // MAJ cinématique, sous le veil
+            setTimeout(() => location.reload(), 90);
+          });
+          waiting.postMessage('SKIP_WAITING');
+          return;
+        }
+      }
+    } catch(e){}
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; st.textContent = _ot('upToDate'); }, 900);
   });
+  // 2FA TOTP (Steam Guard maison) — état + enrôlement + désactivation
+  _initMfaBlock(root);
   // Déconnexion / suppression — referme la modale (si présente) ET quitte la page
   $('ap-logout')?.addEventListener('click', async () => { await GLG_AUTH.signOut(); closeAuthModal(); refreshAccountUI(); showPage('home'); });
   $('ap-delete')?.addEventListener('click', async () => {
@@ -3066,6 +3998,79 @@ function _wireSettings(root) {
     const r = await GLG_AUTH.deleteAccount();
     if (r.ok) { closeAuthModal(); refreshAccountUI(); showPage('home'); }
     else _showErr('ap-err', _at('fail'));
+  });
+}
+
+/* ── 2FA TOTP (Options → Compte) — états OFF / enrôlement / ON ──────────
+   Le QR (SVG) et le secret viennent de l'API MFA Supabase (mfaEnroll).
+   Annuler l'enrôlement dé-enrôle le facteur (pas de facteur fantôme). */
+async function _initMfaBlock(root) {
+  const box = (root || document).querySelector('#ap-mfa'); if (!box) return;
+  if (!window.GLG_AUTH?.mfaFactors) { box.innerHTML = `<p class="set-update-status">${_mt('err')}</p>`; return; }
+  const { ok, factors } = await GLG_AUTH.mfaFactors();
+  if (!ok) { box.innerHTML = `<p class="set-update-status">${_mt('err')}</p>`; return; }
+  factors.length ? _renderMfaOn(box, factors[0]) : _renderMfaOff(box);
+}
+/* Élément d'erreur UNIQUE du bloc 2FA (réutilisé — plus d'empilement). */
+function _mfaBoxErr(box) {
+  let e = box.querySelector('.set-mfa-errline');
+  if (!e) { e = document.createElement('p'); e.className = 'auth-err set-mfa-errline'; box.appendChild(e); }
+  e.setAttribute('role', 'alert'); e.textContent = _mt('err'); e.hidden = false;
+}
+function _renderMfaOff(box) {
+  box.innerHTML = `
+    <p class="set-mfa-desc">${_mt('desc')}</p>
+    <button type="button" class="btn btn-outline set-w" id="ap-mfa-on">${_mt('enable')}</button>`;
+  box.querySelector('#ap-mfa-on')?.addEventListener('click', async () => {
+    const btn = box.querySelector('#ap-mfa-on'); btn.disabled = true;
+    const r = await GLG_AUTH.mfaEnroll();
+    if (!r.ok) { btn.disabled = false; _mfaBoxErr(box); return; }
+    _renderMfaEnroll(box, r);
+  });
+}
+function _renderMfaEnroll(box, r) {
+  // r.qr = SVG généré par Supabase (API MFA officielle) — source de confiance
+  box.innerHTML = `
+    <p class="set-mfa-step">${_mt('scan')}</p>
+    <div class="set-mfa-qr" aria-hidden="true">${r.qr && r.qr.trim().startsWith('<svg') ? r.qr : ''}</div>
+    <p class="set-mfa-step set-mfa-step--sub">${_mt('manual')}</p>
+    <code class="set-mfa-secret">${escHtml(r.secret || '')}</code>
+    <p class="set-mfa-step">${_mt('confirm')}</p>
+    <div class="set-mfa-row">
+      <input type="text" class="set-mfa-input" id="ap-mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="${_mt('confirm')}">
+      <button type="button" class="btn btn-primary" id="ap-mfa-verify">${_mt('verify')}</button>
+      <button type="button" class="auth-link" id="ap-mfa-cancel">${_mt('cancel')}</button>
+    </div>
+    <p class="auth-err" id="ap-mfa-err" hidden></p>`;
+  const input = box.querySelector('#ap-mfa-code');
+  input?.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+  input?.focus();
+  box.querySelector('#ap-mfa-cancel')?.addEventListener('click', async () => {
+    try { await GLG_AUTH.mfaUnenroll(r.factorId); } catch (e) {}
+    _renderMfaOff(box);
+  });
+  box.querySelector('#ap-mfa-verify')?.addEventListener('click', async () => {
+    const err = box.querySelector('#ap-mfa-err'); err.hidden = true;
+    const code = (input?.value || '').trim();
+    if (code.length !== 6) { err.textContent = _mt('badCode'); err.hidden = false; return; }
+    const btn = box.querySelector('#ap-mfa-verify'); btn.disabled = true;
+    const v = await GLG_AUTH.mfaVerifyEnroll(r.factorId, code);
+    btn.disabled = false;
+    if (!v.ok) { err.textContent = _mt('badCode'); err.hidden = false; return; }
+    window.GLG_SFX?.play('confirm');
+    _renderMfaOn(box, { id: r.factorId });
+  });
+}
+function _renderMfaOn(box, factor) {
+  box.innerHTML = `
+    <p class="set-mfa-active"><span class="set-mfa-dot" aria-hidden="true"></span>${_mt('active')}</p>
+    <button type="button" class="auth-link auth-link--danger" id="ap-mfa-off">${_mt('disable')}</button>`;
+  box.querySelector('#ap-mfa-off')?.addEventListener('click', async e => {
+    if (!confirm(_mt('disableConfirm'))) return;
+    const btn = e.currentTarget; btn.disabled = true;      // anti double-clic pendant le RPC
+    const r = await GLG_AUTH.mfaUnenroll(factor.id);
+    if (r && r.ok) { _renderMfaOff(box); }
+    else { btn.disabled = false; _mfaBoxErr(box); }
   });
 }
 
@@ -3199,18 +4204,18 @@ async function openAvatarPicker() {
    recevoir aussi des events backend/realtime plus tard via add().
 ══════════════════════════════════════════════════════════ */
 const _NOTIF_T = {
-  title:{fr:'Notifications',en:'Notifications'},
-  empty:{fr:'Aucune notification pour le moment.',en:'No notifications yet.'},
-  markAll:{fr:'Tout marquer comme lu',en:'Mark all as read'},
-  friendReq:{fr:'Nouvelle demande d’ami',en:'New friend request'},
-  friendReqB:{fr:'%s souhaite vous ajouter.',en:'%s wants to add you.'},
-  friendOk:{fr:'Demande d’ami acceptée',en:'Friend request accepted'},
-  friendOkB:{fr:'%s et vous êtes maintenant amis.',en:'%s and you are now friends.'},
-  release:{fr:'Disponible !',en:'Out now!'},
-  releaseB:{fr:'%s de votre liste de souhaits est sorti.',en:'%s from your wishlist is out.'},
-  welcome:{fr:'Bienvenue sur GEEKLEARN GAMES',en:'Welcome to GEEKLEARN GAMES'},
-  welcomeB:{fr:'Votre espace membre est prêt. Liez vos comptes et ajoutez des amis.',en:'Your member space is ready. Link your accounts and add friends.'},
-  now:{fr:'à l’instant',en:'just now'},
+  title:{fr:'Notifications',en:'Notifications',es:'Notificaciones',de:'Benachrichtigungen',ar:'الإشعارات',zh:'通知',ja:'通知',ru:'Уведомления',pl:'Powiadomienia',it:'Notifiche'},
+  empty:{fr:'Aucune notification pour le moment.',en:'No notifications yet.',es:'No hay notificaciones por ahora.',de:'Noch keine Benachrichtigungen.',ar:'لا توجد إشعارات بعد.',zh:'暂无通知。',ja:'通知はまだありません。',ru:'Пока нет уведомлений.',pl:'Brak powiadomień.',it:'Nessuna notifica per ora.'},
+  markAll:{fr:'Tout marquer comme lu',en:'Mark all as read',es:'Marcar todo como leído',de:'Alle als gelesen markieren',ar:'تعليم الكل كمقروء',zh:'全部标记为已读',ja:'すべて既読にする',ru:'Отметить все как прочитанные',pl:'Oznacz wszystkie jako przeczytane',it:'Segna tutto come letto'},
+  friendReq:{fr:'Nouvelle demande d’ami',en:'New friend request',es:'Nueva solicitud de amistad',de:'Neue Freundschaftsanfrage',ar:'طلب صداقة جديد',zh:'新的好友请求',ja:'新しいフレンド申請',ru:'Новый запрос в друзья',pl:'Nowe zaproszenie do znajomych',it:'Nuova richiesta di amicizia'},
+  friendReqB:{fr:'%s souhaite vous ajouter.',en:'%s wants to add you.',es:'%s quiere añadirte.',de:'%s möchte dich hinzufügen.',ar:'يريد %s إضافتك.',zh:'%s 想添加你为好友。',ja:'%s さんがあなたを追加したがっています。',ru:'%s хочет добавить вас.',pl:'%s chce Cię dodać.',it:'%s vuole aggiungerti.'},
+  friendOk:{fr:'Demande d’ami acceptée',en:'Friend request accepted',es:'Solicitud de amistad aceptada',de:'Freundschaftsanfrage angenommen',ar:'تم قبول طلب الصداقة',zh:'好友请求已接受',ja:'フレンド申請が承認されました',ru:'Запрос в друзья принят',pl:'Zaproszenie przyjęte',it:'Richiesta di amicizia accettata'},
+  friendOkB:{fr:'%s et vous êtes maintenant amis.',en:'%s and you are now friends.',es:'%s y tú ahora sois amigos.',de:'%s und du seid jetzt Freunde.',ar:'أنت و%s أصبحتما صديقين الآن.',zh:'你和 %s 现在是好友了。',ja:'%s さんとフレンドになりました。',ru:'Теперь вы и %s друзья.',pl:'Ty i %s jesteście teraz znajomymi.',it:'Tu e %s ora siete amici.'},
+  release:{fr:'Disponible !',en:'Out now!',es:'¡Ya disponible!',de:'Jetzt verfügbar!',ar:'متاح الآن!',zh:'现已推出！',ja:'配信開始！',ru:'Уже доступно!',pl:'Już dostępne!',it:'Ora disponibile!'},
+  releaseB:{fr:'%s de votre liste de souhaits est sorti.',en:'%s from your wishlist is out.',es:'%s de tu lista de deseos ya está disponible.',de:'%s aus deiner Wunschliste ist erschienen.',ar:'صدر %s من قائمة رغباتك.',zh:'心愿单中的 %s 已发布。',ja:'ウィッシュリストの %s が配信されました。',ru:'%s из вашего списка желаемого вышел.',pl:'%s z Twojej listy życzeń jest już dostępny.',it:'%s dalla tua lista dei desideri è uscito.'},
+  welcome:{fr:'Bienvenue sur GEEKLEARN GAMES',en:'Welcome to GEEKLEARN GAMES',es:'Bienvenido a GEEKLEARN GAMES',de:'Willkommen bei GEEKLEARN GAMES',ar:'مرحبًا بك في GEEKLEARN GAMES',zh:'欢迎来到 GEEKLEARN GAMES',ja:'GEEKLEARN GAMES へようこそ',ru:'Добро пожаловать в GEEKLEARN GAMES',pl:'Witaj w GEEKLEARN GAMES',it:'Benvenuto su GEEKLEARN GAMES'},
+  welcomeB:{fr:'Votre espace membre est prêt. Liez vos comptes et ajoutez des amis.',en:'Your member space is ready. Link your accounts and add friends.',es:'Tu espacio de miembro está listo. Vincula tus cuentas y añade amigos.',de:'Dein Mitgliedsbereich ist bereit. Verknüpfe deine Konten und füge Freunde hinzu.',ar:'مساحة العضوية الخاصة بك جاهزة. اربط حساباتك وأضِف أصدقاء.',zh:'你的会员空间已就绪。关联账号并添加好友吧。',ja:'メンバースペースの準備ができました。アカウントを連携してフレンドを追加しましょう。',ru:'Ваш профиль готов. Привяжите аккаунты и добавьте друзей.',pl:'Twoja przestrzeń członkowska jest gotowa. Połącz konta i dodaj znajomych.',it:'Il tuo spazio membro è pronto. Collega i tuoi account e aggiungi amici.'},
+  now:{fr:'à l’instant',en:'just now',es:'ahora mismo',de:'gerade eben',ar:'الآن',zh:'刚刚',ja:'たった今',ru:'только что',pl:'przed chwilą',it:'proprio ora'},
 };
 function _nt(k){ const m=_NOTIF_T[k]; return m ? (m[LANG]||m.en) : k; }
 
@@ -3278,6 +4283,86 @@ const GLG_NOTIF = (function(){
   return { setUser, add, getAll, unread, markAllRead, clear, sync };
 })();
 window.GLG_NOTIF = GLG_NOTIF;
+
+/* ══════════════════════════════════════════
+   PRÉSENCE EN LIGNE (Supabase Realtime presence) + notifs d'amis LIVE
+   ──────────────────────────────────────────
+   Un seul canal presence partagé ('glg:online', key = uid). On ne
+   s'annonce que si prefs.privacy.showOnline le permet (mode invisible
+   sinon — on VOIT les autres sans être vu, comme Steam). Les nouvelles
+   lignes `friendships` me concernant (RLS) rafraîchissent amis + notifs
+   en direct. Dégradation propre : sans Realtime, tout le reste vit.
+══════════════════════════════════════════ */
+const GLG_PRESENCE = (function(){
+  let ch = null, fch = null, online = new Set();
+  function start(uid){
+    stop();
+    const sb = window.GLG_AUTH?.getClient?.(); if (!sb || !uid || !sb.channel) return;
+    try {
+      ch = sb.channel('glg:online', { config: { presence: { key: uid } } });
+      ch.on('presence', { event: 'sync' }, () => {
+        online = new Set(Object.keys(ch.presenceState() || {}));
+        document.dispatchEvent(new CustomEvent('glg:presence-changed'));
+      }).subscribe(st => {
+        if (st === 'SUBSCRIBED' && (_userPrefs?.privacy?.showOnline !== false)){
+          try { ch.track({ at: Date.now() }); } catch(e){}
+        }
+      });
+      fch = sb.channel('glg:friendships')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
+          try { refreshFriendsUI(); } catch(e){}
+          try { _syncNotifications(); } catch(e){}
+        })
+        .subscribe();
+    } catch(e){ ch = null; fch = null; }
+  }
+  function stop(){
+    try { ch?.unsubscribe(); } catch(e){}
+    try { fch?.unsubscribe(); } catch(e){}
+    ch = null; fch = null; online = new Set();
+    document.dispatchEvent(new CustomEvent('glg:presence-changed'));
+  }
+  /* Bascule immédiate quand l'utilisateur change sa préférence "En ligne" */
+  function setVisible(v){ if (!ch) return; try { v ? ch.track({ at: Date.now() }) : ch.untrack(); } catch(e){} }
+  return { start, stop, setVisible, isOnline: id => online.has(id), count: () => online.size };
+})();
+window.GLG_PRESENCE = GLG_PRESENCE;
+
+/* Applique l'état de présence sur les pastilles + compteur "N en ligne" */
+document.addEventListener('glg:presence-changed', () => {
+  document.querySelectorAll('.pp-friend-dot[data-uid]').forEach(dot => {
+    dot.classList.toggle('is-on', GLG_PRESENCE.isOnline(dot.dataset.uid));
+  });
+  const el = document.getElementById('pp-friends-online');
+  if (el){
+    const n = (_friendsCache?.friends || []).filter(f => GLG_PRESENCE.isOnline(f.id)).length;
+    el.textContent = n ? `${n} ${_ft('online')}` : '';
+  }
+});
+
+/* ── Lien d'invitation (?add=<uid>) — zéro backend, zéro spam ──────────
+   "Inviter" copie un lien ; au premier login/inscription du destinataire,
+   la demande d'ami part automatiquement puis l'URL est nettoyée. */
+async function copyInviteLink(btn){
+  try {
+    const user = await GLG_AUTH.getUser(); if (!user) return;
+    const url = `${location.origin}${location.pathname}?add=${encodeURIComponent(user.id)}`;
+    await navigator.clipboard.writeText(url);
+    if (btn){ const old = btn.dataset.label || btn.textContent; btn.dataset.label = old;
+      btn.textContent = _ft('inviteCopied'); btn.disabled = true;
+      setTimeout(() => { btn.textContent = btn.dataset.label; btn.disabled = false; }, 2200); }
+  } catch(e){}
+}
+async function _handleInviteParam(user){
+  try {
+    const target = new URLSearchParams(location.search).get('add');
+    if (!target || !user || target === user.id) return;
+    await GLG_AUTH.friendRequest?.(target);
+    const url = new URL(location.href); url.searchParams.delete('add');
+    history.replaceState(history.state, '', url.pathname + url.search + location.hash);
+    refreshFriendsUI();
+  } catch(e){}
+}
 
 const _NOTIF_ICONS = {
   friend:'<svg viewBox="0 0 20 20" fill="none"><circle cx="7.5" cy="6.5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 16c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 7v5M12.5 9.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -3397,6 +4482,13 @@ async function refreshAccountUI() {
     }
   }
 
+  /* ── Bibliothèque : le header ne la montre qu'aux joueurs CONNECTÉS ──
+     Déconnecté = site vitrine épuré ; connecté = le site devient launcher
+     (l'entrée apparaît aussi dans le menu déroulant de l'avatar et les
+     footers, via la classe globale body.glg-authed). */
+  ['nl-library', 'nml-library'].forEach(id => $(id)?.classList.toggle('is-auth', !!user));
+  document.body.classList.toggle('glg-authed', !!user);
+
   /* ── Cloche de notifications : visible seulement connecté ── */
   const bell = $('nav-notif-btn');
   if (bell) {
@@ -3413,9 +4505,20 @@ async function refreshAccountUI() {
     }
   }
 
+  /* ── Présence temps réel + lien d'invitation (?add=<uid>) ── */
+  if (user) {
+    GLG_PRESENCE.start(user.id);
+    _handleInviteParam(user);
+  } else {
+    GLG_PRESENCE.stop();
+  }
+
   _refreshAgeGated(); // re-render age-sensitive listings when the user (age) changes
-  // Keep the member space live if it is the active page
+  // Keep the member pages live if one of them is the active page
+  // (sinon : bibliothèque/paramètres figés sur l'état d'avant login/logout)
   if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
+  if (document.getElementById('page-library')?.classList.contains('active')) buildLibraryPage();
+  if (document.getElementById('page-settings')?.classList.contains('active')) buildSettingsPage();
 }
 
 /* Récupère amis + wishlist et alimente le centre de notifications. */
@@ -3434,22 +4537,26 @@ async function _syncNotifications(){
    Bannière + avatar + identité + stats + wishlist.
 ══════════════════════════════════════════ */
 const _PP_T = {
-  signedOutH:{fr:'Espace membre',en:'Member space'},
-  signedOutP:{fr:'Connecte-toi pour accéder à ton profil, ta liste de souhaits et tes préférences — synchronisés sur tous tes appareils.',en:'Sign in to access your profile, wishlist and preferences — synced across all your devices.'},
-  signIn:{fr:'Se connecter',en:'Sign in'},
-  createAcc:{fr:'Créer un compte',en:'Create account'},
-  edit:{fr:'Modifier le profil',en:'Edit profile'},
-  editBanner:{fr:'Bannière',en:'Banner'},
-  statWish:{fr:'Souhaits',en:'Wishlist'},
-  statMember:{fr:'Membre depuis',en:'Member since'},
-  statLib:{fr:'Bibliothèque',en:'Library'},
-  soon:{fr:'Bientôt',en:'Soon'},
-  defaultBanner:{fr:'Par défaut',en:'Default'},
-  pickBanner:{fr:'Choisir une bannière',en:'Choose a banner'},
-  years:{fr:'ans',en:'yrs'},
-  addBio:{fr:'+ Ajouter une bio',en:'+ Add a bio'},
-  bioLabel:{fr:'Bio',en:'Bio'},
-  bioPh:{fr:'Parle de toi en quelques mots…',en:'Tell the world about you…'},
+  activity:{fr:'Activité récente',en:'Recent activity',es:'Actividad reciente',de:'Letzte Aktivität',ar:'النشاط الأخير',zh:'最近动态',ja:'最近のアクティビティ',ru:'Недавняя активность',pl:'Ostatnia aktywność',it:'Attività recente'},
+  actFriend:{fr:'Ami avec',en:'Became friends with',es:'Ahora es amigo de',de:'Jetzt befreundet mit',ar:'أصبح صديقًا لـ',zh:'与以下用户成为好友：',ja:'フレンドになりました：',ru:'Теперь в друзьях с',pl:'Zaprzyjaźnił się z',it:'Ora amico di'},
+  actReview:{fr:'A évalué',en:'Reviewed',es:'Reseñó',de:'Bewertete',ar:'قيّم',zh:'评价了',ja:'レビューしました：',ru:'Оценил(а)',pl:'Ocenił(a)',it:'Ha recensito'},
+  actEmpty:{fr:'Ton activité (trophées, amis, évaluations) apparaîtra ici.',en:'Your activity (trophies, friends, reviews) will appear here.',es:'Tu actividad aparecerá aquí.',de:'Deine Aktivität erscheint hier.',ar:'سيظهر نشاطك هنا.',zh:'你的动态将显示在这里。',ja:'アクティビティがここに表示されます。',ru:'Ваша активность появится здесь.',pl:'Twoja aktywność pojawi się tutaj.',it:'La tua attività apparirà qui.'},
+  signedOutH:{fr:'Espace membre',en:'Member space',es:'Espacio de miembro',de:'Mitgliedsbereich',ar:'مساحة العضو',zh:'会员空间',ja:'メンバースペース',ru:'Личный кабинет',pl:'Strefa członka',it:'Area membro'},
+  signedOutP:{fr:'Connecte-toi pour accéder à ton profil, ta liste de souhaits et tes préférences — synchronisés sur tous tes appareils.',en:'Sign in to access your profile, wishlist and preferences — synced across all your devices.',es:'Inicia sesión para acceder a tu perfil, tu lista de deseos y tus preferencias, sincronizados en todos tus dispositivos.',de:'Melde dich an, um auf dein Profil, deine Wunschliste und deine Einstellungen zuzugreifen – auf allen Geräten synchronisiert.',ar:'سجّل الدخول للوصول إلى ملفك الشخصي وقائمة رغباتك وتفضيلاتك — متزامنة عبر جميع أجهزتك.',zh:'登录以访问你的个人资料、心愿单和偏好设置——在所有设备间同步。',ja:'サインインしてプロフィール、ウィッシュリスト、設定にアクセス——すべてのデバイスで同期されます。',ru:'Войдите, чтобы открыть профиль, список желаемого и настройки — синхронизированные на всех устройствах.',pl:'Zaloguj się, aby uzyskać dostęp do profilu, listy życzeń i ustawień — zsynchronizowanych na wszystkich urządzeniach.',it:'Accedi per gestire il tuo profilo, la lista dei desideri e le preferenze — sincronizzati su tutti i dispositivi.'},
+  signIn:{fr:'Se connecter',en:'Sign in',es:'Iniciar sesión',de:'Anmelden',ar:'تسجيل الدخول',zh:'登录',ja:'サインイン',ru:'Войти',pl:'Zaloguj się',it:'Accedi'},
+  createAcc:{fr:'Créer un compte',en:'Create account',es:'Crear cuenta',de:'Konto erstellen',ar:'إنشاء حساب',zh:'创建账号',ja:'アカウント作成',ru:'Создать аккаунт',pl:'Utwórz konto',it:'Crea un account'},
+  edit:{fr:'Modifier le profil',en:'Edit profile',es:'Editar perfil',de:'Profil bearbeiten',ar:'تعديل الملف الشخصي',zh:'编辑资料',ja:'プロフィール編集',ru:'Редактировать профиль',pl:'Edytuj profil',it:'Modifica profilo'},
+  editBanner:{fr:'Bannière',en:'Banner',es:'Portada',de:'Banner',ar:'الغلاف',zh:'横幅',ja:'バナー',ru:'Баннер',pl:'Baner',it:'Banner'},
+  statWish:{fr:'Souhaits',en:'Wishlist',es:'Deseos',de:'Wunschliste',ar:'الرغبات',zh:'心愿单',ja:'ウィッシュリスト',ru:'Желаемое',pl:'Życzenia',it:'Desideri'},
+  statMember:{fr:'Membre depuis',en:'Member since',es:'Miembro desde',de:'Mitglied seit',ar:'عضو منذ',zh:'注册于',ja:'登録日',ru:'В сообществе с',pl:'Członek od',it:'Membro dal'},
+  statLib:{fr:'Bibliothèque',en:'Library',es:'Biblioteca',de:'Bibliothek',ar:'المكتبة',zh:'库',ja:'ライブラリ',ru:'Библиотека',pl:'Biblioteka',it:'Libreria'},
+  soon:{fr:'Bientôt',en:'Soon',es:'Pronto',de:'Bald',ar:'قريبًا',zh:'即将推出',ja:'近日',ru:'Скоро',pl:'Wkrótce',it:'Presto'},
+  defaultBanner:{fr:'Par défaut',en:'Default',es:'Por defecto',de:'Standard',ar:'افتراضي',zh:'默认',ja:'デフォルト',ru:'По умолчанию',pl:'Domyślny',it:'Predefinito'},
+  pickBanner:{fr:'Choisir une bannière',en:'Choose a banner',es:'Elegir una portada',de:'Banner auswählen',ar:'اختر غلافًا',zh:'选择横幅',ja:'バナーを選ぶ',ru:'Выбрать баннер',pl:'Wybierz baner',it:'Scegli un banner'},
+  years:{fr:'ans',en:'yrs',es:'años',de:'J.',ar:'سنة',zh:'岁',ja:'歳',ru:'лет',pl:'lat',it:'anni'},
+  addBio:{fr:'+ Ajouter une bio',en:'+ Add a bio',es:'+ Añadir una bio',de:'+ Bio hinzufügen',ar:'+ إضافة نبذة',zh:'+ 添加简介',ja:'+ 自己紹介を追加',ru:'+ Добавить описание',pl:'+ Dodaj bio',it:'+ Aggiungi una bio'},
+  bioLabel:{fr:'Bio',en:'Bio',es:'Bio',de:'Bio',ar:'نبذة',zh:'简介',ja:'自己紹介',ru:'Описание',pl:'Bio',it:'Bio'},
+  bioPh:{fr:'Parle de toi en quelques mots…',en:'Tell the world about you…',es:'Cuéntale al mundo quién eres…',de:'Erzähl der Welt von dir…',ar:'عرّف العالم بنفسك…',zh:'向大家介绍一下你自己……',ja:'あなたについて世界に伝えましょう…',ru:'Расскажите о себе…',pl:'Opowiedz światu o sobie…',it:'Racconta al mondo chi sei…'},
 };
 function _ppt(k){ const m=_PP_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -3489,11 +4596,11 @@ async function buildProfilePage(){
   const name  = p.username || user.email?.split('@')[0] || '—';
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
   const gLabel = p.gender==='male' ? _at('male') : p.gender==='female' ? _at('female') : (p.gender_other || _at('other'));
-  const banner = p.banner_url;
+  const banner = safeMediaUrl(p.banner_url);
 
   host.innerHTML = `
     <section class="pp">
-      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url('${banner}')"`:''}>
+      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url(${banner})"`:''}>
         <div class="pp-banner-scrim"></div>
         <button class="pp-banner-edit" onclick="openBannerPicker()" title="${_ppt('editBanner')}" aria-label="${_ppt('pickBanner')}">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -3507,9 +4614,10 @@ async function buildProfilePage(){
           <span class="pp-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
         </button>
         <div class="pp-id">
-          <h1 class="pp-name">${name}${_verifiedTag(name,'glg-verified--lg')}</h1>
+          <h1 class="pp-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
+          ${pr.privacy.showTrophies ? `<span class="pp-level-chip" id="pp-level-chip"></span>` : ''}
           <div class="pp-badges">
-            <span class="pp-badge">${gLabel}</span>
+            <span class="pp-badge">${escHtml(gLabel)}</span>
             ${p.age?`<span class="pp-badge">${p.age} ${_ppt('years')}</span>`:''}
             <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
           </div>
@@ -3524,49 +4632,251 @@ async function buildProfilePage(){
         <div class="pp-stat"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></div>
         <div class="pp-stat"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></div>
         <div class="pp-stat"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></div>
-        <div class="pp-stat pp-stat--soon"><b>0</b><span>${_ppt('statLib')} · ${_ppt('soon')}</span></div>
+        <div class="pp-stat"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></div>
       </div>
 
-      ${pr.privacy.showTrophies ? `
-      <div class="pp-section pp-trophy-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('level')}</h2></div>
-        <div id="pp-trophy-showcase" class="pp-trophy-showcase"></div>
-      </div>` : ''}
+      <!-- Disposition launcher : colonne principale (contenu vivant) + rail (infos froides) -->
+      <div class="pp-cols">
+        <div class="pp-main">
+          <div class="pp-section pp-recent-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="01 /">${_rgt('title')}</h2></div>
+            ${_recentGamesHTML(p.recent_games, { owner: true })}
+          </div>
 
-      <div class="pp-section pp-link-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_lt('title')}</h2></div>
-        <div class="pp-link-rows">${_platformSectionHTML(p.linked_accounts)}</div>
-      </div>
+          ${pr.privacy.showTrophies ? `
+          <div class="pp-section pp-trophy-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="02 /">${_tt('section')}</h2></div>
+            <div id="pp-trophy-showcase" class="pp-trophy-showcase"></div>
+            <div id="pp-trophy-games" class="pp-tg-grid"></div>
+          </div>` : ''}
 
-      <div class="pp-section pp-friends-section">
-        <div class="pp-sec-head">
-          <h2 class="pp-sec-title">${_ft('title')}</h2>
-          <span class="pp-sec-count" id="pp-friends-count">0</span>
-          <button class="pp-add-friend" onclick="openFriendSearch()">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-            <span>${_ft('addFriend')}</span>
-          </button>
+          <div class="pp-section pp-rev-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="03 /">${_rvt('section')}</h2><span class="pp-sec-count" id="pp-rev-count">0</span></div>
+            <div id="pp-reviews-body" class="pp-reviews-body"><div class="dp-rev-loading">···</div></div>
+          </div>
+
+          <div class="pp-section pp-shots-section">
+            <div class="pp-sec-head">
+              <h2 class="pp-sec-title" data-idx="04 /">${_sht('title')}</h2>
+              <span class="pp-sec-count" id="pp-shots-count"></span>
+              <button class="pp-add-friend" id="pp-shot-add">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span>${_sht('add')}</span>
+              </button>
+              <input type="file" id="pp-shot-file" accept="image/png,image/jpeg,image/webp" hidden>
+            </div>
+            <div id="pp-shots-body" class="pp-shots-grid"><p class="pp-friends-note">···</p></div>
+          </div>
+
+          <div class="pp-section pp-act-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="05 /">${_ppt('activity')}</h2></div>
+            <div id="pp-activity-body" class="pp-activity-body"></div>
+          </div>
         </div>
-        <div id="pp-friends-body" class="pp-friends-body"></div>
+
+        <aside class="pp-rail">
+          <div class="pp-section pp-friends-section">
+            <div class="pp-sec-head">
+              <h2 class="pp-sec-title">${_ft('title')}</h2>
+              <span class="pp-sec-count" id="pp-friends-count">0</span>
+              <span class="pp-fr-online" id="pp-friends-online"></span>
+              <button class="pp-add-friend" onclick="openFriendSearch()">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <span>${_ft('addFriend')}</span>
+              </button>
+            </div>
+            <div id="pp-friends-body" class="pp-friends-body"></div>
+            <button class="pp-invite-btn" onclick="copyInviteLink(this)" title="${_ft('inviteHint')}">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6.5 9.5l3-3M7.5 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1M8.5 11.5l-1 1a2.5 2.5 0 0 1-3.5-3.5l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <span>${_ft('invite')}</span>
+            </button>
+          </div>
+
+          <div class="pp-section pp-link-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title">${_lt('title')}</h2></div>
+            <div class="pp-link-rows">${_platformSectionHTML(p.linked_accounts)}</div>
+          </div>
+
+          ${pr.privacy.showWishlist ? `
+          <div class="pp-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count" id="pp-wish-count">${wishCount()}</span></div>
+            <div class="pp-wish-grid" id="pp-wish-grid"></div>
+          </div>` : ''}
+        </aside>
       </div>
-
-      ${pr.privacy.showTrophies ? `
-      <div class="pp-section pp-tg-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('byGame')}</h2></div>
-        <div id="pp-trophy-games" class="pp-tg-grid"></div>
-      </div>` : ''}
-
-      ${pr.privacy.showWishlist ? `
-      <div class="pp-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count" id="pp-wish-count">${wishCount()}</span></div>
-        <div class="pp-wish-grid" id="pp-wish-grid"></div>
-      </div>` : ''}
     </section>
     ${footerHTML()}`;
   _renderProfileWishlist();
-  refreshFriendsUI();
+  refreshFriendsUI().then(() => _renderProfileActivity());   // l'activité lit le cache d'amis
   refreshTrophiesUI();
+  _renderProfileReviews(user.id);
+  _initProfileShots(user.id);
   setTimeout(initReveal, 60);
+}
+
+/* ══════════════════════════════════════════
+   GALERIE DE CAPTURES D'ÉCRAN (profil, style Steam)
+   Stockage : bucket Supabase `screenshots` (db/schema.sql), lecture publique,
+   écriture/suppression limitées au dossier du joueur (RLS). L'app compresse
+   en WebP ≤1600px AVANT upload. 12 captures max (borne côté auth.js).
+══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   JEUX RÉCENTS (profil, style Steam/PSN)
+   Données : profiles.recent_games [{id,at,mins}] alimenté par la RPC
+   touch_recent_game (appelée par le jeu/launcher en fin de session).
+══════════════════════════════════════════ */
+const _RECENT_T = {
+  title:   { fr:'Jeux récents', en:'Recent games', es:'Juegos recientes', de:'Kürzlich gespielt', it:'Giochi recenti', ar:'الألعاب الأخيرة', zh:'最近游玩', ja:'最近プレイしたゲーム', ru:'Недавние игры', pl:'Ostatnio grane' },
+  lastAt:  { fr:'Dernière session le %s', en:'Last played %s', es:'Última sesión el %s', de:'Zuletzt gespielt am %s', it:'Ultima sessione il %s', ar:'آخر جلسة في %s', zh:'最后游玩于%s', ja:'最終プレイ：%s', ru:'Последняя сессия: %s', pl:'Ostatnia sesja: %s' },
+  playedH: { fr:'%s h de jeu', en:'%s hrs on record', es:'%s h de juego', de:'%s Std. gespielt', it:'%s ore di gioco', ar:'%s ساعة لعب', zh:'总时数 %s 小时', ja:'プレイ時間 %s 時間', ru:'%s ч в игре', pl:'%s godz. gry' },
+  playedM: { fr:'%s min de jeu', en:'%s min on record', es:'%s min de juego', de:'%s Min. gespielt', it:'%s min di gioco', ar:'%s دقيقة لعب', zh:'总时数 %s 分钟', ja:'プレイ時間 %s 分', ru:'%s мин в игре', pl:'%s min gry' },
+  emptyOwn:{ fr:'Aucune session pour le moment — tes jeux lancés apparaîtront ici, comme sur Steam.', en:'No sessions yet — the games you launch will appear here, Steam-style.', es:'Aún no hay sesiones — los juegos que inicies aparecerán aquí.', de:'Noch keine Sessions — gestartete Spiele erscheinen hier.', it:'Nessuna sessione per ora — i giochi avviati appariranno qui.', ar:'لا جلسات بعد — ستظهر الألعاب التي تشغّلها هنا.', zh:'暂无游戏记录——你启动的游戏将显示在这里。', ja:'まだセッションがありません — 起動したゲームがここに表示されます。', ru:'Пока нет сессий — запущенные игры появятся здесь.', pl:'Brak sesji — uruchamiane gry pojawią się tutaj.' },
+};
+const _rgt = k => (_RECENT_T[k] && (_RECENT_T[k][LANG] || _RECENT_T[k].en)) || '';
+
+/* Lignes façon Steam : mini-cover, titre, temps de jeu cumulé, dernière
+   session, chevron → fiche. `list` = profiles.recent_games (déjà trié). */
+function _recentGamesHTML(list, opts) {
+  const o = opts || {};
+  const rows = (Array.isArray(list) ? list : [])
+    .map(e => ({ e, w: ALL_WORKS.find(w => w.id === e.id) }))
+    .filter(x => x.w && !isMatureHidden(x.w))
+    .slice(0, 5);
+  if (!rows.length) {
+    return o.owner ? `<p class="pp-friends-note">${_rgt('emptyOwn')}</p>` : '';
+  }
+  return `<div class="pp-recent-list">${rows.map(({ e, w }) => {
+    const tint = w.tint || '#ffffff';
+    const rgb  = hexToRgb(tint) || '255,255,255';
+    const mins = Math.max(0, parseInt(e.mins, 10) || 0);
+    let hoursTxt = '';
+    try { hoursTxt = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: mins >= 600 ? 0 : 1 }).format(mins / 60); }
+    catch (err) { hoursTxt = (mins / 60).toFixed(1); }
+    const played = mins >= 60
+      ? _rgt('playedH').replace('%s', hoursTxt)
+      : _rgt('playedM').replace('%s', String(mins));
+    let dateTxt = '';
+    try { dateTxt = new Date(e.at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'short' }); } catch (err) {}
+    return `
+    <button class="pp-recent" style="--tint:${tint};--tint-rgb:${rgb}" onclick="showPage('detail','${w.id}')" aria-label="${w.title}">
+      <span class="pp-recent-cover"><img src="${av(w.cover)}" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0"></span>
+      <span class="pp-recent-info">
+        <span class="pp-recent-name">${w.title}</span>
+        <span class="pp-recent-meta">${played}${dateTxt ? ` · ${_rgt('lastAt').replace('%s', dateTxt)}` : ''}</span>
+      </span>
+      <svg class="pp-recent-arr" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+const _SHOT_T = {
+  title:  { fr:'Captures d’écran', en:'Screenshots', es:'Capturas de pantalla', de:'Screenshots', it:'Screenshot', ar:'لقطات الشاشة', zh:'截图', ja:'スクリーンショット', ru:'Скриншоты', pl:'Zrzuty ekranu' },
+  add:    { fr:'Ajouter', en:'Add', es:'Añadir', de:'Hinzufügen', it:'Aggiungi', ar:'إضافة', zh:'添加', ja:'追加', ru:'Добавить', pl:'Dodaj' },
+  empty:  { fr:'Aucune capture pour le moment.', en:'No screenshots yet.', es:'Aún no hay capturas.', de:'Noch keine Screenshots.', it:'Ancora nessuno screenshot.', ar:'لا توجد لقطات بعد.', zh:'暂无截图。', ja:'まだスクリーンショットがありません。', ru:'Пока нет скриншотов.', pl:'Brak zrzutów ekranu.' },
+  emptyOwn:{ fr:'Partage tes plus beaux moments de jeu — ajoute ta première capture.', en:'Share your best gaming moments — add your first screenshot.', es:'Comparte tus mejores momentos de juego — añade tu primera captura.', de:'Teile deine besten Gaming-Momente — füge deinen ersten Screenshot hinzu.', it:'Condividi i tuoi momenti di gioco migliori — aggiungi il primo screenshot.', ar:'شارك أجمل لحظات لعبك — أضف أول لقطة.', zh:'分享你最精彩的游戏时刻——添加第一张截图。', ja:'最高のゲームの瞬間をシェアしよう — 最初の1枚を追加。', ru:'Поделитесь лучшими игровыми моментами — добавьте первый скриншот.', pl:'Podziel się najlepszymi momentami z gier — dodaj pierwszy zrzut.' },
+  uploading:{ fr:'Envoi en cours…', en:'Uploading…', es:'Subiendo…', de:'Wird hochgeladen…', it:'Caricamento…', ar:'جارٍ الرفع…', zh:'上传中…', ja:'アップロード中…', ru:'Загрузка…', pl:'Przesyłanie…' },
+  limit:  { fr:'Limite de 12 captures atteinte — supprime-en une d’abord.', en:'12-screenshot limit reached — delete one first.', es:'Límite de 12 capturas alcanzado — elimina una primero.', de:'Limit von 12 Screenshots erreicht — lösche zuerst einen.', it:'Limite di 12 screenshot raggiunto — eliminane uno prima.', ar:'بلغت حد 12 لقطة — احذف واحدة أولاً.', zh:'已达到12张上限——请先删除一张。', ja:'12枚の上限に達しました — 先に1枚削除してください。', ru:'Достигнут лимит в 12 скриншотов — сначала удалите один.', pl:'Osiągnięto limit 12 zrzutów — najpierw usuń jeden.' },
+  fail:   { fr:'Envoi impossible — réessaie.', en:'Upload failed — try again.', es:'Error al subir — inténtalo de nuevo.', de:'Upload fehlgeschlagen — versuch es erneut.', it:'Caricamento non riuscito — riprova.', ar:'فشل الرفع — حاول مجدداً.', zh:'上传失败——请重试。', ja:'アップロードに失敗しました — もう一度お試しください。', ru:'Не удалось загрузить — попробуйте ещё раз.', pl:'Przesyłanie nie powiodło się — spróbuj ponownie.' },
+  delQ:   { fr:'Supprimer cette capture ?', en:'Delete this screenshot?', es:'¿Eliminar esta captura?', de:'Diesen Screenshot löschen?', it:'Eliminare questo screenshot?', ar:'حذف هذه اللقطة؟', zh:'删除此截图？', ja:'このスクリーンショットを削除しますか？', ru:'Удалить этот скриншот?', pl:'Usunąć ten zrzut ekranu?' },
+  close:  { fr:'Fermer', en:'Close', es:'Cerrar', de:'Schließen', it:'Chiudi', ar:'إغلاق', zh:'关闭', ja:'閉じる', ru:'Закрыть', pl:'Zamknij' },
+};
+const _sht = k => (_SHOT_T[k] && (_SHOT_T[k][LANG] || _SHOT_T[k].en)) || '';
+
+function _dataUrlToBlob(dataUrl) {
+  const [head, b64] = String(dataUrl).split(',');
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/webp';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+async function _initProfileShots(uid, opts) {
+  const body = document.getElementById('pp-shots-body'); if (!body) return;
+  const readOnly = !!(opts && opts.readOnly);
+  const addBtn = document.getElementById('pp-shot-add');
+  const fileInp = document.getElementById('pp-shot-file');
+
+  const load = async () => {
+    const r = await (window.GLG_AUTH?.listScreenshots?.(uid) || Promise.resolve({ shots: [] }));
+    const shots = r.shots || [];
+    const count = document.getElementById('pp-shots-count');
+    if (count) count.textContent = shots.length || '';
+    if (!shots.length) {
+      body.innerHTML = `<p class="pp-friends-note">${readOnly ? _sht('empty') : _sht('emptyOwn')}</p>`;
+      return;
+    }
+    body.innerHTML = shots.map(s => `
+      <figure class="pp-shot" data-path="${escHtml(s.path)}">
+        <button type="button" class="pp-shot-open" aria-label="${_sht('title')}" onclick="_openShotView(this.querySelector('img')?.src)">
+          <img src="${safeMediaUrl(s.url)}" alt="" loading="lazy" decoding="async"
+               onerror="this.closest('.pp-shot')?.remove()">
+        </button>
+        ${readOnly ? '' : `<button class="pp-shot-del" data-del="${escHtml(s.path)}" aria-label="${_sht('delQ')}" title="${_sht('delQ')}">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </button>`}
+      </figure>`).join('');
+    if (!readOnly) body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm(_sht('delQ'))) return;
+      b.disabled = true;
+      const r2 = await GLG_AUTH.deleteScreenshot?.(b.dataset.del);
+      if (r2 && r2.ok) load(); else b.disabled = false;
+    }));
+  };
+
+  if (readOnly) { addBtn?.remove(); }
+  else if (addBtn && fileInp) {
+    addBtn.addEventListener('click', () => fileInp.click());
+    fileInp.addEventListener('change', async () => {
+      const file = fileInp.files && fileInp.files[0];
+      fileInp.value = '';
+      if (!file) return;
+      const label = addBtn.querySelector('span'); const orig = label ? label.textContent : '';
+      addBtn.disabled = true; if (label) label.textContent = _sht('uploading');
+      try {
+        // Compression client : WebP ≤1600×1000 — un screenshot 4K devient ~150-400 Ko
+        const dataUrl = await _processImageFile(file, { maxW: 1600, maxH: 1000, quality: 0.82 });
+        const r = await GLG_AUTH.uploadScreenshot?.(_dataUrlToBlob(dataUrl));
+        if (!r || !r.ok) alert(r && r.code === 'limit' ? _sht('limit') : _sht('fail'));
+        else { window.GLG_SFX?.play('confirm'); await load(); }
+      } catch (e) { alert(_sht('fail')); }
+      addBtn.disabled = false; if (label) label.textContent = orig;
+    });
+  }
+  load();
+}
+
+/* Visionneuse plein écran d'une capture (ESC / clic pour fermer). */
+function _openShotView(url) {
+  const safe = safeMediaUrl(url); if (!safe) return;
+  document.getElementById('glg-shot-view')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'glg-shot-view';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', _sht('title'));
+  ov.innerHTML = `
+    <img src="${safe}" alt="">
+    <button class="shot-view-close" aria-label="${_sht('close')}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>`;
+  const opener = document.activeElement; // a11y : restituer le focus à la fermeture
+  const close = () => {
+    ov.remove(); document.removeEventListener('keydown', onKey); document.body.style.overflow = '';
+    if (opener && document.contains(opener)) { try { opener.focus(); } catch (e) {} }
+  };
+  const onKey = e => {
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Tab') { e.preventDefault(); ov.querySelector('.shot-view-close')?.focus(); } // un seul focusable
+  };
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.shot-view-close')) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+  // setTimeout (PAS rAF) : rAF est gelé quand l'onglet est en arrière-plan
+  // → la visionneuse resterait invisible (même piège que le loader).
+  setTimeout(() => { ov.classList.add('open'); ov.querySelector('.shot-view-close')?.focus(); }, 20);
 }
 
 /* Render (or re-render) the wishlist grid inside the member space. */
@@ -3592,7 +4902,7 @@ function _renderProfileWishlist(){
       </div>
       <div class="pp-wish-info">
         <div class="pp-wish-name">${w.title}</div>
-        <div class="pp-wish-meta">${w.year} · <span class="price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span></div>
+        <div class="pp-wish-meta">${w.year} · ${priceHTML(w, { size:'sm' })}</div>
       </div>
     </div>`;
   }).join('');
@@ -3622,6 +4932,10 @@ const _FRIEND_T = {
   searchHint: { fr:'Tape au moins 2 caractères.', en:'Type at least 2 characters.', es:'Escribe al menos 2 caracteres.', de:'Mindestens 2 Zeichen eingeben.', it:'Digita almeno 2 caratteri.', ar:'اكتب حرفين على الأقل.', zh:'请至少输入 2 个字符。', ja:'2文字以上入力してください。', ru:'Введите минимум 2 символа.', pl:'Wpisz co najmniej 2 znaki.' },
   statFriends:{ fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
   needAcc:    { fr:'Connecte-toi pour gérer tes amis.', en:'Sign in to manage your friends.', es:'Inicia sesión para gestionar tus amigos.', de:'Melde dich an, um deine Freunde zu verwalten.', it:'Accedi per gestire i tuoi amici.', ar:'سجّل الدخول لإدارة أصدقائك.', zh:'登录以管理好友。', ja:'ログインしてフレンドを管理。', ru:'Войдите, чтобы управлять друзьями.', pl:'Zaloguj się, aby zarządzać znajomymi.' },
+  online:     { fr:'en ligne', en:'online', es:'en línea', de:'online', it:'online', ar:'متصل', zh:'在线', ja:'オンライン', ru:'в сети', pl:'online' },
+  invite:     { fr:'Inviter', en:'Invite', es:'Invitar', de:'Einladen', it:'Invita', ar:'دعوة', zh:'邀请', ja:'招待', ru:'Пригласить', pl:'Zaproś' },
+  inviteCopied:{ fr:'Lien d’invitation copié !', en:'Invite link copied!', es:'¡Enlace de invitación copiado!', de:'Einladungslink kopiert!', it:'Link d’invito copiato!', ar:'تم نسخ رابط الدعوة!', zh:'邀请链接已复制！', ja:'招待リンクをコピーしました！', ru:'Ссылка-приглашение скопирована!', pl:'Skopiowano link zaproszenia!' },
+  inviteHint: { fr:'Partage ce lien : tes amis créent un compte et la demande part automatiquement.', en:'Share this link: your friends create an account and the request is sent automatically.', es:'Comparte este enlace: tus amigos crean una cuenta y la solicitud se envía sola.', de:'Teile diesen Link: Freunde erstellen ein Konto, die Anfrage wird automatisch gesendet.', it:'Condividi questo link: i tuoi amici creano un account e la richiesta parte da sola.', ar:'شارك هذا الرابط: ينشئ أصدقاؤك حسابًا ويُرسَل الطلب تلقائيًا.', zh:'分享此链接：好友注册后将自动发送好友请求。', ja:'このリンクを共有：友達がアカウントを作ると自動でリクエストが送られます。', ru:'Поделитесь ссылкой: друзья создадут аккаунт, запрос отправится сам.', pl:'Udostępnij link: znajomi zakładają konto, a zaproszenie wysyła się samo.' },
 };
 function _ft(k){ const m=_FRIEND_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -3640,8 +4954,9 @@ function _verifiedTag(username, cls){
 
 /* Avatar disc for an arbitrary user {username, avatar_url} */
 function _userAvatarHTML(u){
-  const init = (u.username || '?').trim().charAt(0).toUpperCase();
-  if (u.avatar_url) return `<img class="ava-img" src="${u.avatar_url}" alt="" loading="lazy" onerror="this.remove()"><span class="ava-init ava-init--fallback">${init}</span>`;
+  const init = escHtml((u.username || '?').trim().charAt(0).toUpperCase());
+  const url = safeMediaUrl(u.avatar_url);
+  if (url) return `<img class="ava-img" src="${url}" alt="" loading="lazy" onerror="this.remove()"><span class="ava-init ava-init--fallback">${init}</span>`;
   return `<span class="ava-init">${init}</span>`;
 }
 
@@ -3668,8 +4983,8 @@ async function refreshFriendsUI(){
             <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
           </button>
           <span class="pp-fr-actions">
-            <button class="pp-fr-accept" onclick="friendAccept('${u.id}')">${_ft('accept')}</button>
-            <button class="pp-fr-decline" onclick="friendDecline('${u.id}')" aria-label="${_ft('decline')}" title="${_ft('decline')}">${_XSVG}</button>
+            <button class="pp-fr-accept" onclick="friendAccept('${u.id}', this)">${_ft('accept')}</button>
+            <button class="pp-fr-decline" onclick="friendDecline('${u.id}', this)" aria-label="${_ft('decline')}" title="${_ft('decline')}">${_XSVG}</button>
           </span>
         </div>`).join('') + `</div></div>`;
   }
@@ -3679,7 +4994,7 @@ async function refreshFriendsUI(){
     // Carte cliquable → profil public (le retrait d'ami se fait DEPUIS ce profil)
     html += `<div class="pp-friends-grid">` + _friendsCache.friends.map(u => `
         <button class="pp-friend-card" onclick="openUserProfile('${u.id}')" aria-label="${escHtml(u.username||'')}" title="${escHtml(u.username||'')}">
-          <span class="pp-friend-ava">${_userAvatarHTML(u)}<span class="pp-friend-dot" aria-hidden="true"></span></span>
+          <span class="pp-friend-ava">${_userAvatarHTML(u)}<span class="pp-friend-dot" data-uid="${escHtml(u.id)}" aria-hidden="true"></span></span>
           <span class="pp-friend-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
         </button>`).join('') + `</div>`;
   } else {
@@ -3696,14 +5011,17 @@ async function refreshFriendsUI(){
             <span class="pp-fr-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
           </button>
           <span class="pp-fr-pending">${_ft('pending')}</span>
-          <button class="pp-fr-decline" onclick="friendRemoveUI('${u.id}')" aria-label="${_ft('cancel')}" title="${_ft('cancel')}">${_XSVG}</button>
+          <button class="pp-fr-decline" onclick="friendRemoveUI('${u.id}', this)" aria-label="${_ft('cancel')}" title="${_ft('cancel')}">${_XSVG}</button>
         </div>`).join('') + `</div></div>`;
   }
   body.innerHTML = html;
+  // Ré-applique l'état de présence sur les pastilles fraîchement rendues
+  document.dispatchEvent(new CustomEvent('glg:presence-changed'));
 }
-async function friendAccept(id){ if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, true); } refreshFriendsUI(); }
-async function friendDecline(id){ if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, false); } refreshFriendsUI(); }
-async function friendRemoveUI(id){ if(window.GLG_AUTH?.friendRemove){ await GLG_AUTH.friendRemove(id); } refreshFriendsUI(); }
+/* btn passé par onclick="...(id, this)" → désactivé pendant le RPC (anti double-clic) */
+async function friendAccept(id, btn){ if (btn) btn.disabled = true; if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, true); } refreshFriendsUI(); }
+async function friendDecline(id, btn){ if (btn) btn.disabled = true; if(window.GLG_AUTH?.friendRespond){ await GLG_AUTH.friendRespond(id, false); } refreshFriendsUI(); }
+async function friendRemoveUI(id, btn){ if (btn) btn.disabled = true; if(window.GLG_AUTH?.friendRemove){ await GLG_AUTH.friendRemove(id); } refreshFriendsUI(); }
 
 /* ── Friend search modal (reuses the auth modal shell) ── */
 let _frSearchTimer = null;
@@ -3741,7 +5059,7 @@ async function _friendSearchDo(q){
     else if (u.relation === 'incoming')action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('accept')}</button>`;
     else                               action = `<button class="fr-res-add" onclick="friendAdd('${u.id}',this)">${_ft('add')}</button>`;
     return `<div class="fr-res">
-      <button class="fr-res-open" onclick="openUserProfile('${u.id}',{username:'${escHtml((u.username||'').replace(/'/g,''))}',avatar_url:${u.avatar_url?`'${u.avatar_url}'`:'null'}})" aria-label="${escHtml(u.username||'')}">
+      <button class="fr-res-open" onclick="openUserProfile('${escHtml(u.id)}')" aria-label="${escHtml(u.username||'')}">
         <span class="fr-res-ava">${_userAvatarHTML(u)}</span>
         <span class="fr-res-name">${escHtml(u.username||'')}${_verifiedTag(u.username)}</span>
       </button>
@@ -3801,7 +5119,7 @@ function _publicWishCardHTML(w){
       </div>
       <div class="pp-wish-info">
         <div class="pp-wish-name">${w.title}</div>
-        <div class="pp-wish-meta">${w.year} · <span class="price-display" data-base-price="${w.basePrice ?? ''}">${getPrice(w)}</span></div>
+        <div class="pp-wish-meta">${w.year} · ${priceHTML(w, { size:'sm' })}</div>
       </div>
     </div>`;
 }
@@ -3834,7 +5152,7 @@ async function buildPublicProfilePage(viewId){
   }
   const name = prof.username || '—';
   const since = prof.created_at ? new Date(prof.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
-  const banner = prof.banner_url;
+  const banner = safeMediaUrl(prof.banner_url);
   const keys = new Set(Array.isArray(prof.achievements) ? prof.achievements : []);
   const d = computeTrophies(keys);                       // trophées calculés depuis SES déblocages
   const wids = Array.isArray(prof.wishlist) ? prof.wishlist : [];
@@ -3849,12 +5167,16 @@ async function buildPublicProfilePage(viewId){
 
   host.innerHTML = `
     <section class="pp pp--public">
-      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url('${banner}')"`:''}><div class="pp-banner-scrim"></div></div>
+      <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url(${banner})"`:''}><div class="pp-banner-scrim"></div></div>
       <div class="pp-head">
         <span class="pp-avatar pp-avatar--ro">${_userAvatarHTML(prof)}</span>
         <div class="pp-id">
           <h1 class="pp-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
-          <div class="pp-badges"><span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span></div>
+          <span class="pp-level-chip"><span class="pp-lc-cup">${_TROPHY_SVG}</span><b>${_tt('levelShort')} ${d.level}</b><span class="pp-lc-bar"><i style="width:${d.nextPct}%"></i></span></span>
+          <div class="pp-badges">
+            ${GLG_PRESENCE.isOnline(viewId) ? `<span class="pp-badge pp-badge--online">${_ft('online')}</span>` : ''}
+            <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
+          </div>
           ${prof.bio ? `<p class="pp-bio">${escHtml(prof.bio)}</p>` : `<p class="pp-bio pp-bio--empty">${_upt('noBio')}</p>`}
         </div>
         <div class="pp-actions pp-actions--public">
@@ -3867,20 +5189,43 @@ async function buildPublicProfilePage(viewId){
         <div class="pp-stat"><b>${prof.friend_count!=null?prof.friend_count:'—'}</b><span>${_ft('statFriends')}</span></div>
         <div class="pp-stat"><b>${wWorks.length}</b><span>${_wt('title')}</span></div>
       </div>
-      <div class="pp-section pp-trophy-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('level')}</h2></div>
-        <div class="pp-trophy-showcase">${trophyShowcaseHTML(d)}</div>
-      </div>
-      <div class="pp-section pp-tg-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_tt('byGame')}</h2></div>
-        <div class="pp-tg-grid">${d.byGame.length ? d.byGame.map(g => trophyGameCardHTML(g).replace(/ onclick="[^"]*"/,'')).join('') : `<p class="pp-friends-note">${_tt('none')}</p>`}</div>
-      </div>
-      <div class="pp-section">
-        <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count">${wWorks.length}</span></div>
-        <div class="pp-wish-grid">${wWorks.length ? wWorks.map(_publicWishCardHTML).join('') : `<p class="pp-friends-note">—</p>`}</div>
-      </div>
+      ${(() => { /* numérotation continue même quand « Jeux récents » est absent */
+        let _pi = 0; const nidx = () => `${String(++_pi).padStart(2, '0')} /`;
+        const rg = _recentGamesHTML(prof.recent_games);
+        return `
+      <div class="pp-cols">
+        <div class="pp-main">
+          ${rg ? `
+          <div class="pp-section pp-recent-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_rgt('title')}</h2></div>
+            ${rg}
+          </div>` : ''}
+          <div class="pp-section pp-trophy-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_tt('section')}</h2></div>
+            <div class="pp-trophy-showcase">${trophyShowcaseHTML(d)}</div>
+            <div class="pp-tg-grid">${d.byGame.length ? d.byGame.map(g => trophyGameCardHTML(g).replace(/ onclick="[^"]*"/,'')).join('') : `<p class="pp-friends-note">${_tt('none')}</p>`}</div>
+          </div>
+          <div class="pp-section pp-rev-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_rvt('section')}</h2><span class="pp-sec-count" id="pp-rev-count">0</span></div>
+            <div id="pp-reviews-body" class="pp-reviews-body"><div class="dp-rev-loading">···</div></div>
+          </div>
+          <div class="pp-section pp-shots-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_sht('title')}</h2><span class="pp-sec-count" id="pp-shots-count"></span></div>
+            <div id="pp-shots-body" class="pp-shots-grid"><p class="pp-friends-note">···</p></div>
+          </div>
+        </div>
+        <aside class="pp-rail">
+          <div class="pp-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title">${_wt('title')}</h2><span class="pp-sec-count">${wWorks.length}</span></div>
+            <div class="pp-wish-grid">${wWorks.length ? wWorks.map(_publicWishCardHTML).join('') : `<p class="pp-friends-note">${_wt('empty')}</p>`}</div>
+          </div>
+        </aside>
+      </div>`;
+      })()}
     </section>
     ${footerHTML()}`;
+  _renderProfileReviews(viewId);
+  _initProfileShots(viewId, { readOnly: true });
 
   const actBtn = host.querySelector('.up-action');
   if (actBtn) actBtn.addEventListener('click', async () => {
@@ -3915,6 +5260,11 @@ const _TROPHY_T = {
   hiddenD:  { fr:'Continue de jouer pour le révéler.', en:'Keep playing to reveal it.', es:'Sigue jugando para revelarlo.', de:'Spiele weiter, um es freizuschalten.', it:'Continua a giocare per rivelarlo.', ar:'واصل اللعب لكشفها.', zh:'继续游玩以解锁。', ja:'プレイを続けて解放しよう。', ru:'Продолжайте играть, чтобы открыть.', pl:'Graj dalej, aby odblokować.' },
   none:     { fr:'Aucun trophée débloqué pour l’instant — tes jeux rempliront cet espace.', en:'No trophies unlocked yet — your games will fill this in.', es:'Aún no hay trofeos — tus juegos los llenarán.', de:'Noch keine Trophäen — deine Spiele füllen das.', it:'Ancora nessun trofeo — i tuoi giochi lo riempiranno.', ar:'لا جوائز بعد — ألعابك ستملؤها.', zh:'尚无奖杯——你的游戏将填满这里。', ja:'まだトロフィーなし——ゲームが埋めていきます。', ru:'Пока нет трофеев — ваши игры их заполнят.', pl:'Brak trofeów — twoje gry je wypełnią.' },
   view:     { fr:'Voir les trophées', en:'View trophies', es:'Ver trofeos', de:'Trophäen ansehen', it:'Vedi trofei', ar:'عرض الجوائز', zh:'查看奖杯', ja:'トロフィーを見る', ru:'Смотреть трофеи', pl:'Zobacz trofea' },
+  levelShort:{ fr:'NIV.', en:'LVL', es:'NIV.', de:'STUFE', it:'LIV.', ar:'مستوى', zh:'等级', ja:'LV', ru:'УР.', pl:'POZ.' },
+  rarUltra: { fr:'Ultra rare', en:'Ultra rare', es:'Ultra raro', de:'Ultraselten', it:'Ultra raro', ar:'نادر جدًا', zh:'极为稀有', ja:'ウルトラレア', ru:'Ультраредкий', pl:'Ultrarzadkie' },
+  rarVery:  { fr:'Très rare', en:'Very rare', es:'Muy raro', de:'Sehr selten', it:'Molto raro', ar:'نادر للغاية', zh:'非常稀有', ja:'とてもレア', ru:'Очень редкий', pl:'Bardzo rzadkie' },
+  rarRare:  { fr:'Rare', en:'Rare', es:'Raro', de:'Selten', it:'Raro', ar:'نادر', zh:'稀有', ja:'レア', ru:'Редкий', pl:'Rzadkie' },
+  rarCommon:{ fr:'Courant', en:'Common', es:'Común', de:'Häufig', it:'Comune', ar:'شائع', zh:'常见', ja:'コモン', ru:'Обычный', pl:'Częste' },
 };
 function _tt(k){ const m=_TROPHY_T[k]; return m ? (m[LANG]||m.en) : k; }
 const _TROPHY_SVG = '<svg class="trophy-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v4a4 4 0 0 1-8 0V4z" fill="currentColor"/><path d="M8 5H5v1a3 3 0 0 0 3 3M16 5h3v1a3 3 0 0 1-3 3" stroke="currentColor" stroke-width="1.5"/><path d="M12 12v3" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 20l.6-3h3.8l.6 3z" fill="currentColor"/><path d="M8.5 20h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
@@ -3947,7 +5297,11 @@ function computeTrophies(keys){
   const total = counts.bronze+counts.silver+counts.gold+counts.platinum;
   const earnedTotal = earned.bronze+earned.silver+earned.gold+earned.platinum;
   const level = Math.max(1, Math.floor(Math.sqrt(points / 45)) + (earned.platinum));
-  return { counts, earned, total, earnedTotal, points, level, byGame };
+  // Progression vers le niveau suivant (le badge d'en-tête l'affiche, comme PSN)
+  const _lvlBase = 45 * Math.pow(Math.max(0, level - earned.platinum), 2);
+  const _lvlNext = 45 * Math.pow(Math.max(1, level + 1 - earned.platinum), 2);
+  const nextPct  = Math.max(0, Math.min(100, Math.round((points - _lvlBase) / Math.max(1, _lvlNext - _lvlBase) * 100)));
+  return { counts, earned, total, earnedTotal, points, level, byGame, nextPct };
 }
 
 function _tierTileHTML(tier, earned, total){
@@ -3998,6 +5352,82 @@ async function refreshTrophiesUI(){
   const sc = document.getElementById('pp-trophy-showcase'); if (sc) sc.innerHTML = trophyShowcaseHTML(d);
   const bg = document.getElementById('pp-trophy-games');
   if (bg) bg.innerHTML = d.byGame.length ? d.byGame.map(trophyGameCardHTML).join('') : `<p class="pp-friends-note">${_tt('none')}</p>`;
+  // Badge de niveau dans l'en-tête d'identité (geste PSN reconnaissable)
+  const chip = document.getElementById('pp-level-chip');
+  if (chip) chip.innerHTML = `<span class="pp-lc-cup">${_TROPHY_SVG}</span><b>${_tt('levelShort')} ${d.level}</b><span class="pp-lc-bar"><i style="width:${d.nextPct}%"></i></span>`;
+}
+
+/* ── Section "Évaluations" du profil (perso + public) — via user_reviews ── */
+async function _renderProfileReviews(uid){
+  const body = document.getElementById('pp-reviews-body'); if (!body) return;
+  if (!window.GLG_AUTH?.isConfigured?.() || !uid){
+    body.innerHTML = `<p class="pp-friends-note">${_rvt('profNone')}</p>`; return;
+  }
+  let rows = [];
+  try { const r = await GLG_AUTH.userReviews(uid); rows = r.reviews || []; } catch(e){}
+  const items = rows
+    .map(r => ({ r, work: (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).find(w => w.id === r.work_id) }))
+    .filter(x => x.work && !isMatureHidden(x.work));
+  const cnt  = document.getElementById('pp-rev-count');    if (cnt)  cnt.textContent  = items.length;
+  const stat = document.getElementById('pp-stat-reviews'); if (stat) stat.textContent = items.length;
+  if (!items.length){ body.innerHTML = `<p class="pp-friends-note">${_rvt('profNone')}</p>`; return; }
+  body.innerHTML = items.map(({ r, work }) => {
+    const tint = work.tint || '#ffffff';
+    return `<button class="pp-rev-row" style="--tint:${tint}" onclick="showPage('detail','${work.id}')" aria-label="${work.title}">
+        <span class="pp-rev-cover"><img src="${av(work.cover)}" alt="" loading="lazy" onerror="this.style.opacity=0"></span>
+        <span class="pp-rev-main">
+          <span class="pp-rev-title"><b>${work.title}</b>${_rvStarsHTML(r.rating)}</span>
+          ${r.body ? `<span class="pp-rev-excerpt">${escHtml(r.body)}</span>` : ''}
+          <span class="pp-rev-date">${_notifRelTime(new Date(r.updated_at).getTime())}</span>
+        </span>
+      </button>`;
+  }).join('');
+}
+
+/* ── Flux "Activité récente" (profil perso) — merge client trophées/amis/évals,
+     ZÉRO table supplémentaire : tout vient de données déjà horodatées. ── */
+async function _renderProfileActivity(){
+  const body = document.getElementById('pp-activity-body'); if (!body) return;
+  const events = [];
+  try {
+    if (window.GLG_AUTH?.isConfigured?.()){
+      const a = await GLG_AUTH.getAchievements();
+      (a.rows || []).forEach(row => {
+        const slash = String(row.ach_key).indexOf('/');
+        const gid = String(row.ach_key).slice(0, slash), code = String(row.ach_key).slice(slash + 1);
+        const work = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).find(w => w.id === gid);
+        if (!work || isMatureHidden(work)) return;
+        const def = (typeof TROPHIES!=='undefined' && TROPHIES[gid] || []).find(t => t.code === code);
+        const txt = def ? _trophyTxt(def) : { t: code };
+        events.push({ ts: new Date(row.unlocked_at).getTime(), icon: 'trophy', tier: def?.tier || 'bronze',
+          html: `${escHtml(txt.t)} <span class="pp-act-dim">— ${work.title}</span>` });
+      });
+      (_friendsCache.friends || []).forEach(f => {
+        if (!f.since) return;
+        events.push({ ts: new Date(f.since).getTime(), icon: 'friend',
+          html: `${_ppt('actFriend')} <b>${escHtml(f.username || '?')}</b>` });
+      });
+      const user = await GLG_AUTH.getUser();
+      if (user){
+        const rv = await GLG_AUTH.userReviews(user.id);
+        (rv.reviews || []).forEach(r => {
+          const w = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).find(x => x.id === r.work_id);
+          if (!w || isMatureHidden(w)) return;
+          events.push({ ts: new Date(r.updated_at).getTime(), icon: 'review',
+            html: `${_ppt('actReview')} <b>${w.title}</b> ${_rvStarsHTML(r.rating)}` });
+        });
+      }
+    }
+  } catch(e){}
+  events.sort((a, b) => b.ts - a.ts);
+  const top = events.filter(ev => !isNaN(ev.ts)).slice(0, 8);
+  if (!top.length){ body.innerHTML = `<p class="pp-friends-note">${_ppt('actEmpty')}</p>`; return; }
+  body.innerHTML = top.map(ev => `
+    <div class="pp-act-row">
+      <span class="pp-act-ico${ev.tier ? ' pp-tier--' + ev.tier : ''}">${ev.icon === 'trophy' ? _TROPHY_SVG : (ev.icon === 'friend' ? _NOTIF_ICONS.friend : _RV_STAR)}</span>
+      <span class="pp-act-text">${ev.html}</span>
+      <span class="pp-act-time">${_notifRelTime(ev.ts)}</span>
+    </div>`).join('');
 }
 /* Trophy list for one title (PS-style), opened in the shared modal. */
 function openTrophyList(gid){
@@ -4017,6 +5447,7 @@ function openTrophyList(gid){
           <span class="tl-name">${masked ? _tt('hidden') : escHtml(txt.t)}</span>
           <span class="tl-desc">${masked ? _tt('hiddenD') : escHtml(txt.d)}</span>
         </span>
+        <span class="tl-rar" data-rar="${gid}/${tr.code}"></span>
         <span class="tl-tier pp-tier--${tr.tier}">${_tt(tr.tier)}</span>
       </div>`;
   }).join('');
@@ -4030,8 +5461,31 @@ function openTrophyList(gid){
       <div class="tl-list">${rows}</div>
     </div>`;
   if(!m.classList.contains('open')){ document.body.style.overflow='hidden'; m.classList.add('open'); }
+  _fillTrophyRarity(gid, m);
 }
 function _trophyTxt(tr){ return tr[LANG] || tr.en || { t:tr.code, d:'' }; }
+
+/* ── Rareté (signature PSN) — remplie en asynchrone, cache par session.
+     Cold start honnête : sous 5 joueurs, on n'affiche RIEN (pas de "100%"). ── */
+const _rarityCache = new Map();
+async function _fillTrophyRarity(gid, root){
+  if (!window.GLG_AUTH?.isConfigured?.() || !window.GLG_AUTH?.trophyRarity) return;
+  let rows = _rarityCache.get(gid);
+  if (!rows){
+    try { const r = await GLG_AUTH.trophyRarity(gid); if (r.ok){ rows = r.rows; _rarityCache.set(gid, rows); } } catch(e){}
+  }
+  if (!rows || !rows.length) return;
+  const players = Number(rows[0]?.players || 0);
+  if (players < 5) return;
+  const byKey = {}; rows.forEach(r => { byKey[r.ach_key] = r; });
+  root.querySelectorAll('.tl-rar').forEach(el => {
+    const r = byKey[el.dataset.rar]; if (!r) return;
+    const pct = Number(r.pct);
+    const label = pct < 5 ? _tt('rarUltra') : pct < 10 ? _tt('rarVery') : pct < 20 ? _tt('rarRare') : _tt('rarCommon');
+    const pctTxt = pct.toLocaleString(LANG_LOCALE[LANG] || 'en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    el.innerHTML = `<b>${pctTxt}%</b><span>${label}</span>`;
+  });
+}
 
 /* ── Fiches détail "magazine" : tags, facts, teaser trophées ───────────── */
 const _DPX_T = {
@@ -4043,6 +5497,27 @@ const _DPX_T = {
   ratingTeen: { fr:'12+', en:'12+', es:'12+', de:'12+', it:'12+', ar:'+12', zh:'12+', ja:'12+', ru:'12+', pl:'12+' },
 };
 function _dx(k){ const m=_DPX_T[k]; return m ? (m[LANG]||m.en) : k; }
+
+/* ── Badges de fonctionnalités (buybox) : manette / cloud / sous-titres.
+   SVG stroke maison (1.4px, style cloche/loupe), jamais d'emoji. ── */
+const _CAPS_T = {
+  controller:{ fr:'Manette', en:'Controller', es:'Mando', de:'Controller', it:'Controller', ar:'يد التحكم', zh:'手柄', ja:'コントローラー', ru:'Геймпад', pl:'Kontroler' },
+  cloud:     { fr:'Sauvegarde cloud', en:'Cloud saves', es:'Guardado en la nube', de:'Cloud-Speicher', it:'Salvataggi cloud', ar:'حفظ سحابي', zh:'云存档', ja:'クラウドセーブ', ru:'Облачные сохранения', pl:'Zapisy w chmurze' },
+  subs:      { fr:'Sous-titres', en:'Subtitles', es:'Subtítulos', de:'Untertitel', it:'Sottotitoli', ar:'ترجمات', zh:'字幕', ja:'字幕', ru:'Субтитры', pl:'Napisy' },
+};
+const _CAPS_SVG = {
+  controller:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6.2 6h7.6c1.9 0 3.4 1.5 3.6 3.4l.4 3.6a1.8 1.8 0 0 1-3.1 1.4l-1.6-1.7H6.9l-1.6 1.7a1.8 1.8 0 0 1-3.1-1.4l.4-3.6C2.8 7.5 4.3 6 6.2 6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.8 9.2v2.4M5.6 10.4H8M13.2 9.6h.01M14.8 11h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  cloud:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 14.5a3.5 3.5 0 0 1-.5-7A4.5 4.5 0 0 1 14.2 8a3.3 3.3 0 0 1-.7 6.5H6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  subs:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 11.5h6M13 11.5h2M5 8.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+};
+function _capsT(k){ const m=_CAPS_T[k]; return m ? (m[LANG]||m.en) : k; }
+function _dpCapsHTML(item){
+  const caps = (typeof WORK_CAPS!=='undefined' && (WORK_CAPS[item.id] || WORK_CAPS.default)) || null;
+  if (!caps) return '';
+  const chips = ['controller','cloud','subs'].filter(k => caps[k])
+    .map(k => `<span class="dp-cap"><span class="dp-cap-ico">${_CAPS_SVG[k]}</span>${_capsT(k)}</span>`).join('');
+  return chips ? `<div class="dp-caps">${chips}</div>` : '';
+}
 
 function _workTagsHTML(item){
   const ids = (typeof WORK_TAGS!=='undefined' && WORK_TAGS[item.id]) || [];
@@ -4083,6 +5558,197 @@ function dpTrophySectionHTML(item){
 }
 
 /* ══════════════════════════════════════════
+   ÉVALUATIONS DES JOUEURS (style Steam) — DB-backed, RLS + RPC rate-limitées
+   ──────────────────────────────────────────
+   Écriture réservée aux œuvres SORTIES (même règle que la notif "sorti") :
+   tant qu'un titre est "coming soon", la section montre la preuve sociale
+   réelle ("N joueurs l'attendent" via wishlist_count) — jamais d'étoiles
+   vides mortes. Tout contenu utilisateur passe par escHtml (XSS).
+══════════════════════════════════════════ */
+const _REV_T = {
+  section:  { fr:'Évaluations des joueurs', en:'Player reviews', es:'Reseñas de jugadores', de:'Spielerbewertungen', it:'Recensioni dei giocatori', ar:'تقييمات اللاعبين', zh:'玩家评价', ja:'プレイヤーレビュー', ru:'Отзывы игроков', pl:'Recenzje graczy' },
+  countOne: { fr:'1 évaluation', en:'1 review', es:'1 reseña', de:'1 Bewertung', it:'1 recensione', ar:'تقييم واحد', zh:'1 条评价', ja:'1件のレビュー', ru:'1 отзыв', pl:'1 recenzja' },
+  countMany:{ fr:'%s évaluations', en:'%s reviews', es:'%s reseñas', de:'%s Bewertungen', it:'%s recensioni', ar:'%s تقييمات', zh:'%s 条评价', ja:'%s件のレビュー', ru:'%s отзывов', pl:'%s recenzji' },
+  delQ:     { fr:'Supprimer ton évaluation ?', en:'Delete your review?', es:'¿Eliminar tu reseña?', de:'Deine Bewertung löschen?', it:'Eliminare la tua recensione?', ar:'حذف تقييمك؟', zh:'删除你的评价？', ja:'レビューを削除しますか？', ru:'Удалить ваш отзыв?', pl:'Usunąć swoją recenzję?' },
+  waiting:  { fr:'%s joueurs l’attendent déjà', en:'%s players are already waiting', es:'%s jugadores ya lo esperan', de:'%s Spieler warten bereits darauf', it:'%s giocatori lo stanno già aspettando', ar:'%s لاعبًا ينتظرونه بالفعل', zh:'已有 %s 名玩家在等待', ja:'すでに%s人のプレイヤーが待っています', ru:'%s игроков уже ждут', pl:'%s graczy już czeka' },
+  opens:    { fr:'Les évaluations ouvriront à la sortie du titre.', en:'Reviews open when the title releases.', es:'Las reseñas se abrirán con el lanzamiento.', de:'Bewertungen öffnen zum Release.', it:'Le recensioni apriranno all’uscita.', ar:'تُفتح التقييمات عند صدور العنوان.', zh:'评价将在游戏发售后开放。', ja:'レビューはタイトル発売時に開放されます。', ru:'Отзывы откроются после выхода.', pl:'Recenzje otworzą się w dniu premiery.' },
+  beFirst:  { fr:'Aucune évaluation pour l’instant — la tienne sera la première.', en:'No reviews yet — yours will be the first.', es:'Aún no hay reseñas: la tuya será la primera.', de:'Noch keine Bewertungen — deine wird die erste sein.', it:'Ancora nessuna recensione: la tua sarà la prima.', ar:'لا توجد تقييمات بعد — سيكون تقييمك الأول.', zh:'暂无评价——你的将是第一条。', ja:'まだレビューはありません。あなたが最初です。', ru:'Пока нет отзывов — ваш будет первым.', pl:'Brak recenzji — twoja będzie pierwsza.' },
+  write:    { fr:'Rédiger une évaluation', en:'Write a review', es:'Escribir una reseña', de:'Bewertung schreiben', it:'Scrivi una recensione', ar:'اكتب تقييمًا', zh:'撰写评价', ja:'レビューを書く', ru:'Написать отзыв', pl:'Napisz recenzję' },
+  edit:     { fr:'Modifier mon évaluation', en:'Edit my review', es:'Editar mi reseña', de:'Meine Bewertung bearbeiten', it:'Modifica la mia recensione', ar:'تعديل تقييمي', zh:'编辑我的评价', ja:'レビューを編集', ru:'Изменить мой отзыв', pl:'Edytuj moją recenzję' },
+  ph:       { fr:'Partage ton expérience (facultatif)…', en:'Share your experience (optional)…', es:'Comparte tu experiencia (opcional)…', de:'Teile deine Erfahrung (optional)…', it:'Condividi la tua esperienza (facoltativo)…', ar:'شارك تجربتك (اختياري)…', zh:'分享你的体验（可选）…', ja:'体験を共有しよう（任意）…', ru:'Поделитесь впечатлениями (необязательно)…', pl:'Podziel się wrażeniami (opcjonalnie)…' },
+  publish:  { fr:'Publier', en:'Publish', es:'Publicar', de:'Veröffentlichen', it:'Pubblica', ar:'نشر', zh:'发布', ja:'投稿', ru:'Опубликовать', pl:'Opublikuj' },
+  update:   { fr:'Mettre à jour', en:'Update', es:'Actualizar', de:'Aktualisieren', it:'Aggiorna', ar:'تحديث', zh:'更新', ja:'更新', ru:'Обновить', pl:'Aktualizuj' },
+  del:      { fr:'Supprimer', en:'Delete', es:'Eliminar', de:'Löschen', it:'Elimina', ar:'حذف', zh:'删除', ja:'削除', ru:'Удалить', pl:'Usuń' },
+  signin:   { fr:'Connecte-toi pour évaluer ce titre.', en:'Sign in to review this title.', es:'Inicia sesión para reseñar este título.', de:'Melde dich an, um zu bewerten.', it:'Accedi per recensire questo titolo.', ar:'سجّل الدخول لتقييم هذا العنوان.', zh:'登录后即可评价该作品。', ja:'ログインしてレビューを書こう。', ru:'Войдите, чтобы оставить отзыв.', pl:'Zaloguj się, aby ocenić.' },
+  report:   { fr:'Signaler', en:'Report', es:'Denunciar', de:'Melden', it:'Segnala', ar:'إبلاغ', zh:'举报', ja:'報告', ru:'Пожаловаться', pl:'Zgłoś' },
+  reported: { fr:'Signalé', en:'Reported', es:'Denunciada', de:'Gemeldet', it:'Segnalata', ar:'تم الإبلاغ', zh:'已举报', ja:'報告済み', ru:'Отправлено', pl:'Zgłoszono' },
+  needStars:{ fr:'Choisis une note (1–5 étoiles).', en:'Pick a rating (1–5 stars).', es:'Elige una nota (1–5 estrellas).', de:'Wähle eine Wertung (1–5 Sterne).', it:'Scegli un voto (1–5 stelle).', ar:'اختر تقييمًا (1–5 نجوم).', zh:'请选择评分（1–5 星）。', ja:'評価を選んでください（星1〜5）。', ru:'Выберите оценку (1–5 звёзд).', pl:'Wybierz ocenę (1–5 gwiazdek).' },
+  err:      { fr:'Impossible d’enregistrer — réessaie.', en:'Could not save — try again.', es:'No se pudo guardar; inténtalo de nuevo.', de:'Speichern fehlgeschlagen — bitte erneut.', it:'Salvataggio non riuscito: riprova.', ar:'تعذّر الحفظ — حاول مجددًا.', zh:'保存失败，请重试。', ja:'保存できませんでした。再試行してください。', ru:'Не удалось сохранить — попробуйте ещё раз.', pl:'Nie udało się zapisać — spróbuj ponownie.' },
+  limit:    { fr:'Limite atteinte — réessaie dans 24 h.', en:'Limit reached — try again in 24 h.', es:'Límite alcanzado; vuelve en 24 h.', de:'Limit erreicht — in 24 h erneut.', it:'Limite raggiunto: riprova tra 24 h.', ar:'بلغت الحد — حاول بعد 24 ساعة.', zh:'已达上限，请 24 小时后再试。', ja:'上限に達しました。24時間後に再試行してください。', ru:'Лимит исчерпан — повторите через 24 ч.', pl:'Limit osiągnięty — spróbuj za 24 h.' },
+  profNone: { fr:'Aucune évaluation rédigée pour l’instant.', en:'No reviews written yet.', es:'Aún no ha escrito reseñas.', de:'Noch keine Bewertungen verfasst.', it:'Nessuna recensione scritta.', ar:'لم تُكتب أي تقييمات بعد.', zh:'尚未撰写任何评价。', ja:'まだレビューはありません。', ru:'Отзывы ещё не написаны.', pl:'Nie napisano jeszcze recenzji.' },
+};
+function _rvt(k){ const m = _REV_T[k]; return m ? (m[LANG] || m.en) : k; }
+
+/* Une œuvre est "sortie" ? (même règle que GLG_NOTIF.sync) */
+function _workIsReleased(item){
+  const st = String(item?.status || '').toLowerCase();
+  return /avail|released|out|sorti|disponible(?!.*bient)/.test(st) && !/coming|bient/.test(st);
+}
+
+/* Étoile maison : trait fin monochrome (jamais d'emoji ni de jaune) */
+const _RV_STAR = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 9.9 5.9l4.4.5-3.3 3 .9 4.4L8 11.5 4.1 13.8l.9-4.4-3.3-3 4.4-.5Z" fill="currentColor" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"/></svg>';
+function _rvStarsHTML(n){
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += `<span class="rv-star${i <= n ? ' on' : ''}">${_RV_STAR}</span>`;
+  return `<span class="rv-stars" aria-label="${n}/5">${out}</span>`;
+}
+
+let _dpRevState = { workId: null, rating: 0, mine: null };
+
+function dpReviewsShellHTML(item){
+  return `<div class="dp-reviews reveal" id="dp-reviews">
+      <div class="dp-sec-label">${_rvt('section')}</div>
+      <div class="dp-rev-body" id="dp-rev-body"><div class="dp-rev-loading">···</div></div>
+    </div>`;
+}
+
+async function _loadDpReviews(item){
+  const body = document.getElementById('dp-rev-body'); if (!body) return;
+  _dpRevState = { workId: item.id, rating: 0, mine: null };
+  const released = _workIsReleased(item);
+  if (!window.GLG_AUTH?.isConfigured?.()){
+    body.innerHTML = `<p class="dp-rev-note">${released ? _rvt('beFirst') : _rvt('opens')}</p>`;
+    return;
+  }
+  try {
+    const [sum, list, user, mine] = await Promise.all([
+      GLG_AUTH.reviewSummary(item.id),
+      GLG_AUTH.workReviews(item.id, 10, 0),
+      GLG_AUTH.getUser(),
+      GLG_AUTH.myReview(item.id),
+    ]);
+    let waiting = 0;
+    if (!released){
+      const w = await GLG_AUTH.wishlistCount(item.id);
+      waiting = w?.count || 0;
+    }
+    if (_dpRevState.workId !== item.id) return;   // on a navigué ailleurs entre-temps
+    _dpRevState.mine = mine?.review || null;
+    _dpRevState.rating = _dpRevState.mine?.rating || 0;
+    _renderDpReviews(item, { sum, reviews: list.reviews || [], user, released, waiting });
+  } catch(e){
+    body.innerHTML = `<p class="dp-rev-note">${_rvt('opens')}</p>`;
+  }
+}
+
+function _renderDpReviews(item, { sum, reviews, user, released, waiting }){
+  const body = document.getElementById('dp-rev-body'); if (!body) return;
+  const cnt = sum?.count || 0;
+  let html = '';
+
+  /* — Agrégat : moyenne + histogramme hairlines (à la Steam) — */
+  if (cnt > 0){
+    const histo = sum.histo || {};
+    const max = Math.max(1, ...Object.values(histo).map(Number));
+    const bars = [5,4,3,2,1].map(n => {
+      const v = Number(histo[String(n)] || 0);
+      return `<div class="rv-h-row"><span class="rv-h-n">${n}</span><span class="rv-h-bar"><span style="width:${Math.round(v / max * 100)}%"></span></span><span class="rv-h-v">${v}</span></div>`;
+    }).join('');
+    html += `<div class="rv-agg">
+        <div class="rv-agg-main">
+          <span class="rv-agg-avg">${(sum.avg ?? 0).toFixed(1)}</span>
+          ${_rvStarsHTML(Math.round(sum.avg || 0))}
+          <span class="rv-agg-count">${cnt === 1 ? _rvt('countOne') : _rvt('countMany').replace('%s', cnt)}</span>
+        </div>
+        <div class="rv-histo">${bars}</div>
+      </div>`;
+    /* Fact buybox : ★ 4,3 · 27 (lien vers la section) */
+    const fact = document.getElementById('dp-fact-rev');
+    if (fact){ fact.style.display = ''; const b = fact.querySelector('b'); if (b) b.textContent = `★ ${(sum.avg ?? 0).toFixed(1)} · ${cnt}`; }
+  }
+
+  /* — Avant la sortie : preuve sociale réelle, pas d'étoiles mortes — */
+  if (!released){
+    if (waiting >= 10) html += `<p class="rv-waiting">${_rvt('waiting').replace('%s', waiting)}</p>`;
+    html += `<p class="dp-rev-note">${_rvt('opens')}</p>`;
+  } else if (user){
+    /* — Formulaire (upsert : 1 avis par joueur, éditable) — */
+    const mine = _dpRevState.mine;
+    html += `<div class="rv-form">
+        <div class="rv-form-title">${mine ? _rvt('edit') : _rvt('write')}</div>
+        <div class="rv-form-stars" id="rv-form-stars">${[1,2,3,4,5].map(n =>
+          `<button type="button" class="rv-star-btn${n <= _dpRevState.rating ? ' on' : ''}" data-n="${n}" onclick="_dpRevSetStar(${n})" aria-label="${n}/5">${_RV_STAR}</button>`).join('')}</div>
+        <textarea class="rv-form-body" id="rv-form-body" maxlength="1200" rows="4" placeholder="${_rvt('ph')}">${escHtml(mine?.body || '')}</textarea>
+        <div class="rv-form-foot">
+          ${mine ? `<button type="button" class="rv-del" onclick="_dpRevDelete(this)">${_rvt('del')}</button>` : '<span></span>'}
+          <button type="button" class="btn btn-primary rv-submit" onclick="_dpRevSubmit()">${mine ? _rvt('update') : _rvt('publish')}</button>
+        </div>
+        <p class="rv-err" id="rv-form-err" hidden></p>
+      </div>`;
+  } else {
+    html += `<p class="dp-rev-note rv-signin"><button class="rv-signin-btn" onclick="openAuthModal()">${_rvt('signin')}</button></p>`;
+  }
+
+  /* — Liste (pseudo cliquable → profil public, comme Steam) — */
+  if (reviews.length){
+    html += `<div class="rv-list">` + reviews.map(r => {
+      const own = user && r.user_id === user.id;
+      const uid = escHtml(r.user_id);
+      return `<div class="rv-item${own ? ' rv-item--own' : ''}">
+          <button class="rv-ava" onclick="openUserProfile('${uid}')" aria-label="${escHtml(r.username || '?')}">${_userAvatarHTML(r)}</button>
+          <div class="rv-main">
+            <div class="rv-head">
+              <button class="rv-name" onclick="openUserProfile('${uid}')">${escHtml(r.username || '?')}</button>
+              ${_rvStarsHTML(r.rating)}
+              <span class="rv-date">${_notifRelTime(new Date(r.updated_at).getTime())}</span>
+              ${user && !own ? `<button class="rv-report" onclick="_dpRevReport('${uid}','${escHtml(item.id)}',this)">${_rvt('report')}</button>` : ''}
+            </div>
+            ${r.body ? `<p class="rv-body">${escHtml(r.body)}</p>` : ''}
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+  } else if (released && cnt === 0){
+    html += `<p class="dp-rev-note">${_rvt('beFirst')}</p>`;
+  }
+
+  body.innerHTML = html;
+}
+
+function _dpRevSetStar(n){
+  _dpRevState.rating = n;
+  document.querySelectorAll('#rv-form-stars .rv-star-btn').forEach(b =>
+    b.classList.toggle('on', Number(b.dataset.n) <= n));
+}
+async function _dpRevSubmit(){
+  const err = document.getElementById('rv-form-err');
+  const btn = document.querySelector('.rv-submit');
+  if (!_dpRevState.rating){ if (err){ err.textContent = _rvt('needStars'); err.hidden = false; } return; }
+  if (btn) btn.disabled = true;
+  const bodyTxt = document.getElementById('rv-form-body')?.value || '';
+  const res = await GLG_AUTH.upsertReview(_dpRevState.workId, _dpRevState.rating, bodyTxt);
+  if (btn) btn.disabled = false;
+  if (!res.ok){
+    if (err){ err.textContent = res.code === 'limit' ? _rvt('limit') : _rvt('err'); err.hidden = false; }
+    return;
+  }
+  const item = ALL_WORKS.find(w => w.id === _dpRevState.workId);
+  if (item) _loadDpReviews(item);
+}
+async function _dpRevDelete(btn){
+  if (!confirm(_rvt('delQ'))) return;          // action destructive → confirmation (comme les captures)
+  if (btn) btn.disabled = true;
+  const res = await GLG_AUTH.deleteReview(_dpRevState.workId);
+  if (res.ok){
+    const item = ALL_WORKS.find(w => w.id === _dpRevState.workId);
+    if (item) _loadDpReviews(item);
+  } else if (btn) { btn.disabled = false; }
+}
+async function _dpRevReport(uid, wid, btn){
+  const res = await GLG_AUTH.reportReview(uid, wid);
+  if (btn){ btn.textContent = _rvt('reported'); btn.disabled = true; }
+}
+
+/* ══════════════════════════════════════════
    COMPTES LIÉS (Steam / Epic / PlayStation)
    MVP fonctionnel : identifiant stocké sur le profil. L'import d'amis live
    nécessite les API officielles + OAuth serveur (clés secrètes) → étape backend.
@@ -4108,7 +5774,7 @@ function _platformSectionHTML(la){
     const val = (la && la[pf.key]) || '';
     return `<div class="pp-link-row ${val?'is-linked':''}">
         <span class="pp-link-ico"><img src="${pf.icon}" alt="${pf.name}" onerror="this.style.opacity=.4"></span>
-        <span class="pp-link-id"><span class="pp-link-name">${pf.name}</span>${val?`<span class="pp-link-handle">${escHtml(val)}</span>`:`<span class="pp-link-muted">${_lt('sub')==''?'':''}—</span>`}</span>
+        <span class="pp-link-id"><span class="pp-link-name">${pf.name}</span>${val?`<span class="pp-link-handle">${escHtml(val)}</span>`:`<span class="pp-link-muted">—</span>`}</span>
         ${val
           ? `<span class="pp-link-state">${_lt('connected')}</span><button class="pp-link-btn pp-link-btn--ghost" onclick="unlinkPlatform('${pf.key}')">${_lt('unlink')}</button>`
           : `<button class="pp-link-btn" onclick="openLinkPlatform('${pf.key}')">${_lt('link')}</button>`}
@@ -4366,7 +6032,7 @@ function renderSearchResults(query) {
     const displayTitle = item.i18n?.[LANG]?.title || item.title;
     const hl = displayTitle.replace(new RegExp('(' + escRe(q) + ')', 'gi'),
       '<span class="match-hl">$1</span>');
-    const displayPrice = getPrice(item);
+    const displayPrice = getPriceNow(item);
     return `
       <div class="search-result" onclick="closeSearch(); showPage('detail','${item.id}')">
         <div class="search-result-thumb">
@@ -4386,142 +6052,33 @@ function renderSearchResults(query) {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
+/* Sanitize an image/media URL before it lands in an HTML attribute or CSS url().
+   Accepts only data:image/*, https:, blob: and same-origin relative paths, and
+   rejects any character that could break out of an attribute or url() context.
+   User-controlled avatar_url / banner_url MUST pass through this. */
+function safeMediaUrl(u) {
+  if (typeof u !== 'string') return '';
+  const s = u.trim();
+  if (!s) return '';
+  if (/["'()<>\\`\s]/.test(s)) return '';            // no breakout chars
+  if (/^data:image\/(png|jpe?g|webp|gif|avif|svg\+xml);/i.test(s)) return s;
+  if (/^https:\/\//i.test(s)) return s;
+  if (/^blob:/i.test(s)) return s;
+  if (/^(?:\/(?!\/)|\.\/|assets\/)/i.test(s)) return s; // relative site asset
+  return '';
 }
 function escRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 }
 
-/* ══════════════════════════════════════════
-   CAROUSEL TOUCH — superseded.
-   Touch handling is now integrated directly
-   in buildCarousel() where pos / tick / setW
-   are in scope.  This stub is kept so any
-   lingering call sites don't throw.
-══════════════════════════════════════════ */
-function initCarouselTouch() { /* no-op — see buildCarousel() */
-  [
-    { selector: '.carousel-track.films-t', dir: 'left'  },
-    { selector: '.carousel-track.games-t', dir: 'right' }
-  ].forEach(({ selector, dir }) => {
-    const el = document.querySelector(selector);
-    if (!el) return;
-
-    let isDragging  = false;
-    let startX      = 0;
-    let startPx     = 0;
-    let velocity    = 0;   // px / ms
-    let lastX       = 0;
-    let lastT       = 0;
-    let rafId       = null; // momentum animation frame handle
-
-    /* Read animated translateX in pixels from computed style */
-    function getAnimPx() {
-      const t = window.getComputedStyle(el).transform;
-      if (!t || t === 'none') return 0;
-      const vals = t.match(/matrix.*\((.+)\)/)?.[1].split(',');
-      return vals ? parseFloat(vals[4]) : 0;
-    }
-
-    /* Read inline transform translateX in pixels */
-    function getInlinePx() {
-      const raw = el.style.transform.match(/-?[\d.]+/);
-      return raw ? parseFloat(raw[0]) : 0;
-    }
-
-    /* Re-engage CSS animation from pixel position px */
-    function resumeFromPx(px) {
-      const halfW    = el.scrollWidth / 2;
-      const duration = 90; // must match CSS
-      let progress;
-      if (dir === 'left') {
-        progress = Math.abs(px) / halfW;
-      } else {
-        progress = (halfW + px) / halfW;
-      }
-      progress = ((progress % 1) + 1) % 1;
-      el.style.transform      = '';
-      el.style.animation      = '';
-      el.style.animationDelay = `${-(progress * duration)}s`;
-    }
-
-    el.addEventListener('touchstart', e => {
-      if (window.innerWidth > 640) return;
-      /* Cancel any in-progress momentum deceleration */
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-
-      startPx  = getAnimPx(); // capture live animation frame
-      startX   = e.touches[0].clientX;
-      lastX    = startX;
-      lastT    = Date.now();
-      velocity = 0;
-
-      /* Atomically freeze animation + pin to captured position */
-      el.style.animation = 'none';
-      el.style.transform = `translateX(${startPx}px)`;
-      isDragging = true;
-    }, { passive: true });
-
-    el.addEventListener('touchmove', e => {
-      if (!isDragging) return;
-      const now = Date.now();
-      const cx  = e.touches[0].clientX;
-
-      /* Rolling velocity sample (px/ms) */
-      const dt = now - lastT;
-      if (dt > 0) velocity = (cx - lastX) / dt;
-      lastX = cx;
-      lastT = now;
-
-      let newPx = startPx + (cx - startX);
-
-      /* Seamless wrap within loop range */
-      const halfW = el.scrollWidth / 2;
-      if (newPx > 0)      newPx -= halfW;
-      if (newPx < -halfW) newPx += halfW;
-
-      el.style.transform = `translateX(${newPx}px)`;
-    }, { passive: true });
-
-    el.addEventListener('touchend', () => {
-      if (!isDragging) return;
-      isDragging = false;
-
-      /* Convert velocity: px/ms → px/frame (@ 60 fps = 16.67 ms/frame) */
-      const velPF  = velocity * 16.67;
-      const THRESH = 0.5; // px/frame — below this: no perceptible momentum
-      const FRICTION = 0.88; // multiplied each frame → ~0.5 s deceleration
-
-      if (Math.abs(velPF) > THRESH) {
-        /* ── Momentum phase ── */
-        let px = getInlinePx();
-        let v  = velPF;
-
-        function tick() {
-          v  *= FRICTION;
-          px += v;
-
-          const halfW = el.scrollWidth / 2;
-          if (px > 0)      px -= halfW;
-          if (px < -halfW) px += halfW;
-
-          el.style.transform = `translateX(${px}px)`;
-
-          if (Math.abs(v) > THRESH) {
-            rafId = requestAnimationFrame(tick);
-          } else {
-            rafId = null;
-            resumeFromPx(px); // hand back to CSS animation
-          }
-        }
-        rafId = requestAnimationFrame(tick);
-      } else {
-        /* No momentum — resume immediately */
-        resumeFromPx(getInlinePx());
-      }
-    }, { passive: true });
-  });
-}
+/* CAROUSEL TOUCH — superseded by buildWorksGrid(); the old carousel tracks
+   (.carousel-track.films-t/.games-t) no longer exist. Kept as a real no-op so
+   any lingering call site doesn't throw. */
+function initCarouselTouch() { /* no-op */ }
 
 /* ════════════════════════════════════════════════════════
    ★  GLG — CINEMATIC ANIMATION SYSTEM v2
@@ -4686,44 +6243,8 @@ function initAnimations() {
    GLG ENHANCEMENT BLOCK v3 — new functions
    ════════════════════════════════════════════════════════ */
 
-/* ── Custom GLG cursor ────────────────────────────────── */
-let _cursorInit = false;
-function initGLGCursor() {
-  if (_cursorInit || !_GLG.fine()) return;
-  _cursorInit = true;
-
-  if (document.getElementById('glg-cur-dot')) return;
-  const dot  = Object.assign(document.createElement('div'), { id: 'glg-cur-dot' });
-  const ring = Object.assign(document.createElement('div'), { id: 'glg-cur-ring' });
-  document.body.append(dot, ring);
-
-  let mx = 0, my = 0, rx = 0, ry = 0, visible = false;
-  const INTERACTIVE = 'a,button,[role=button],.c-card,.gate-lang,.dp-plat-btn,' +
-    '.soc-btn,label,select,input,textarea,.nav-link,.footer-links button,.search-result';
-
-  document.addEventListener('mousemove', e => {
-    mx = e.clientX; my = e.clientY;
-    if (!visible) {
-      visible = true;
-      rx = mx; ry = my;
-      dot.classList.add('glg-cur-on');
-      ring.classList.add('glg-cur-on');
-    }
-    dot.style.transform = `translate(calc(${mx}px - 50%),calc(${my}px - 50%))`;
-  }, { passive: true });
-
-  (function loopRing() {
-    rx += (mx - rx) * .13;
-    ry += (my - ry) * .13;
-    ring.style.transform = `translate(calc(${rx}px - 50%),calc(${ry}px - 50%))`;
-    requestAnimationFrame(loopRing);
-  })();
-
-  document.addEventListener('mouseover',  e => { if (e.target.closest(INTERACTIVE)) document.body.classList.add('glg-cur-hover'); });
-  document.addEventListener('mouseout',   e => { if (e.target.closest(INTERACTIVE)) document.body.classList.remove('glg-cur-hover'); });
-  document.addEventListener('mousedown',  () => document.body.classList.add('glg-cur-click'));
-  document.addEventListener('mouseup',    () => document.body.classList.remove('glg-cur-click'));
-}
+/* Custom GLG cursor removed by design (default browser cursor). The old
+   initGLGCursor() — with an unbounded rAF ring-follow loop — is deleted. */
 
 /* ── Hero canvas particles ────────────────────────────── */
 let _heroCanvasInit = false;
@@ -4788,15 +6309,25 @@ function initHeroCanvas() {
   function canvasStart() { if (!_canvasActive) { _canvasActive = true; _canvasRafId = requestAnimationFrame(draw); } }
   function canvasStop()  { _canvasActive = false; cancelAnimationFrame(_canvasRafId); ctx.clearRect(0, 0, W, H); }
 
-  // Start/stop in sync with page visibility
-  document.addEventListener('glg:page-changed', e => {
-    e.detail?.name === 'home' ? canvasStart() : canvasStop();
-  });
+  // Le canvas ne doit tourner QUE si (page home active) ET (héro à l'écran).
+  // Avant : il dessinait 75 particules/frame même le héro scrollé hors vue
+  // → jank en bas de l'accueil. L'IO coupe la boucle dès que le héro sort.
+  let _heroOnScreen = true;
+  const _syncCanvas = () => {
+    const homeActive = document.getElementById('page-home')?.classList.contains('active');
+    (homeActive && _heroOnScreen) ? canvasStart() : canvasStop();
+  };
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(es => {
+      _heroOnScreen = es[0]?.isIntersecting !== false;
+      _syncCanvas();
+    }, { rootMargin: '80px 0px' }).observe(hero);
+  }
+  document.addEventListener('glg:page-changed', _syncCanvas);
 
   resize();
   initParticles();
-  // Only start if home is already active (initial load)
-  if (document.getElementById('page-home')?.classList.contains('active')) canvasStart();
+  _syncCanvas(); // état initial (home active au chargement)
 
   window.addEventListener('resize', () => { resize(); initParticles(); }, { passive: true });
 }
@@ -4917,4 +6448,65 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   buildGate();
+
+  // ── Deep-link d'œuvre partageable (?work=<id>) — SEO + étape launcher ──
+  // /?work=backrooms-liminal ouvre directement la fiche (après le choix de
+  // langue si nécessaire). Consommé par selectLang une fois le site construit.
+  // Les anciens liens #detail/<id> restent honorés.
+  try {
+    const qsWork = new URLSearchParams(location.search).get('work');
+    let wid = qsWork || (location.hash.startsWith('#detail/') ? location.hash.slice(8) : null);
+    if (wid && ALL_WORKS.some(w => w.id === wid)) window._bootWorkId = wid;
+  } catch (e) {}
+
+  // ── Pages profondes au boot (#works, #shop… — raccourcis PWA du manifest,
+  // liens partagés). Consommé par selectLang après initSite, comme _bootWorkId.
+  try {
+    const h = (location.hash || '').replace(/^#/, '');
+    if (!window._bootWorkId && ['works', 'shop', 'library', 'about', 'contact', 'profile', 'settings'].includes(h)) {
+      window._bootPage = h;
+    }
+  } catch (e) {}
+
+  // ── URL de langue partageable / SEO (?lang=xx) ─────────────────────────
+  // Une URL comme /?lang=fr entre directement dans la langue demandée
+  // (équivaut à un clic sur le drapeau : selectLang gère loader + failsafes).
+  // C'est aussi ce que les balises hreflang annoncent aux moteurs.
+  try {
+    const qLang = new URLSearchParams(location.search).get('lang');
+    if (qLang && LANG_GATE.some(l => l.code === qLang)) selectLang(qLang);
+  } catch (e) {}
 });
+
+/* ══════════════════════════════════════════
+   PWA — service worker (étape launcher)
+   ──────────────────────────────────────────
+   Production uniquement (jamais en localhost/dev, jamais dans Tauri où
+   l'updater natif prendra le relais). Nouvelle version détectée → notif
+   maison via la cloche (jamais un confirm() navigateur). L'activation
+   se fait depuis Options → Mises à jour (bouton "Vérifier").
+══════════════════════════════════════════ */
+const IS_TAURI = '__TAURI_INTERNALS__' in window;
+const _SWUP_T = {
+  t:{ fr:'Mise à jour disponible', en:'Update available', es:'Actualización disponible', de:'Update verfügbar', it:'Aggiornamento disponibile', ar:'تحديث متوفر', zh:'有可用更新', ja:'アップデートがあります', ru:'Доступно обновление', pl:'Dostępna aktualizacja' },
+  b:{ fr:'Options → Mises à jour pour l’installer.', en:'Options → Updates to install it.', es:'Opciones → Actualizaciones para instalarla.', de:'Optionen → Updates zum Installieren.', it:'Opzioni → Aggiornamenti per installarlo.', ar:'الخيارات ← التحديثات لتثبيته.', zh:'前往 选项 → 更新 安装。', ja:'オプション→アップデートからインストール。', ru:'Настройки → Обновления, чтобы установить.', pl:'Opcje → Aktualizacje, aby zainstalować.' },
+};
+if ('serviceWorker' in navigator && !IS_TAURI && /(^|\.)geeklearngames\.com$/.test(location.hostname)) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      window._glgSwReg = reg;
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw?.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            try {
+              GLG_NOTIF.add({ id:'swup:' + Date.now(), type:'system', icon:'system',
+                title:(_SWUP_T.t[LANG] || _SWUP_T.t.en), body:(_SWUP_T.b[LANG] || _SWUP_T.b.en) });
+              _refreshNotifBell();
+            } catch(e){}
+          }
+        });
+      });
+    }).catch(() => {});
+  });
+}

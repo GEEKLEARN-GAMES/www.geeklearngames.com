@@ -9,7 +9,8 @@
   <meta charset="UTF-8">
   <!-- Caching: assets are cache-busted via ?v=N below, so the browser is free to
        cache normally (faster repeat visits). No no-cache meta — it fought the ?v= system. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
   <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
 
@@ -28,6 +29,19 @@
   <meta name="twitter:site"       content="@geeklearngames">
   <meta name="twitter:title"      content="GEEKLEARN GAMES">
   <meta name="twitter:description" content="Games that teach, move, haunt your mind.">
+
+  <!-- ══ HREFLANG — 10 langues (l'app honore ?lang=xx : entrée directe sans gate) ══ -->
+  <link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/">
+  <link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?lang=en">
+  <link rel="alternate" hreflang="es" href="https://www.geeklearngames.com/?lang=es">
+  <link rel="alternate" hreflang="de" href="https://www.geeklearngames.com/?lang=de">
+  <link rel="alternate" hreflang="it" href="https://www.geeklearngames.com/?lang=it">
+  <link rel="alternate" hreflang="ar" href="https://www.geeklearngames.com/?lang=ar">
+  <link rel="alternate" hreflang="zh" href="https://www.geeklearngames.com/?lang=zh">
+  <link rel="alternate" hreflang="ja" href="https://www.geeklearngames.com/?lang=ja">
+  <link rel="alternate" hreflang="ru" href="https://www.geeklearngames.com/?lang=ru">
+  <link rel="alternate" hreflang="pl" href="https://www.geeklearngames.com/?lang=pl">
 
   <!-- ══ STRUCTURED DATA (JSON-LD) ══ -->
   <!-- WebSite schema: tells Google the canonical name to display in search results -->
@@ -63,12 +77,14 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
                  script-src 'self' 'unsafe-inline';
-                 style-src  'self' 'unsafe-inline' https://fonts.googleapis.com;
-                 font-src   'self' https://fonts.gstatic.com;
-                 img-src    'self' data: blob:;
-                 connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://*.supabase.co wss://*.supabase.co;
+                 style-src  'self' 'unsafe-inline';
+                 font-src   'self';
+                 img-src    'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co;
+                 frame-src  https://www.youtube-nocookie.com https://www.youtube.com;
+                 connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co;
                  object-src  'none';
                  base-uri    'self';
+                 frame-ancestors 'none';
                  form-action 'self' https://formsubmit.co;">
   <!-- Prevent MIME-type sniffing attacks -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -81,16 +97,19 @@
   <meta http-equiv="X-Frame-Options" content="DENY">
   <!-- ══════════════════════════════════════════════════════════════════════════════ -->
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Polices AUTO-HÉBERGÉES (ex-Google Fonts) : zéro requête externe =
+       confidentialité (RGPD), perf (pas de handshake tiers) et prêt pour le
+       launcher standalone/offline. Fichiers woff2 dans assets/fonts/. -->
+  <link rel="preload" href="assets/fonts/syne-latin-c0b667.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/dm-mono-latin-9ad76c.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css?v=1">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
   <link rel="stylesheet" href="css/main.css?v=51">
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=36">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=54">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
@@ -160,15 +179,15 @@
 <div id="sprogress"></div>
 
 <!-- ══════════ SEARCH MODAL ══════════ -->
-<div id="search-modal" onclick="if(event.target===this) closeSearch()">
+<div id="search-modal" role="dialog" aria-modal="true" aria-labelledby="search-label-txt" onclick="if(event.target===this) closeSearch()">
   <div class="search-modal-inner">
-    <div class="search-label" id="search-label-txt">Search a game or film</div>
+    <label class="search-label" id="search-label-txt" for="search-input">Search a game or film</label>
     <div class="search-input-row">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      <input id="search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type a title...">
+      <input id="search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type a title..." aria-labelledby="search-label-txt">
       <button class="search-close" onclick="closeSearch()" aria-label="Close search">
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -203,6 +222,7 @@
     <div class="nav-links">
       <button class="nav-link active" data-nav="home"    id="nl-home"    onclick="showPage('home')">Home</button>
       <button class="nav-link"        data-nav="works"   id="nl-works"   onclick="showPage('works')">Our Works</button>
+      <button class="nav-link"        data-nav="library" id="nl-library" onclick="showPage('library')">Library</button>
       <button class="nav-link"        data-nav="shop"    id="nl-shop"    onclick="showPage('shop')">Shop</button>
       <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
       <button class="nav-link"        data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
@@ -231,6 +251,7 @@
 <div class="nav-mobile" id="nav-mobile">
   <button class="nav-mobile-link" id="nml-home"    onclick="showPage('home')">Home</button>
   <button class="nav-mobile-link" id="nml-works"   onclick="showPage('works')">Our Works</button>
+  <button class="nav-mobile-link" id="nml-library" onclick="showPage('library')">Library</button>
   <button class="nav-mobile-link" id="nml-shop"    onclick="showPage('shop')">Shop</button>
   <button class="nav-mobile-link" id="nml-about"   onclick="showPage('about')">About Us</button>
   <button class="nav-mobile-link" id="nml-contact" onclick="showPage('contact')">Contact</button>
@@ -297,7 +318,7 @@
     <div class="showcase-header">
       <div>
         <div class="showcase-eyebrow" id="showcase-eye">Our Universe</div>
-        <h2 class="showcase-title" id="showcase-title">WHAT WE<br>CREATE</h2>
+        <h2 class="showcase-title" id="showcase-title" data-idx="01 /">WHAT WE<br>CREATE</h2>
 
       </div>
       <button class="btn btn-ghost" onclick="showPage('works')" id="showcase-btn">Discover all works →</button>
@@ -432,77 +453,23 @@
 
 
 <!-- ═══════════════════════
-     PAGE: SHOP — Work In Progress
+     PAGE: LIBRARY — bibliothèque du joueur (façon Rockstar/Steam)
+     Rendue par buildLibraryPage() : rail des jeux possédés + vitrine du
+     jeu sélectionné. JOUER/INSTALLER → hand-off launcher (glg://).
+═══════════════════════ -->
+<main class="page" id="page-library">
+  <div id="library-root"></div>
+  <div class="page-footer-slot"></div>
+</main>
+
+
+<!-- ═══════════════════════
+     PAGE: SHOP — Boutique v1
 ═══════════════════════ -->
 <main class="page" id="page-shop">
-  <div class="shop-wip glg-pattern">
-    <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:60s;--glg-direction:reverse"></div>
-
-    <!-- Grain overlay -->
-    <div class="shop-wip-grain" aria-hidden="true"></div>
-
-    <!-- Ghost background word -->
-    <div class="shop-wip-ghost" aria-hidden="true">SHOP</div>
-
-    <!-- Main content -->
-    <div class="shop-wip-inner">
-
-      <div class="shop-wip-eyebrow">
-        <span class="shop-wip-dash"></span>
-        <span id="shop-eye" style="font-family:var(--f-mono);font-size:.52rem;letter-spacing:.3em;text-transform:uppercase">Under Construction</span>
-        <span class="shop-wip-dash"></span>
-      </div>
-
-      <h1 class="shop-wip-title">OOPS<span class="shop-wip-period">.</span></h1>
-
-      <p class="shop-wip-sub" id="shop-sub">Our shop is being assembled with the same care<br>we put into every world we build.</p>
-
-      <div class="shop-teasers" aria-hidden="true">
-        <div class="shop-teaser">
-          <div class="shop-teaser-ico">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8z" stroke="currentColor" stroke-width="1.3"/><path d="M9 8V6a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.3"/></svg>
-          </div>
-          <span class="shop-teaser-name">Merch</span>
-          <span class="shop-teaser-soon">Coming soon</span>
-        </div>
-        <div class="shop-teaser">
-          <div class="shop-teaser-ico">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11a2 2 0 012 2v14H7a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.3"/><path d="M5 17h13" stroke="currentColor" stroke-width="1.3"/></svg>
-          </div>
-          <span class="shop-teaser-name">Art Books</span>
-          <span class="shop-teaser-soon">Coming soon</span>
-        </div>
-        <div class="shop-teaser">
-          <div class="shop-teaser-ico">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="17" r="2.4" stroke="currentColor" stroke-width="1.3"/><circle cx="17" cy="15" r="2.4" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 17V6l10-2v11" stroke="currentColor" stroke-width="1.3"/></svg>
-          </div>
-          <span class="shop-teaser-name">Soundtracks</span>
-          <span class="shop-teaser-soon">Coming soon</span>
-        </div>
-        <div class="shop-teaser">
-          <div class="shop-teaser-ico">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.5 5 5.5.8-4 3.9.95 5.5L12 16.5 7.05 18.1 8 12.7 4 8.8 9.5 8 12 3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
-          </div>
-          <span class="shop-teaser-name">Collector</span>
-          <span class="shop-teaser-soon">Coming soon</span>
-        </div>
-      </div>
-
-      <div class="shop-wip-divider"></div>
-
-      <div class="shop-wip-btns">
-        <button class="btn btn-primary btn-lg" onclick="showPage('works')" id="shop-btn-works"><span id="shop-btn-works-txt">Explore Our Works</span></button>
-        <button class="btn btn-ghost   btn-lg" onclick="showPage('home')"  id="shop-btn-home"><span id="shop-btn-home-txt">Back to Home</span></button>
-      </div>
-
-      <div class="shop-wip-status">
-        <span class="shop-wip-pulse" aria-hidden="true"></span>
-        <span id="shop-status"><span id="shop-status-txt">Coming Soon</span></span>
-      </div>
-
-    </div><!-- /.shop-wip-inner -->
-
-  </div><!-- /.shop-wip -->
+  <!-- BOUTIQUE v1 — rendue par buildShopPage() (app.js) : offres du moment,
+       catalogue complet (prix/promos/wishlist), teasers "Prochainement". -->
+  <div id="shop-root"></div>
   <div class="page-footer-slot"></div>
 </main>
 
@@ -721,10 +688,10 @@
 
 
 <!-- ══════════ MODALS ══════════ -->
-<div class="modal-bg" id="modal-buy" onclick="if(event.target===this) closeBuyModal()">
+<div class="modal-bg" id="modal-buy" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="if(event.target===this) closeBuyModal()">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeBuyModal()">
-      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <button class="modal-close" onclick="closeBuyModal()" aria-label="Close">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     </button>
     <div class="modal-eye"  id="modal-eye">Available on</div>
     <h2 class="modal-title" id="modal-title">TITLE</h2>
@@ -732,31 +699,31 @@
     <div class="modal-plats" id="modal-plats"></div>
   </div>
 </div>
-<div class="trailer-bg" id="trailer-modal" onclick="if(event.target===this) closeTrailerModal()">
+<div class="trailer-bg" id="trailer-modal" role="dialog" aria-modal="true" aria-label="Trailer" onclick="if(event.target===this) closeTrailerModal()">
   <div class="trailer-wrap" id="trailer-wrap"></div>
-  <button class="trailer-close" onclick="closeTrailerModal()">
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+  <button class="trailer-close" onclick="closeTrailerModal()" aria-label="Close">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
   </button>
 </div>
 
 
 <!-- ══════════ SCRIPTS ══════════ -->
-<script>
-  const _yr = new Date().getFullYear();
-  document.querySelectorAll('#yr,.yr2').forEach(el => el.textContent = _yr);
-</script>
 <!-- Site data + core app -->
-<script src="js/data.js?v=6"></script>
-<script src="js/app.js?v=80"></script>
+<script src="js/data.js?v=12"></script>
+<!-- Language-gate flag field (canvas) — defines window.GLG_GATE_FIELD before buildGate() runs -->
+<script src="js/gate-field.js?v=1" defer></script>
+<!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
+<script src="js/glg-sfx.js?v=1" defer></script>
+<script src="js/app.js?v=100"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
-<script src="js/vendor/supabase.min.js" defer></script>
+<script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>
-<script src="js/auth.js?v=10" defer></script>
+<script src="js/auth.js?v=15" defer></script>
 <!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
-<script src="js/vendor/gsap.min.js" defer></script>
-<script src="js/vendor/ScrollTrigger.min.js" defer></script>
+<script src="js/vendor/gsap.min.js?v=1" defer></script>
+<script src="js/vendor/ScrollTrigger.min.js?v=1" defer></script>
 <!-- Lenis smooth scroll — butter-smooth scrolling on desktop (self-hosted) -->
-<script src="js/vendor/lenis.min.js" defer></script>
-<script src="js/glg-animations.js?v=9" defer></script>
+<script src="js/vendor/lenis.min.js?v=1" defer></script>
+<script src="js/glg-animations.js?v=10" defer></script>
 </body>
 </html>
