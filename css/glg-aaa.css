@@ -3263,3 +3263,53 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
 }
 .dp-ed-perk{ font-size:.74rem; color:rgba(255,255,255,.62); }
 .dp-ed-perk span{ color:#4cc38a; margin-inline-end:4px; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §67 · TÉLÉCHARGEMENT DU LAUNCHER (accueil) — bouton OS, plateformes, SHA.
+════════════════════════════════════════════════════════════════════════ */
+.lt-actions .btn{ display:inline-flex; align-items:center; gap:9px; }
+.lt-dl-soon{ cursor:default; opacity:.6; }
+.lt-dl-meta{
+  margin:12px 0 0; font-family:var(--f-mono,monospace); font-size:.56rem;
+  letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.5);
+}
+.lt-platforms{ display:flex; gap:9px; flex-wrap:wrap; margin-top:14px; }
+.lt-plat{
+  font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.18em;
+  text-transform:uppercase; color:rgba(255,255,255,.42);
+  border:1px solid rgba(255,255,255,.12); border-radius:2px; padding:.45em .7em .38em;
+}
+.lt-plat--on{ color:rgba(255,255,255,.85); border-color:rgba(255,255,255,.3); }
+.lt-plat--on::before{ content:'● '; color:#4cc38a; font-size:.8em; }
+.lt-sha{
+  margin:16px 0 0; font-family:var(--f-mono,monospace); font-size:.5rem;
+  letter-spacing:.08em; color:rgba(255,255,255,.3); max-width:64ch; word-break:break-all;
+}
+.lt-sha code{ color:rgba(255,255,255,.45); }
+/* Cartes de téléchargement multi-OS (remplacent les chips) */
+.lt-dl-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; max-width:560px; }
+.lt-dl-card{
+  display:flex; flex-direction:column; gap:6px; padding:13px 14px 12px;
+  border:1px solid rgba(255,255,255,.1); border-radius:6px;
+  background:rgba(255,255,255,.02); color:inherit; text-decoration:none;
+  opacity:.55; transition:transform .35s cubic-bezier(.22,1,.36,1), border-color .25s, opacity .25s, background .25s;
+}
+.lt-dl-card--on{ opacity:1; cursor:pointer; }
+.lt-dl-card--on:hover{ transform:translateY(-3px); border-color:rgba(255,255,255,.4); background:rgba(255,255,255,.045); }
+.lt-dl-ico{ width:18px; height:18px; color:rgba(255,255,255,.8); }
+.lt-dl-ico svg{ width:100%; height:100%; }
+.lt-dl-name{ font-family:var(--f-head,inherit); font-weight:700; font-size:.82rem; color:#fff; }
+.lt-dl-fmt{
+  font-family:var(--f-mono,monospace); font-size:.48rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.42);
+}
+.lt-dl-get{
+  display:inline-flex; align-items:center; gap:6px; margin-top:5px;
+  font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.16em;
+  text-transform:uppercase; color:rgba(255,255,255,.8);
+}
+.lt-dl-get svg{ width:12px; height:12px; }
+.lt-dl-get--soon{ color:rgba(255,255,255,.35); }
+@media (max-width:640px){ .lt-dl-grid{ grid-template-columns:1fr; max-width:none; } }
+/* Case « Se souvenir de cet appareil » — aligne le pattern auth-consent */
+.auth-remember span{ color:rgba(255,255,255,.7); }

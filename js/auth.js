@@ -20,6 +20,34 @@
   let _client = null;
   let _ready  = false;
 
+  /* ── « Se souvenir de cet appareil » ─────────────────────
+     Case cochée (défaut, façon Steam) → session en localStorage : elle
+     survit à la fermeture du launcher/navigateur. Décochée → session en
+     sessionStorage : déconnecté à chaque fermeture. Le drapeau est posé
+     PAR LA MODALE DE CONNEXION (app.js) AVANT l'appel signIn/signUp. */
+  const REMEMBER_KEY = 'glg_remember';
+  function _rememberOn() {
+    try { return localStorage.getItem(REMEMBER_KEY) !== '0'; } catch (e) { return true; }
+  }
+  function setRemember(on) {
+    try {
+      localStorage.setItem(REMEMBER_KEY, on ? '1' : '0');
+      if (!on) {
+        // purge d'éventuels jetons persistants d'une session « souvenue » antérieure
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('sb-')) localStorage.removeItem(k);
+        }
+      }
+    } catch (e) {}
+  }
+  /* Adaptateur de stockage dynamique lu par supabase-js à CHAQUE accès. */
+  const _dynStorage = {
+    getItem:    (k) => { try { return (_rememberOn() ? localStorage : sessionStorage).getItem(k); } catch (e) { return null; } },
+    setItem:    (k, v) => { try { (_rememberOn() ? localStorage : sessionStorage).setItem(k, v); } catch (e) {} },
+    removeItem: (k) => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} },
+  };
+
   /* ── Initialise le client si configuré ─────────────────── */
   function init() {
     const cfg = window.GLG_SUPABASE || {};
@@ -29,7 +57,7 @@
     if (!cfg.url || !cfg.anonKey) return false; // pas encore configuré → OK
     try {
       _client = window.supabase.createClient(cfg.url, cfg.anonKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: _dynStorage },
       });
       _ready = true;
       return true;
@@ -651,7 +679,7 @@
     searchUsers, friendRequest, friendRespond, friendRemove, friendsList, getPublicProfile,
     getAchievements, grantAchievement, trophyRarity,
     upsertReview, deleteReview, reviewSummary, workReviews, userReviews, myReview, reportReview,
-    wishlistCount, touchRecentGame, grantGame,
+    wishlistCount, touchRecentGame, grantGame, setRemember,
     mfaFactors, mfaEnroll, mfaVerifyEnroll, mfaUnenroll, mfaAal, mfaChallengeVerify,
     listScreenshots, uploadScreenshot, deleteScreenshot,
     onChange,

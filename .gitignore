@@ -1,0 +1,25 @@
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Éditeurs ──
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── Logs / temp ──
+*.log
+.cache/
+tmp/
+
+# ── Secrets (ne JAMAIS committer) ──
+# js/config.js contient l'URL + clé publique Supabase.
+# La clé "anon" est publique par nature (OK), mais décommente la ligne
+# suivante si tu préfères garder ta config hors du dépôt :
+# js/config.js
+
+# Launcher Tauri — artefacts de build (jamais versionnés)
+launcher/src-tauri/target/
+launcher/src-tauri/gen/

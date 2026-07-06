@@ -1,0 +1,66 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  GEEKLEARN GAMES — build & release du launcher (Windows + macOS)
+#  Déclenché par un tag `launcher-v*` (ex. launcher-v1.0.0) :
+#    1. compile le shell Tauri sur chaque OS,
+#    2. signe les artefacts updater (minisign — secrets ci-dessous),
+#    3. crée la GitHub Release avec installeurs + latest.json.
+#  Secrets à créer dans Settings → Secrets and variables → Actions :
+#    TAURI_SIGNING_PRIVATE_KEY           (contenu de la clé privée)
+#    TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (son mot de passe)
+# ═══════════════════════════════════════════════════════════════════════
+name: build-launcher
+
+on:
+  push:
+    tags: ['launcher-v*']
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+          - platform: macos-latest        # Apple Silicon
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest        # Intel
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04        # Linux (AppImage = MAJ auto, deb/rpm = gestionnaires de paquets)
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dépendances Linux (webkit2gtk)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: launcher/src-tauri
+
+      - name: Build + Release (tauri-action)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: launcher/src-tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: 'GEEKLEARN GAMES Launcher ${{ github.ref_name }}'
+          releaseBody: 'Installeurs Windows (.exe) et macOS (.dmg). Mises à jour automatiques signées.'
+          releaseDraft: false
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}

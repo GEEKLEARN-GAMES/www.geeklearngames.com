@@ -1425,9 +1425,16 @@ const _LIB_PLAT_NAME = pid => (pid === 'glg' || !pid) ? 'GEEKLEARN GAMES' : ((ty
 
 let _libSelected = null;
 
+/* Le FONDATEUR certifié (VERIFIED_USERS) possède l'intégralité du catalogue :
+   il est l'auteur des œuvres — sa bibliothèque affiche donc tout (dotation
+   virtuelle côté client ; les joueurs réels restent servis par la base). */
+function _isFounderAccount() {
+  return !!(_accountProfile && typeof _isVerified === 'function' && _isVerified(_accountProfile.username));
+}
 /* Le joueur possède-t-il cette œuvre ? Lit le cache de profil maintenu par
    refreshAccountUI — synchrone, utilisable par buildDetail. */
 function _ownsWork(id) {
+  if (_isFounderAccount()) return true;
   const lib = _accountProfile && _accountProfile.library;
   return Array.isArray(lib) && lib.some(e => e && e.id === id);
 }
@@ -1454,7 +1461,16 @@ async function buildLibraryPage() {
   }
 
   const p = (await GLG_AUTH.getProfile()) || {};
-  const lib = (Array.isArray(p.library) ? p.library : [])
+  let entries = Array.isArray(p.library) ? p.library.slice() : [];
+  // Fondateur certifié → catalogue complet (les entrées réelles gardent
+  // leur plateforme/date ; les manquantes sont dotées virtuellement).
+  if (typeof _isVerified === 'function' && _isVerified(p.username)) {
+    const have = new Set(entries.map(e => e && e.id));
+    ALL_WORKS.forEach(w => {
+      if (!have.has(w.id)) entries.push({ id: w.id, platform: 'glg', at: p.created_at || null });
+    });
+  }
+  const lib = entries
     .map(e => ({ e, w: ALL_WORKS.find(w => w.id === e.id) }))
     .filter(x => x.w && !isMatureHidden(x.w));
 
@@ -1804,6 +1820,7 @@ const _LNCH_T = {
   dlWin:   { fr:'Télécharger pour Windows', en:'Download for Windows', es:'Descargar para Windows', de:'Für Windows herunterladen', it:'Scarica per Windows', ar:'تنزيل لويندوز', zh:'下载 Windows 版', ja:'Windows版をダウンロード', ru:'Скачать для Windows', pl:'Pobierz dla Windows' },
   dlMeta:  { fr:'%s Mo · installation en un clic · mises à jour automatiques signées', en:'%s MB · one-click install · signed auto-updates', es:'%s MB · instalación en un clic · actualizaciones automáticas firmadas', de:'%s MB · Ein-Klick-Installation · signierte Auto-Updates', it:'%s MB · installazione in un clic · aggiornamenti automatici firmati', ar:'%s م.ب · تثبيت بنقرة · تحديثات تلقائية موقَّعة', zh:'%s MB · 一键安装 · 签名自动更新', ja:'%s MB · ワンクリックインストール · 署名付き自動更新', ru:'%s МБ · установка в один клик · подписанные автообновления', pl:'%s MB · instalacja jednym kliknięciem · podpisane autoaktualizacje' },
   dlSoon:  { fr:'bientôt', en:'soon', es:'pronto', de:'bald', it:'presto', ar:'قريباً', zh:'即将推出', ja:'近日', ru:'скоро', pl:'wkrótce' },
+  dl:      { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
   dlSha:   { fr:'Empreinte SHA-256 de l’installeur', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
 };
 const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
@@ -1876,10 +1893,27 @@ function buildLauncherTeaser() {
           ${primary}
         </div>
         <p class="lt-dl-meta reveal">${_lnt('dlMeta').replace('%s', sizeTxt)}</p>
-        <div class="lt-platforms reveal">
-          <span class="lt-plat ${LAUNCHER_DL.win ? 'lt-plat--on' : ''}">Windows 10/11</span>
-          <span class="lt-plat ${LAUNCHER_DL.mac ? 'lt-plat--on' : ''}">macOS${LAUNCHER_DL.mac ? '' : ` — ${_lnt('dlSoon')}`}</span>
-          <span class="lt-plat ${LAUNCHER_DL.linux ? 'lt-plat--on' : ''}">Linux${LAUNCHER_DL.linux ? '' : ` — ${_lnt('dlSoon')}`}</span>
+        <div class="lt-dl-grid reveal">
+          ${[
+            ['win',   'Windows 10/11', '.exe · NSIS',                     LAUNCHER_DL.win,
+              '<svg viewBox="0 0 16 16" fill="none"><path d="M2 3.6l5.4-.8v4.9H2V3.6zM8.4 2.6L14 1.8v5.9H8.4V2.6zM2 8.7h5.4v4.9L2 12.8V8.7zM8.4 8.7H14v5.9l-5.6-.8V8.7z" fill="currentColor"/></svg>'],
+            ['mac',   'macOS',         '.dmg · Apple Silicon & Intel',    LAUNCHER_DL.mac,
+              '<svg viewBox="0 0 16 16" fill="none"><path d="M11.1 8.5c0-1.5 1.2-2.2 1.3-2.3-.7-1-1.8-1.2-2.2-1.2-.9-.1-1.8.6-2.3.6-.5 0-1.2-.6-2-.5-1 0-2 .6-2.5 1.5-1.1 1.9-.3 4.6.8 6.1.5.8 1.1 1.6 1.9 1.6.8 0 1.1-.5 2-.5s1.2.5 2 .5 1.4-.7 1.9-1.5c.6-.9.8-1.7.8-1.8 0 0-1.6-.6-1.7-2.5zM9.6 3.9c.4-.5.7-1.2.6-2-.6 0-1.4.4-1.8 1-.4.4-.7 1.2-.6 1.9.7.1 1.4-.4 1.8-.9z" fill="currentColor"/></svg>'],
+            ['linux', 'Linux',         '.AppImage · MAJ auto',            LAUNCHER_DL.linux,
+              '<svg viewBox="0 0 16 16" fill="none"><rect x="1.6" y="2.4" width="12.8" height="11.2" rx="1.4" stroke="currentColor" stroke-width="1.2"/><path d="M4.4 6.2l2 1.8-2 1.8M8 10.6h3.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+          ].map(([k, name, fmt, url, ico]) => url ? `
+          <a class="lt-dl-card lt-dl-card--on" href="${url}" download>
+            <span class="lt-dl-ico" aria-hidden="true">${ico}</span>
+            <span class="lt-dl-name">${name}</span>
+            <span class="lt-dl-fmt">${fmt}</span>
+            <span class="lt-dl-get">${dlIcon} ${_lnt('dl')}</span>
+          </a>` : `
+          <span class="lt-dl-card" aria-disabled="true">
+            <span class="lt-dl-ico" aria-hidden="true">${ico}</span>
+            <span class="lt-dl-name">${name}</span>
+            <span class="lt-dl-fmt">${fmt}</span>
+            <span class="lt-dl-get lt-dl-get--soon">${_lnt('dlSoon')}</span>
+          </span>`).join('')}
         </div>
         <p class="lt-sha reveal">${_lnt('dlSha')} <code>${LAUNCHER_DL.sha256}</code></p>
       </div>
@@ -3242,6 +3276,7 @@ const _AUTH_T = {
   other:{fr:'Autre',en:'Other',es:'Otro',de:'Andere',ar:'آخر',zh:'其他',ja:'その他',ru:'Другой',pl:'Inna',it:'Altro'}, specify:{fr:'Préciser',en:'Please specify',es:'Especificar',de:'Bitte angeben',ar:'يرجى التحديد',zh:'请说明',ja:'詳細を入力',ru:'Уточните',pl:'Określ',it:'Specifica'},
   consent:{fr:"J'accepte que mes données soient utilisées pour gérer mon compte.",en:'I agree that my data is used to manage my account.',es:'Acepto que mis datos se usen para gestionar mi cuenta.',de:'Ich stimme zu, dass meine Daten zur Verwaltung meines Kontos verwendet werden.',ar:'أوافق على استخدام بياناتي لإدارة حسابي.',zh:'我同意将我的数据用于管理我的账号。',ja:'アカウント管理のためにデータが利用されることに同意します。',ru:'Я согласен на использование моих данных для управления аккаунтом.',pl:'Zgadzam się na wykorzystanie moich danych do zarządzania kontem.',it:"Acconsento all'uso dei miei dati per gestire il mio account."},
   submitLogin:{fr:'Connexion',en:'Log in',es:'Entrar',de:'Einloggen',ar:'دخول',zh:'登录',ja:'ログイン',ru:'Вход',pl:'Zaloguj',it:'Entra'}, submitSignup:{fr:'Créer mon compte',en:'Create my account',es:'Crear mi cuenta',de:'Mein Konto erstellen',ar:'إنشاء حسابي',zh:'创建我的账号',ja:'アカウントを作成',ru:'Создать аккаунт',pl:'Utwórz konto',it:'Crea il mio account'},
+  remember:{fr:'Se souvenir de cet appareil',en:'Remember this device',es:'Recordar este dispositivo',de:'Dieses Gerät merken',ar:'تذكّر هذا الجهاز',zh:'记住此设备',ja:'このデバイスを記憶する',ru:'Запомнить это устройство',pl:'Zapamiętaj to urządzenie',it:'Ricorda questo dispositivo'},
   working:{fr:'Veuillez patienter…',en:'Please wait…',es:'Espera un momento…',de:'Bitte warten…',ar:'يرجى الانتظار…',zh:'请稍候…',ja:'お待ちください…',ru:'Подождите…',pl:'Proszę czekać…',it:'Attendere…'},
   logout:{fr:'Se déconnecter',en:'Log out',es:'Cerrar sesión',de:'Abmelden',ar:'تسجيل الخروج',zh:'退出登录',ja:'ログアウト',ru:'Выйти',pl:'Wyloguj się',it:'Esci'}, save:{fr:'Enregistrer',en:'Save',es:'Guardar',de:'Speichern',ar:'حفظ',zh:'保存',ja:'保存',ru:'Сохранить',pl:'Zapisz',it:'Salva'},
   saved:{fr:'Enregistré ✓',en:'Saved ✓',es:'Guardado ✓',de:'Gespeichert ✓',ar:'تم الحفظ ✓',zh:'已保存 ✓',ja:'保存しました ✓',ru:'Сохранено ✓',pl:'Zapisano ✓',it:'Salvato ✓'}, del:{fr:'Supprimer mon compte',en:'Delete my account',es:'Eliminar mi cuenta',de:'Mein Konto löschen',ar:'حذف حسابي',zh:'删除我的账号',ja:'アカウントを削除',ru:'Удалить аккаунт',pl:'Usuń moje konto',it:'Elimina il mio account'},
@@ -3499,6 +3534,7 @@ function _loginFormHTML() {
           <input type="password" id="al-pass" autocomplete="current-password" required>
           <button type="button" class="auth-pw-eye" id="al-pass-eye" aria-label="${_at('showPw')}" tabindex="-1">${_EYE_SVG}</button>
         </div></label>
+      <label class="auth-consent auth-remember"><input type="checkbox" id="al-remember" checked><span>${_at('remember')}</span></label>
       <p class="auth-err" id="al-err" hidden></p>
       <button type="submit" class="btn btn-primary auth-submit" id="al-submit">${_at('submitLogin')}</button>
       <p class="auth-switch">${_at('noAccount')} <button type="button" class="auth-link" onclick="_authTab='signup';renderAuthModal()">${_at('signUp')}</button></p>
@@ -3539,6 +3575,7 @@ function _signupFormHTML() {
           <select id="as-year" required aria-label="${_at('yearLbl')}"><option value="" disabled selected>${_at('yearLbl')}</option>${yearOpts}</select>
         </div>
         <span class="auth-hint" id="as-dob-hint"></span></div>
+      <label class="auth-consent auth-remember"><input type="checkbox" id="as-remember" checked><span>${_at('remember')}</span></label>
       <label class="auth-consent"><input type="checkbox" id="as-consent"><span>${_at('consent')}</span></label>
       <p class="auth-err" id="as-err" hidden></p>
       <button type="submit" class="btn btn-primary auth-submit" id="as-submit">${_at('submitSignup')}</button>
@@ -3558,6 +3595,9 @@ function _wireLogin() {
     if (!window.GLG_AUTH?.isConfigured?.()) { _showErr('al-err', _at('notConfigured')); return; }
     const btn = $('al-submit'); const orig = btn.textContent;
     btn.disabled = true; btn.textContent = _at('working');
+    // « Se souvenir de cet appareil » : posé AVANT signIn → la session
+    // atterrit dans le bon stockage (local = survit, session = éphémère).
+    window.GLG_AUTH?.setRemember?.($('al-remember')?.checked !== false);
     const r = await GLG_AUTH.signIn({ email: $('al-email').value, password: $('al-pass').value });
     btn.disabled = false; btn.textContent = orig;
     if (!r.ok) {
@@ -3661,6 +3701,7 @@ function _wireSignup() {
     if (age == null || age < 13) { _showErr('as-err', _at('ageMin')); return; }
     const btn = $('as-submit'); const orig = btn.textContent;
     btn.disabled = true; btn.textContent = _at('working');
+    window.GLG_AUTH?.setRemember?.($('as-remember')?.checked !== false); // avant signUp → bon stockage
     const r = await GLG_AUTH.signUp({
       username: $('as-user').value, email: $('as-email').value, password: $('as-pass').value,
       gender, genderOther: $('as-gender-other').value, birthdate: iso, age,
