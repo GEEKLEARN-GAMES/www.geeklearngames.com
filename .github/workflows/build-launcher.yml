@@ -40,7 +40,8 @@ jobs:
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          # xdg-utils : absent de l'image ARM — requis par le bundler (xdg-mime, protocole glg://)
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
 
       - name: Rust stable
         uses: dtolnay/rust-toolchain@stable
