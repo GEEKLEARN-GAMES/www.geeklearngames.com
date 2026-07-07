@@ -1,0 +1,21 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "remote-window-controls",
+  "description": "Le site (contenu distant) ne peut piloter QUE sa propre fenêtre : barre de titre custom façon Discord (minimiser / agrandir / fermer / déplacer). Aucun autre IPC n'est exposé au contenu distant.",
+  "remote": {
+    "urls": [
+      "https://www.geeklearngames.com",
+      "https://geeklearngames.com"
+    ]
+  },
+  "windows": ["main"],
+  "permissions": [
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging"
+  ]
+}

@@ -16,6 +16,47 @@
 
 use tauri::Manager;
 
+// ── Discord Rich Presence ────────────────────────────────────────────────
+// Discord affiche « GEEKLEARN GAMES » + le logo officiel dans le statut du
+// joueur. Prérequis côté portail développeur Discord : une Application
+// nommée « GEEKLEARN GAMES » avec un asset Rich Presence nommé `glg-logo`.
+// ID vide = fonctionnalité coupée. Échec TOUJOURS silencieux (Discord
+// absent, fermé, IPC indisponible) — jamais bloquant pour le launcher.
+const DISCORD_APP_ID: &str = "";
+
+fn start_discord_presence() {
+    if DISCORD_APP_ID.is_empty() {
+        return;
+    }
+    std::thread::spawn(|| {
+        use discord_rich_presence::{
+            activity::{Activity, Assets},
+            DiscordIpc, DiscordIpcClient,
+        };
+        loop {
+            if let Ok(mut client) = DiscordIpcClient::new(DISCORD_APP_ID) {
+                if client.connect().is_ok() {
+                    loop {
+                        let act = Activity::new().state("Dans le launcher").assets(
+                            Assets::new()
+                                .large_image("glg-logo")
+                                .large_text("GEEKLEARN GAMES"),
+                        );
+                        // Discord fermé en cours de route → on sort et on
+                        // retentera une connexion plus bas.
+                        if client.set_activity(act).is_err() {
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_secs(60));
+                    }
+                    let _ = client.close();
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_secs(120));
+        }
+    });
+}
+
 /// Transmet les URL glg:// au site chargé dans la fenêtre principale.
 /// `__GLG_DEEPLINK` (app.js) sait attendre : si le gate de langue n'est pas
 /// encore franchi, l'action est mise en attente puis consommée après.
@@ -54,6 +95,9 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            // Statut Discord (logo + « Dans le launcher ») — non bloquant.
+            start_discord_presence();
+
             // glg:// reçu au premier lancement (macOS passe par cet event,
             // Windows aussi quand le launcher était fermé).
             use tauri_plugin_deep_link::DeepLinkExt;
