@@ -28,7 +28,9 @@ jobs:
             args: '--target aarch64-apple-darwin'
           - platform: macos-latest        # Intel
             args: '--target x86_64-apple-darwin'
-          - platform: ubuntu-22.04        # Linux (AppImage = MAJ auto, deb/rpm = gestionnaires de paquets)
+          - platform: ubuntu-22.04        # Linux x64 (AppImage = MAJ auto, deb/rpm = gestionnaires de paquets)
+            args: ''
+          - platform: ubuntu-22.04-arm    # Linux ARM64 (Raspberry Pi 5, serveurs/portables ARM)
             args: ''
     runs-on: ${{ matrix.platform }}
     steps:
@@ -60,7 +62,7 @@ jobs:
           projectPath: launcher/src-tauri
           tagName: ${{ github.ref_name }}
           releaseName: 'GEEKLEARN GAMES Launcher ${{ github.ref_name }}'
-          releaseBody: 'Installeurs Windows (.exe) et macOS (.dmg). Mises à jour automatiques signées.'
+          releaseBody: 'Installeurs Windows (.exe), macOS (.dmg Apple Silicon + Intel) et Linux (AppImage/deb/rpm, x64 + ARM64). Mises à jour automatiques signées.'
           releaseDraft: false
           includeUpdaterJson: true
           args: ${{ matrix.args }}
