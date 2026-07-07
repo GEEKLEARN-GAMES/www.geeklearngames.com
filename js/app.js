@@ -2084,7 +2084,8 @@ const LAUNCHER_DL = {
      l'OS détecté), toutes sont listées sur la carte de la plateforme. */
   platforms: {
     win: [
-      { l: 'x64 · .exe (NSIS)', u: 'download/GEEKLEARN-GAMES-Setup.exe' }, // auto-hébergé
+      // auto-hébergé — ?v= : purge le cache edge Cloudflare à chaque release
+      { l: 'x64 · .exe (NSIS)', u: `download/GEEKLEARN-GAMES-Setup.exe?v=${_DL_VER}` },
     ],
     mac: [
       { l: 'Apple Silicon · .dmg',  u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_aarch64.dmg` },
