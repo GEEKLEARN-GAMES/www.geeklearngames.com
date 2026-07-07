@@ -627,6 +627,126 @@ const WORK_NEWS = {
       },
     },
   ],
+  'a-terrible-wonderful-christmas': [
+    {
+      date:'2026-06-20', tag:'announce',
+      title:{
+        en:'All four family voices are cast', fr:'Les quatre voix de la famille sont trouvées',
+        es:'Las cuatro voces de la familia ya tienen actor', de:'Alle vier Familienstimmen sind besetzt',
+        it:'Le quattro voci della famiglia sono state scelte', ar:'اكتمل اختيار أصوات أفراد العائلة الأربعة',
+        zh:'四位家庭成员的配音已全部选定', ja:'家族4人の声優が決定',
+        ru:'Все четыре голоса семьи утверждены', pl:'Obsadzono wszystkie cztery głosy rodziny',
+      },
+      body:{
+        en:'Father, mother, daughter, grandfather — each point of view now has its voice. Recording sessions start in the fall, in French and English.',
+        fr:'Père, mère, fille, grand-père — chaque point de vue a désormais sa voix. Les sessions d\'enregistrement commencent à l\'automne, en français et en anglais.',
+        es:'Padre, madre, hija, abuelo — cada punto de vista ya tiene su voz. Las sesiones de grabación empiezan en otoño, en francés e inglés.',
+        de:'Vater, Mutter, Tochter, Großvater — jede Perspektive hat jetzt ihre Stimme. Die Aufnahmen beginnen im Herbst, auf Französisch und Englisch.',
+        it:'Padre, madre, figlia, nonno — ogni punto di vista ha ora la sua voce. Le sessioni di registrazione iniziano in autunno, in francese e inglese.',
+        ar:'الأب والأم والابنة والجد — لكل وجهة نظر صوتها الآن. تبدأ جلسات التسجيل في الخريف بالفرنسية والإنجليزية.',
+        zh:'父亲、母亲、女儿、祖父——每个视角如今都有了自己的声音。录音将于秋季开始，包含法语和英语。',
+        ja:'父、母、娘、祖父 — それぞれの視点に声が決まった。収録はこの秋、フランス語と英語で開始。',
+        ru:'Отец, мать, дочь, дедушка — у каждой точки зрения теперь есть голос. Запись начнётся осенью, на французском и английском.',
+        pl:'Ojciec, matka, córka, dziadek — każdy punkt widzenia ma już swój głos. Sesje nagraniowe ruszają jesienią, po francusku i angielsku.',
+      },
+    },
+  ],
+  'easter-my-bunny': [
+    {
+      date:'2026-05-02', tag:'devlog',
+      title:{
+        en:'Devlog #1 — The garden grows', fr:'Devlog #1 — Le jardin s\'agrandit',
+        es:'Devlog #1 — El jardín crece', de:'Devlog #1 — Der Garten wächst',
+        it:'Devlog #1 — Il giardino cresce', ar:'مذكرات التطوير #1 — الحديقة تكبر',
+        zh:'开发日志 #1——花园在生长', ja:'開発日誌 #1 — 庭が広がる',
+        ru:'Девлог №1 — сад разрастается', pl:'Devlog #1 — ogród rośnie',
+      },
+      body:{
+        en:'The garden doubled in size, and the old folklore is now told through what you find in it — not through dialogue. Every egg hides a piece of the rite.',
+        fr:'Le jardin a doublé de taille, et le vieux folklore se raconte désormais à travers ce qu\'on y trouve — pas à travers des dialogues. Chaque œuf cache un morceau du rite.',
+        es:'El jardín ha doblado su tamaño, y el viejo folclore ahora se cuenta a través de lo que encuentras en él — no mediante diálogos. Cada huevo esconde un pedazo del rito.',
+        de:'Der Garten ist doppelt so groß geworden, und die alte Folklore erzählt sich jetzt über das, was man darin findet — nicht über Dialoge. Jedes Ei verbirgt ein Stück des Ritus.',
+        it:'Il giardino è raddoppiato, e il vecchio folklore ora si racconta attraverso ciò che vi trovi — non con i dialoghi. Ogni uovo nasconde un pezzo del rito.',
+        ar:'تضاعفت مساحة الحديقة، وأصبح الفولكلور القديم يُروى عبر ما تجده فيها — لا عبر الحوارات. كل بيضة تخفي جزءاً من الطقس.',
+        zh:'花园扩大了一倍，古老的民俗如今通过你在其中的发现来讲述——而非对话。每颗彩蛋都藏着仪式的一角。',
+        ja:'庭は2倍の広さになり、古い民間伝承はダイアログではなく、庭で見つけるものを通して語られるようになった。すべての卵に儀式のかけらが隠されている。',
+        ru:'Сад вырос вдвое, и старый фольклор теперь рассказывается через находки в нём — а не через диалоги. Каждое яйцо скрывает часть обряда.',
+        pl:'Ogród podwoił swój rozmiar, a stary folklor opowiada się teraz przez to, co w nim znajdziesz — nie przez dialogi. Każde jajko skrywa kawałek obrzędu.',
+      },
+    },
+  ],
+  'eid-of-light': [
+    {
+      date:'2026-06-28', tag:'announce',
+      title:{
+        en:'All ten endings are playable', fr:'Les dix fins sont jouables',
+        es:'Los diez finales ya son jugables', de:'Alle zehn Enden sind spielbar',
+        it:'Tutti e dieci i finali sono giocabili', ar:'النهايات العشر قابلة للعب الآن',
+        zh:'十个结局均已可玩', ja:'10のエンディングがすべてプレイ可能に',
+        ru:'Все десять концовок можно пройти', pl:'Wszystkie dziesięć zakończeń jest już grywalnych',
+      },
+      body:{
+        en:'The full branching structure is in: ten lanterns, ten endings, one homecoming. Internal playtests begin with families this summer.',
+        fr:'La structure à embranchements est complète : dix lanternes, dix fins, un seul retour au pays. Les playtests internes commencent cet été avec des familles.',
+        es:'La estructura ramificada está completa: diez linternas, diez finales, un solo regreso a casa. Las pruebas internas empiezan este verano con familias.',
+        de:'Die komplette Verzweigungsstruktur steht: zehn Laternen, zehn Enden, eine Heimkehr. Interne Playtests mit Familien beginnen diesen Sommer.',
+        it:'La struttura a rami è completa: dieci lanterne, dieci finali, un solo ritorno a casa. I playtest interni con le famiglie iniziano quest\'estate.',
+        ar:'اكتملت بنية التفرع: عشرة فوانيس، عشر نهايات، وعودة واحدة إلى الوطن. تبدأ اختبارات اللعب الداخلية مع العائلات هذا الصيف.',
+        zh:'完整的分支结构已经就绪：十盏灯笼，十个结局，一次归乡。今夏将与家庭一起开始内部试玩。',
+        ja:'分岐構造が完成：10のランタン、10のエンディング、ひとつの帰郷。この夏、家族とともに内部プレイテストを開始。',
+        ru:'Полная структура ветвления готова: десять фонарей, десять концовок, одно возвращение домой. Внутренние плейтесты с семьями начнутся этим летом.',
+        pl:'Pełna struktura rozgałęzień jest gotowa: dziesięć lampionów, dziesięć zakończeń, jeden powrót do domu. Wewnętrzne testy z rodzinami ruszają tego lata.',
+      },
+    },
+  ],
+  'soul-redemption-frenzy-fest': [
+    {
+      date:'2026-06-30', tag:'update',
+      title:{
+        en:'Patch 0.9.4 — Wave 15+ rebalanced', fr:'Patch 0.9.4 — Rééquilibrage des vagues 15+',
+        es:'Parche 0.9.4 — Reequilibrio de las oleadas 15+', de:'Patch 0.9.4 — Wellen 15+ neu ausbalanciert',
+        it:'Patch 0.9.4 — Ribilanciate le ondate 15+', ar:'التحديث 0.9.4 — إعادة موازنة الموجات +15',
+        zh:'0.9.4 补丁——第15波之后重新平衡', ja:'パッチ0.9.4 — ウェーブ15以降を再調整',
+        ru:'Патч 0.9.4 — ребаланс волн 15+', pl:'Patch 0.9.4 — przebalansowano fale 15+',
+      },
+      body:{
+        en:'Late waves spawned too many elites at once — spawns are now paced by arena zone, frenzy meter fills 12% slower past wave 15, and chain timing got 3 extra frames.',
+        fr:'Les vagues tardives faisaient apparaître trop d\'élites d\'un coup — les apparitions sont désormais cadencées par zone d\'arène, la jauge de frénésie se remplit 12 % plus lentement après la vague 15, et l\'enchaînement gagne 3 frames.',
+        es:'Las oleadas tardías generaban demasiados élites a la vez — ahora los spawns se dosifican por zona de arena, la barra de frenesí se llena un 12 % más despacio tras la oleada 15, y el encadenado gana 3 frames.',
+        de:'Späte Wellen spawnten zu viele Eliten auf einmal — Spawns takten jetzt pro Arenazone, die Raserei-Leiste füllt sich nach Welle 15 um 12 % langsamer, und Ketten bekommen 3 zusätzliche Frames.',
+        it:'Le ondate avanzate generavano troppi élite insieme — ora gli spawn sono scanditi per zona d\'arena, la barra di frenesia si riempie il 12% più lentamente dopo l\'ondata 15, e la concatenazione guadagna 3 frame.',
+        ar:'كانت الموجات المتأخرة تُظهر عدداً كبيراً من النخبة دفعة واحدة — أصبح الظهور الآن منظَّماً حسب منطقة الساحة، ويمتلئ مقياس الجنون أبطأ بنسبة 12% بعد الموجة 15، وكسب التسلسل 3 إطارات إضافية.',
+        zh:'后期波次会一次性刷出过多精英——现在按竞技场区域控制刷怪节奏，第15波后狂热槽积攒速度放慢12%，连击判定增加3帧。',
+        ja:'後半ウェーブでエリートが一度に湧きすぎていた — スポーンはアリーナゾーンごとに調整され、ウェーブ15以降フレンジーゲージの蓄積が12%遅くなり、チェーン判定に3フレーム追加。',
+        ru:'В поздних волнах появлялось слишком много элиты сразу — теперь спавны распределены по зонам арены, шкала безумия после 15-й волны заполняется на 12% медленнее, а на цепочки дано 3 дополнительных кадра.',
+        pl:'Późne fale spawnowały zbyt wielu elitarnych wrogów naraz — spawny są teraz rozłożone po strefach areny, pasek szału napełnia się o 12% wolniej po fali 15, a łańcuchy zyskały 3 dodatkowe klatki.',
+      },
+    },
+  ],
+  'hush': [
+    {
+      date:'2026-04-18', tag:'devlog',
+      title:{
+        en:'Devlog #2 — Your microphone is the mechanic', fr:'Devlog #2 — Ton micro devient la mécanique',
+        es:'Devlog #2 — Tu micrófono es la mecánica', de:'Devlog #2 — Dein Mikrofon ist die Mechanik',
+        it:'Devlog #2 — Il tuo microfono è la meccanica', ar:'مذكرات التطوير #2 — الميكروفون هو آلية اللعب',
+        zh:'开发日志 #2——你的麦克风就是玩法', ja:'開発日誌 #2 — マイクがゲームメカニクスになる',
+        ru:'Девлог №2 — твой микрофон и есть механика', pl:'Devlog #2 — twój mikrofon to mechanika',
+      },
+      body:{
+        en:'Opt-in only: if you allow the mic, the thing hears YOU — breathe too loud and it turns around. Fully playable without it, unforgettable with it.',
+        fr:'Uniquement sur consentement : si tu actives le micro, la chose T\'ENTEND — respire trop fort et elle se retourne. Entièrement jouable sans, inoubliable avec.',
+        es:'Solo con permiso: si activas el micrófono, la cosa TE OYE — respira demasiado fuerte y se dará la vuelta. Totalmente jugable sin él, inolvidable con él.',
+        de:'Nur mit Zustimmung: Wenn du das Mikro erlaubst, hört DICH das Ding — atme zu laut und es dreht sich um. Ohne voll spielbar, mit unvergesslich.',
+        it:'Solo opt-in: se attivi il microfono, la cosa TI SENTE — respira troppo forte e si volterà. Perfettamente giocabile senza, indimenticabile con.',
+        ar:'بموافقتك فقط: إذا سمحت بالميكروفون فإن الكائن يسمعك — تنفّس بصوت عالٍ وسيستدير نحوك. اللعبة كاملة بدونه، ولا تُنسى معه.',
+        zh:'完全自愿开启：若你允许麦克风，那东西能听见你——呼吸太大声它就会回头。不开也能完整游玩，开了则终生难忘。',
+        ja:'オプトイン方式：マイクを許可すると、アレはあなたの音を聞いている — 息が大きすぎると振り返る。マイクなしでも完全にプレイ可能、ありなら忘れられない体験に。',
+        ru:'Только по согласию: разрешишь микрофон — и оно слышит ТЕБЯ. Дыши слишком громко — и оно обернётся. Полностью проходимо без него, незабываемо с ним.',
+        pl:'Wyłącznie opt-in: jeśli zezwolisz na mikrofon, to coś CIĘ słyszy — oddychaj za głośno, a się odwróci. W pełni grywalne bez niego, niezapomniane z nim.',
+      },
+    },
+  ],
   'trick-or-treat': [
     {
       date:'2026-03-14', tag:'announce',
@@ -665,6 +785,19 @@ const WORK_EDITIONS = {
   'backrooms-liminal': [
     { key:'standard', delta:0 },
     { key:'deluxe',   delta:5, perks:['ost','wallpapers'] },
+  ],
+};
+
+/* ── DLC & CONTENUS LIÉS (bibliothèque launcher, façon Steam) ────────────
+   Par œuvre : liste de contenus { id (œuvre liée du catalogue), kind }.
+   kind : 'expansion' (extension du jeu de base) | 'base' (jeu requis).
+   Œuvre absente = section DLC masquée proprement. */
+const GLG_DLC = {
+  'soul-redemption': [
+    { id:'soul-redemption-frenzy-fest', kind:'expansion' },
+  ],
+  'soul-redemption-frenzy-fest': [
+    { id:'soul-redemption', kind:'base' },
   ],
 };
 

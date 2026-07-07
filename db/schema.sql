@@ -389,6 +389,41 @@ $$;
 revoke all on function public.friends_list() from public;
 grant execute on function public.friends_list() to authenticated;
 
+-- ── « Contacts qui y ont joué » (bibliothèque launcher, façon Steam) ─────
+--  Mes amis (accepted) qui possèdent l'œuvre (library) OU l'ont lancée
+--  (recent_games). Respecte prefs.privacy.showRecent : un ami qui masque
+--  son activité de jeu n'apparaît pas du tout. mins = temps de jeu cumulé
+--  sur l'œuvre (0 si possédée mais jamais lancée).
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.friends_played(text);
+create or replace function public.friends_played(work text)
+returns table (id uuid, username text, avatar_url text, mins int)
+language sql security definer set search_path = public as $$
+  select p.id, p.username, p.avatar_url,
+         coalesce((
+           select (rg.e ->> 'mins')::int
+           from jsonb_array_elements(coalesce(p.recent_games, '[]'::jsonb)) rg(e)
+           where rg.e ->> 'id' = work
+           limit 1
+         ), 0) as mins
+  from public.friendships f
+  join public.profiles p
+    on p.id = case when f.requester = auth.uid() then f.addressee else f.requester end
+  where f.status = 'accepted'
+    and auth.uid() in (f.requester, f.addressee)
+    and coalesce(p.prefs #>> '{privacy,showRecent}', 'true') <> 'false'
+    and (
+      exists (select 1 from jsonb_array_elements(coalesce(p.library, '[]'::jsonb)) le(e)
+              where le.e ->> 'id' = work)
+      or exists (select 1 from jsonb_array_elements(coalesce(p.recent_games, '[]'::jsonb)) re(e)
+                 where re.e ->> 'id' = work)
+    )
+  order by mins desc nulls last, p.username
+  limit 24;
+$$;
+revoke all on function public.friends_played(text) from public;
+grant execute on function public.friends_played(text) to authenticated;
+
 -- ════════════════════════════════════════════════════════════════════════
 --  PROFIL PUBLIC d'un autre joueur (style Steam) — champs PUBLICS uniquement
 --  ────────────────────────────────────────────────────────────────────────

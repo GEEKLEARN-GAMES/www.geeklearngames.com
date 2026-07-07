@@ -838,6 +838,8 @@ function applyTranslations() {
   setText('search-label-txt', t('searchLabel') || 'Search a game or film');
   const sinp = $('search-input');
   if (sinp) sinp.placeholder = t('searchHint') || 'Type a title...';
+  // Barre de titre du launcher frameless : aria-labels dans la langue choisie
+  if (typeof _refreshTitlebarLabels === 'function') _refreshTitlebarLabels();
   applyStudioThemes();
 }
 
@@ -1423,6 +1425,18 @@ const _lbt = k => (_LIB_T[k] && (_LIB_T[k][LANG] || _LIB_T[k].en)) || '';
 const _ARR = () => (LANG === 'ar' ? '←' : '→');
 const _LIB_PLAT_NAME = pid => (pid === 'glg' || !pid) ? 'GEEKLEARN GAMES' : ((typeof PLATS !== 'undefined' && PLATS[pid] && PLATS[pid].name) || pid);
 
+/* ── « EXCLUSIF AU LAUNCHER » (site web) ────────────────────────────────
+   Le web ne présente plus la bibliothèque : la route #library y devient
+   une page d'invitation à installer l'application de bureau. */
+const _LIBX_T = {
+  eyebrow: { fr:'Exclusivité launcher', en:'Launcher exclusive', es:'Exclusivo del launcher', de:'Exklusiv im Launcher', it:'Esclusiva del launcher', ar:'حصري للمشغّل', zh:'启动器专属', ja:'ランチャー限定', ru:'Эксклюзив лаунчера', pl:'Ekskluzywne dla launchera' },
+  title:   { fr:'TA BIBLIOTHÈQUE VIT DANS LE LAUNCHER', en:'YOUR LIBRARY LIVES IN THE LAUNCHER', es:'TU BIBLIOTECA VIVE EN EL LAUNCHER', de:'DEINE BIBLIOTHEK LEBT IM LAUNCHER', it:'LA TUA LIBRERIA VIVE NEL LAUNCHER', ar:'مكتبتك تعيش في المشغّل', zh:'你的游戏库安家于启动器', ja:'ライブラリはランチャーの中に', ru:'ТВОЯ БИБЛИОТЕКА ЖИВЁТ В ЛАУНЧЕРЕ', pl:'TWOJA BIBLIOTEKA ŻYJE W LAUNCHERZE' },
+  sub:     { fr:'Jeux possédés, succès, actualités, DLC, contacts qui y jouent — l\'expérience bibliothèque complète est réservée à l\'application de bureau. Le site est la vitrine ; le launcher, ta salle de jeux.', en:'Owned games, achievements, news, DLC, friends who play — the full library experience is exclusive to the desktop app. The site is the showcase; the launcher is your game room.', es:'Juegos, logros, noticias, DLC, contactos que juegan — la experiencia completa de la biblioteca es exclusiva de la aplicación de escritorio. El sitio es el escaparate; el launcher, tu sala de juegos.', de:'Spiele, Erfolge, News, DLC, Freunde, die spielen — das volle Bibliothekserlebnis gibt es nur in der Desktop-App. Die Website ist das Schaufenster; der Launcher dein Spielzimmer.', it:'Giochi, obiettivi, notizie, DLC, amici che giocano — l\'esperienza completa della libreria è esclusiva dell\'app desktop. Il sito è la vetrina; il launcher, la tua sala giochi.', ar:'الألعاب والإنجازات والأخبار والمحتوى الإضافي والأصدقاء — تجربة المكتبة الكاملة حصرية لتطبيق سطح المكتب. الموقع واجهة العرض؛ والمشغّل غرفة ألعابك.', zh:'拥有的游戏、成就、新闻、DLC、在玩的好友——完整的游戏库体验为桌面应用独享。网站是橱窗，启动器才是你的游戏室。', ja:'所有ゲーム、実績、ニュース、DLC、プレイ中のフレンド — ライブラリの完全体験はデスクトップアプリ限定。サイトはショーケース、ランチャーはあなたのゲームルーム。', ru:'Игры, достижения, новости, DLC, друзья в игре — полная библиотека доступна только в настольном приложении. Сайт — витрина; лаунчер — твоя игровая.', pl:'Posiadane gry, osiągnięcia, aktualności, DLC, grający znajomi — pełna biblioteka jest dostępna wyłącznie w aplikacji desktopowej. Strona to witryna; launcher to twój pokój gier.' },
+  cta:     { fr:'Télécharger le launcher', en:'Download the launcher', es:'Descargar el launcher', de:'Launcher herunterladen', it:'Scarica il launcher', ar:'حمّل المشغّل', zh:'下载启动器', ja:'ランチャーをダウンロード', ru:'Скачать лаунчер', pl:'Pobierz launcher' },
+  hint:    { fr:'Déjà installé ? Ouvre l\'application GEEKLEARN GAMES sur ton bureau — ta bibliothèque t\'y attend.', en:'Already installed? Open the GEEKLEARN GAMES app on your desktop — your library is waiting.', es:'¿Ya está instalado? Abre la aplicación GEEKLEARN GAMES en tu escritorio — tu biblioteca te espera.', de:'Schon installiert? Öffne die GEEKLEARN-GAMES-App auf deinem Desktop — deine Bibliothek wartet.', it:'Già installato? Apri l\'app GEEKLEARN GAMES sul desktop — la tua libreria ti aspetta.', ar:'مثبّت بالفعل؟ افتح تطبيق GEEKLEARN GAMES على سطح المكتب — مكتبتك بانتظارك.', zh:'已经安装？在桌面上打开 GEEKLEARN GAMES 应用——你的游戏库正在等你。', ja:'インストール済み？デスクトップのGEEKLEARN GAMESアプリを開こう — ライブラリが待っています。', ru:'Уже установлен? Открой приложение GEEKLEARN GAMES на рабочем столе — библиотека ждёт.', pl:'Już zainstalowany? Otwórz aplikację GEEKLEARN GAMES na pulpicie — twoja biblioteka czeka.' },
+};
+const _lxt = k => (_LIBX_T[k] && (_LIBX_T[k][LANG] || _LIBX_T[k].en)) || '';
+
 let _libSelected = null;
 
 /* Le FONDATEUR certifié (VERIFIED_USERS) possède l'intégralité du catalogue :
@@ -1442,6 +1456,63 @@ function _ownsWork(id) {
 async function buildLibraryPage() {
   const root = $('library-root');
   if (!root) return;
+
+  /* ── SITE WEB : la bibliothèque est une EXCLUSIVITÉ du launcher ──
+     Pas de rail, pas de vitrine — une invitation cinématique à installer
+     l'application de bureau (fenêtre stylisée §64 réutilisée). */
+  if (!IS_TAURI) {
+    const os = _dlOS();
+    const P = LAUNCHER_DL.platforms;
+    const priKey = (os === 'mac' || os === 'linux') && P[os] && P[os].length ? os : 'win';
+    const pri = P[priKey][0];
+    const priOS = priKey === 'mac' ? 'macOS' : priKey === 'linux' ? 'Linux' : 'Windows';
+    root.innerHTML = `
+    <section class="libx glg-pattern">
+      <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:80s"></div>
+      <div class="libx-inner">
+        <div class="libx-copy reveal">
+          <p class="section-eye">${_lxt('eyebrow')}</p>
+          <h1 class="libx-title">${_lxt('title')}</h1>
+          <p class="libx-sub">${_lxt('sub')}</p>
+          <div class="libx-chips">
+            <span class="libx-chip">${_tt('section')}</span>
+            <span class="libx-chip">${_NEWS_T.head[LANG] || _NEWS_T.head.en}</span>
+            <span class="libx-chip">DLC</span>
+            <span class="libx-chip">${_ft('title')}</span>
+          </div>
+          <div class="libx-actions">
+            <a class="btn btn-primary btn-lg" href="${pri.u}" ${pri.u.indexOf('http') !== 0 ? 'download' : ''}>${_lxt('cta')} — ${priOS}</a>
+            <a class="btn btn-outline btn-lg" href="${LAUNCHER_DL.all}" target="_blank" rel="noopener">${_lnt('allVer')}</a>
+          </div>
+          <p class="libx-hint">${_lxt('hint')}</p>
+        </div>
+        <div class="libx-visual reveal" aria-hidden="true">
+          <div class="lt-window">
+            <div class="lt-window-bar"><span></span><span></span><span></span></div>
+            <div class="lt-window-body">
+              <div class="lt-w-rail">
+                <span class="lt-w-logo"><img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'"></span>
+                <span class="lt-w-line" style="width:72%"></span>
+                <span class="lt-w-line" style="width:58%"></span>
+                <span class="lt-w-line lt-w-line--on" style="width:80%"></span>
+                <span class="lt-w-line" style="width:64%"></span>
+                <span class="lt-w-line" style="width:70%"></span>
+              </div>
+              <div class="lt-w-stage">
+                <span class="lt-w-title"></span>
+                <span class="lt-w-sub"></span>
+                <span class="lt-w-btn">▶</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+    setTimeout(initReveal, 60);
+    initAnimIdleObserver();
+    return;
+  }
+
   const configured = !!window.GLG_AUTH?.isConfigured?.();
   const user = configured ? await GLG_AUTH.getUser() : null;
 
@@ -1493,6 +1564,9 @@ async function buildLibraryPage() {
   if (!_libSelected || !lib.some(x => x.w.id === _libSelected)) _libSelected = lib[0].w.id;
   const recent = Array.isArray(p.recent_games) ? p.recent_games : [];
 
+  // Succès réels du joueur — alimente la section « Succès » de chaque vitrine
+  if (configured) { try { const r = await GLG_AUTH.getAchievements(); _achKeys = new Set(r.keys || []); } catch (e) {} }
+
   root.innerHTML = `
     <div class="lib-shell">
       <aside class="lib-rail" aria-label="${_lbt('eyebrow')}">
@@ -1513,15 +1587,182 @@ async function buildLibraryPage() {
 
   root.querySelectorAll('[data-lib]').forEach(b => b.addEventListener('click', () => {
     _libSelected = b.dataset.lib;
+    // Sélection via la liste → le rail se rétracte en douceur : la vitrine
+    // (bannière, logo, boutons) occupe quasi tout l'écran. Survoler le rail
+    // le ré-étend temporairement (§69, :has).
+    root.querySelector('.lib-shell')?.classList.add('lib-shell--zen');
     root.querySelectorAll('[data-lib]').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-current', x === b ? 'true' : 'false'); });
     const stage = $('lib-stage');
     if (stage) {
       stage.classList.remove('lib-stage--in');
       stage.innerHTML = _libStageHTML(lib.find(x => x.w.id === _libSelected), recent);
+      _scrollTopInstant();          // repartir en haut de la nouvelle vitrine
+      _libFillFriendsPlayed(_libSelected);
       setTimeout(() => stage.classList.add('lib-stage--in'), 20); // setTimeout, pas rAF (onglet caché)
     }
   }));
   setTimeout(() => $('lib-stage')?.classList.add('lib-stage--in'), 30);
+  _libFillFriendsPlayed(_libSelected);
+}
+
+/* ══════════════════════════════════════════
+   BIBLIOTHÈQUE — SECTIONS FAÇON STEAM sous le héro de chaque œuvre :
+   Succès (progression réelle) · Contacts qui y ont joué (RPC friends_played)
+   · DLC & extensions (GLG_DLC) · Actualités (WORK_NEWS, mêmes cartes que
+   les fiches §54). Le tout rendu par _libBelowHTML, appelé par _libStageHTML.
+══════════════════════════════════════════ */
+const _LIBS_T = {
+  ach:        { fr:'Succès', en:'Achievements', es:'Logros', de:'Erfolge', it:'Obiettivi', ar:'الإنجازات', zh:'成就', ja:'実績', ru:'Достижения', pl:'Osiągnięcia' },
+  achOf:      { fr:'%a sur %b débloqués', en:'%a of %b unlocked', es:'%a de %b desbloqueados', de:'%a von %b freigeschaltet', it:'%a su %b sbloccati', ar:'%a من %b مفتوحة', zh:'已解锁 %a / %b', ja:'%a / %b 解除済み', ru:'Открыто %a из %b', pl:'Odblokowano %a z %b' },
+  achView:    { fr:'Voir mes succès', en:'View my achievements', es:'Ver mis logros', de:'Meine Erfolge ansehen', it:'Vedi i miei obiettivi', ar:'عرض إنجازاتي', zh:'查看我的成就', ja:'実績を見る', ru:'Мои достижения', pl:'Zobacz moje osiągnięcia' },
+  achLocked:  { fr:'Succès verrouillés', en:'Locked achievements', es:'Logros bloqueados', de:'Gesperrte Erfolge', it:'Obiettivi bloccati', ar:'إنجازات مقفلة', zh:'未解锁的成就', ja:'未解除の実績', ru:'Закрытые достижения', pl:'Zablokowane osiągnięcia' },
+  friends:    { fr:'Contacts qui y ont joué', en:'Friends who played it', es:'Contactos que ya lo jugaron', de:'Freunde, die es gespielt haben', it:'Amici che ci hanno giocato', ar:'أصدقاء لعبوه', zh:'玩过的好友', ja:'プレイしたフレンド', ru:'Друзья, которые играли', pl:'Znajomi, którzy grali' },
+  friendsNone:{ fr:'Aucun de tes contacts n\'y a encore joué.', en:'None of your friends have played it yet.', es:'Ninguno de tus contactos lo ha jugado todavía.', de:'Noch keiner deiner Freunde hat es gespielt.', it:'Nessuno dei tuoi amici ci ha ancora giocato.', ar:'لم يلعبه أي من أصدقائك بعد.', zh:'你的好友中还没有人玩过。', ja:'まだプレイしたフレンドはいません。', ru:'Никто из ваших друзей ещё не играл.', pl:'Żaden z twoich znajomych jeszcze nie grał.' },
+  friendsOne: { fr:'%s contact y a déjà joué', en:'%s friend has played it', es:'%s contacto ya lo ha jugado', de:'%s Freund hat es gespielt', it:'%s amico ci ha già giocato', ar:'لعبه صديق واحد (%s)', zh:'%s 位好友玩过', ja:'%s人のフレンドがプレイ済み', ru:'%s друг уже играл', pl:'%s znajomy już grał' },
+  friendsMany:{ fr:'%s contacts y ont déjà joué', en:'%s friends have played it', es:'%s contactos ya lo han jugado', de:'%s Freunde haben es gespielt', it:'%s amici ci hanno già giocato', ar:'لعبه %s من الأصدقاء', zh:'%s 位好友玩过', ja:'%s人のフレンドがプレイ済み', ru:'Друзей уже играло: %s', pl:'%s znajomych już grało' },
+  dlc:        { fr:'DLC & extensions', en:'DLC & expansions', es:'DLC y expansiones', de:'DLC & Erweiterungen', it:'DLC ed espansioni', ar:'المحتوى الإضافي والتوسعات', zh:'DLC 与扩展内容', ja:'DLC・拡張コンテンツ', ru:'DLC и дополнения', pl:'DLC i rozszerzenia' },
+  kindExpansion:{ fr:'Extension', en:'Expansion', es:'Expansión', de:'Erweiterung', it:'Espansione', ar:'توسعة', zh:'扩展内容', ja:'拡張コンテンツ', ru:'Дополнение', pl:'Rozszerzenie' },
+  kindBase:   { fr:'Jeu de base', en:'Base game', es:'Juego base', de:'Hauptspiel', it:'Gioco base', ar:'اللعبة الأساسية', zh:'本体游戏', ja:'ベースゲーム', ru:'Базовая игра', pl:'Gra podstawowa' },
+  news:       { fr:'Actualités', en:'News', es:'Noticias', de:'Neuigkeiten', it:'Notizie', ar:'الأخبار', zh:'新闻动态', ja:'ニュース', ru:'Новости', pl:'Aktualności' },
+  newsNone:   { fr:'Aucune actualité pour le moment — les mises à jour du studio pour ce titre apparaîtront ici.', en:'No news yet — studio updates for this title will appear here.', es:'Aún no hay noticias — las novedades del estudio sobre este título aparecerán aquí.', de:'Noch keine Neuigkeiten — Studio-Updates zu diesem Titel erscheinen hier.', it:'Ancora nessuna notizia — gli aggiornamenti dello studio su questo titolo appariranno qui.', ar:'لا أخبار بعد — ستظهر هنا تحديثات الأستوديو لهذا العنوان.', zh:'暂无新闻——工作室关于该作品的更新将显示在这里。', ja:'まだニュースはありません — このタイトルのアップデート情報がここに表示されます。', ru:'Пока нет новостей — обновления студии по этому тайтлу появятся здесь.', pl:'Brak aktualności — informacje studia o tym tytule pojawią się tutaj.' },
+};
+const _lst = k => (_LIBS_T[k] && (_LIBS_T[k][LANG] || _LIBS_T[k].en)) || '';
+const _LIB_LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M8.5 10V8a3.5 3.5 0 0 1 7 0v2" stroke="currentColor" stroke-width="1.4"/></svg>';
+
+/* ── Succès : progression RÉELLE du joueur (_achKeys, rechargés par
+   buildLibraryPage) sur les définitions publiques (TROPHIES). ── */
+function _libAchSectionHTML(gid) {
+  const list = (typeof TROPHIES !== 'undefined' && TROPHIES[gid]) || [];
+  if (!list.length) return '';
+  const nonPlat = list.filter(x => x.tier !== 'platinum');
+  const isEarned = tr => tr.tier === 'platinum'
+    ? (nonPlat.length > 0 && nonPlat.every(x => _achKeys.has(gid + '/' + x.code)))
+    : _achKeys.has(gid + '/' + tr.code);
+  const sorted = list.slice().sort((a, b) => _TIER_ORDER[a.tier] - _TIER_ORDER[b.tier]);
+  const un = sorted.filter(isEarned), lk = sorted.filter(tr => !isEarned(tr));
+  const pct = Math.round(un.length / list.length * 100);
+  const tile = (tr, locked) => {
+    const txt = _trophyTxt(tr);
+    const name = (locked && tr.hidden) ? _tt('hidden') : txt.t;
+    return `<button class="lib-ach-tile ${locked ? 'lib-ach-tile--lock' : `pp-tier--${tr.tier}`}"
+      onclick="openTrophyList('${gid}')" title="${escHtml(name)}" aria-label="${escHtml(name)}">${locked ? _LIB_LOCK_SVG : _TROPHY_SVG}</button>`;
+  };
+  return `
+  <section class="lib-sec lib-sec--ach">
+    <div class="lib-sec-head"><h2 class="lib-sec-title">${_lst('ach')}</h2><span class="lib-sec-count">${un.length}/${list.length}</span></div>
+    <div class="lib-ach-progress">
+      <span class="lib-ach-of">${_lst('achOf').replace('%a', un.length).replace('%b', list.length)} · ${pct}%</span>
+      <span class="lib-ach-bar"><i style="width:${pct}%"></i></span>
+    </div>
+    ${un.length ? `<div class="lib-ach-row">${un.map(tr => tile(tr, false)).join('')}</div>` : ''}
+    ${lk.length ? `<div class="lib-ach-lockl">${_lst('achLocked')}</div><div class="lib-ach-row lib-ach-row--lock">${lk.map(tr => tile(tr, true)).join('')}</div>` : ''}
+    <button class="lib-sec-btn" onclick="openTrophyList('${gid}')">${_lst('achView')} <span aria-hidden="true">${_ARR()}</span></button>
+  </section>`;
+}
+
+/* ── Contacts qui y ont joué : coquille rendue tout de suite, avatars
+   remplis en asynchrone (RPC friends_played, cache par œuvre). ── */
+let _libFpCache = {};
+function _libFriendsSectionHTML() {
+  return `
+  <section class="lib-sec lib-sec--friends">
+    <div class="lib-sec-head"><h2 class="lib-sec-title">${_lst('friends')}</h2><span class="lib-sec-count" id="lib-fp-count"></span></div>
+    <div class="lib-fp-body" id="lib-fp-body"><p class="lib-sec-note">···</p></div>
+  </section>`;
+}
+async function _libFillFriendsPlayed(gid) {
+  const body = document.getElementById('lib-fp-body'); if (!body) return;
+  let rows = _libFpCache[gid];
+  if (!rows) {
+    try { const r = await window.GLG_AUTH?.friendsPlayed?.(gid); rows = (r && r.friends) || []; }
+    catch (e) { rows = []; }
+    _libFpCache[gid] = rows;
+  }
+  if (document.getElementById('lib-fp-body') !== body) return; // le joueur a changé d'œuvre entre-temps
+  const cnt = document.getElementById('lib-fp-count'); if (cnt) cnt.textContent = rows.length || '';
+  if (!rows.length) { body.innerHTML = `<p class="lib-sec-note">${_lst('friendsNone')}</p>`; return; }
+  body.innerHTML = `
+    <div class="lib-fp-row">
+      ${rows.slice(0, 10).map(u => `
+      <button class="lib-fp-ava" onclick="openUserProfile('${u.id}')" title="${escHtml(u.username || '')}" aria-label="${escHtml(u.username || '')}">${_userAvatarHTML(u)}</button>`).join('')}
+      ${rows.length > 10 ? `<span class="lib-fp-more">+${rows.length - 10}</span>` : ''}
+    </div>
+    <p class="lib-sec-note">${(rows.length === 1 ? _lst('friendsOne') : _lst('friendsMany')).replace('%s', rows.length)}</p>`;
+}
+
+/* ── DLC & extensions (GLG_DLC, data.js) : possédé → Jouer ; sinon prix +
+   fiche. Le lien de parenté (extension/jeu de base) est affiché. ── */
+function _libDlcSectionHTML(gid) {
+  const rel = (typeof GLG_DLC !== 'undefined' && GLG_DLC[gid]) || [];
+  const items = rel.map(r => ({ r, w: ALL_WORKS.find(w => w.id === r.id) })).filter(x => x.w && !isMatureHidden(x.w));
+  if (!items.length) return '';
+  return `
+  <section class="lib-sec lib-sec--dlc">
+    <div class="lib-sec-head"><h2 class="lib-sec-title">${_lst('dlc')}</h2></div>
+    <div class="lib-dlc-list">
+      ${items.map(({ r, w }) => {
+        const owned = _ownsWork(w.id);
+        return `
+      <div class="lib-dlc-card" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
+        <span class="lib-dlc-cover"><img src="${av(w.cover)}" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0"></span>
+        <span class="lib-dlc-body">
+          <span class="lib-dlc-kind">${_lst(r.kind === 'base' ? 'kindBase' : 'kindExpansion')}</span>
+          <span class="lib-dlc-name">${w.title}</span>
+          <span class="lib-dlc-meta">${owned ? `<span class="lib-dlc-owned">${_lbt('inLib')}</span>` : priceHTML(w)}</span>
+        </span>
+        <span class="lib-dlc-act">
+          ${owned
+            ? `<button class="btn btn-outline lib-dlc-btn" onclick="launcherHandoff('${w.id}','play')">▶ ${_lbt('play')}</button>`
+            : `<button class="btn btn-primary lib-dlc-btn" onclick="showPage('detail','${w.id}')">${_st('view')}</button>`}
+        </span>
+      </div>`;
+      }).join('')}
+    </div>
+  </section>`;
+}
+
+/* ── Actualités de l'œuvre : mêmes données (WORK_NEWS) et mêmes cartes
+   que le journal des fiches (§54) — zéro duplication de style. ── */
+function _libNewsSectionHTML(gid) {
+  const list = (typeof WORK_NEWS !== 'undefined' && WORK_NEWS[gid]) || [];
+  const entries = [...list].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+  const items = entries.map(n => {
+    let d = n.date;
+    try { d = new Date(n.date + 'T12:00:00').toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'short', year:'numeric' }); } catch (e) {}
+    const tag = _NEWS_T.tags[n.tag] || _NEWS_T.tags.update;
+    return `
+    <article class="dp-news-item">
+      <div class="dp-news-side">
+        <time class="dp-news-date" datetime="${n.date}">${d}</time>
+        <span class="dp-news-tag dp-news-tag--${n.tag}">${tag[LANG] || tag.en}</span>
+      </div>
+      <div class="dp-news-main">
+        <h3 class="dp-news-title">${n.title[LANG] || n.title.en}</h3>
+        <p class="dp-news-body">${n.body[LANG] || n.body.en}</p>
+      </div>
+    </article>`;
+  }).join('');
+  return `
+  <section class="lib-sec lib-sec--news">
+    <div class="lib-sec-head"><h2 class="lib-sec-title">${_lst('news')}</h2>${entries.length ? `<span class="lib-sec-count">${entries.length}</span>` : ''}</div>
+    ${entries.length ? `<div class="dp-news-list lib-news-list">${items}</div>` : `<p class="lib-sec-note">${_lst('newsNone')}</p>`}
+  </section>`;
+}
+
+/* Bandeau de sections sous le héro : actualités en colonne principale,
+   succès / contacts / DLC en rail latéral (disposition Steam, en mieux). */
+function _libBelowHTML(w) {
+  return `
+  <div class="lib-below" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
+    <div class="lib-below-main">
+      ${_libNewsSectionHTML(w.id)}
+    </div>
+    <aside class="lib-below-side">
+      ${_libAchSectionHTML(w.id)}
+      ${_libFriendsSectionHTML()}
+      ${_libDlcSectionHTML(w.id)}
+    </aside>
+  </div>`;
 }
 
 /* Vitrine du jeu sélectionné (key art plein cadre + actions launcher). */
@@ -1563,7 +1804,9 @@ function _libStageHTML(x, recent) {
           ${troph ? `<button class="lib-link" onclick="openTrophyList('${w.id}')">${_tt('section')} <span aria-hidden="true">${_ARR()}</span></button>` : ''}
         </div>
       </div>
-    </div>`;
+      <span class="lib-scroll-cue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+    </div>
+    ${_libBelowHTML(w)}`;
 }
 
 /* ── HAND-OFF LAUNCHER (glg:// — même mécanique que steam://) ───────────
@@ -1815,13 +2058,13 @@ const _LNCH_T = {
   f4d: { fr:'2FA type Steam Guard, données chiffrées, vie privée respectée — déjà actifs ici.', en:'Steam Guard-style 2FA, encrypted data, privacy respected — already live here.', es:'2FA al estilo Steam Guard, datos cifrados, privacidad respetada — ya activos aquí.', de:'2FA im Steam-Guard-Stil, verschlüsselte Daten, gewahrte Privatsphäre — hier bereits aktiv.', it:'2FA in stile Steam Guard, dati cifrati, privacy rispettata — già attivi qui.', ar:'مصادقة ثنائية بأسلوب Steam Guard وبيانات مشفّرة وخصوصية محترمة — مفعّلة هنا بالفعل.', zh:'Steam 令牌式两步验证、数据加密、尊重隐私——这些已在此生效。', ja:'Steam Guard式2FA、暗号化データ、プライバシー尊重 — すでにここで稼働中。', ru:'2FA в стиле Steam Guard, шифрование данных, уважение к приватности — уже работает здесь.', pl:'2FA w stylu Steam Guard, szyfrowane dane, poszanowanie prywatności — już działa tutaj.' },
   notify:  { fr:'Être prévenu de la sortie', en:'Get notified at launch', es:'Avísame en el lanzamiento', de:'Zum Start benachrichtigen', it:'Avvisami al lancio', ar:'أعلمني عند الصدور', zh:'发布时通知我', ja:'リリース時に通知を受け取る', ru:'Сообщить о выходе', pl:'Powiadom mnie o premierze' },
   version: { fr:'V1.0.0 · Windows & macOS', en:'V1.0.0 · Windows & macOS', es:'V1.0.0 · Windows y macOS', de:'V1.0.0 · Windows & macOS', it:'V1.0.0 · Windows e macOS', ar:'V1.0.0 · Windows وmacOS', zh:'V1.0.0 · Windows 与 macOS', ja:'V1.0.0 · Windows & macOS', ru:'V1.0.0 · Windows и macOS', pl:'V1.0.0 · Windows i macOS' },
-  eyebrowDl:{ fr:'Application de bureau · V1.0.0 disponible', en:'Desktop app · V1.0.0 available', es:'Aplicación de escritorio · V1.0.0 disponible', de:'Desktop-App · V1.0.0 verfügbar', it:'App desktop · V1.0.0 disponibile', ar:'تطبيق سطح المكتب · V1.0.0 متاح الآن', zh:'桌面应用 · V1.0.0 现已推出', ja:'デスクトップアプリ · V1.0.0 配信中', ru:'Настольное приложение · доступна V1.0.0', pl:'Aplikacja desktopowa · V1.0.0 dostępna' },
+  eyebrowDl:{ fr:'Application de bureau · V%s disponible', en:'Desktop app · V%s available', es:'Aplicación de escritorio · V%s disponible', de:'Desktop-App · V%s verfügbar', it:'App desktop · V%s disponibile', ar:'تطبيق سطح المكتب · V%s متاح الآن', zh:'桌面应用 · V%s 现已推出', ja:'デスクトップアプリ · V%s 配信中', ru:'Настольное приложение · доступна V%s', pl:'Aplikacja desktopowa · V%s dostępna' },
   titleDl: { fr:'TÉLÉCHARGE LE LAUNCHER', en:'DOWNLOAD THE LAUNCHER', es:'DESCARGA EL LAUNCHER', de:'LADE DEN LAUNCHER', it:'SCARICA IL LAUNCHER', ar:'حمّل المشغّل', zh:'下载启动器', ja:'ランチャーをダウンロード', ru:'СКАЧАЙ ЛАУНЧЕР', pl:'POBIERZ LAUNCHER' },
   dlWin:   { fr:'Télécharger pour Windows', en:'Download for Windows', es:'Descargar para Windows', de:'Für Windows herunterladen', it:'Scarica per Windows', ar:'تنزيل لويندوز', zh:'下载 Windows 版', ja:'Windows版をダウンロード', ru:'Скачать для Windows', pl:'Pobierz dla Windows' },
   dlMeta:  { fr:'%s Mo · installation en un clic · mises à jour automatiques signées', en:'%s MB · one-click install · signed auto-updates', es:'%s MB · instalación en un clic · actualizaciones automáticas firmadas', de:'%s MB · Ein-Klick-Installation · signierte Auto-Updates', it:'%s MB · installazione in un clic · aggiornamenti automatici firmati', ar:'%s م.ب · تثبيت بنقرة · تحديثات تلقائية موقَّعة', zh:'%s MB · 一键安装 · 签名自动更新', ja:'%s MB · ワンクリックインストール · 署名付き自動更新', ru:'%s МБ · установка в один клик · подписанные автообновления', pl:'%s MB · instalacja jednym kliknięciem · podpisane autoaktualizacje' },
   dlSoon:  { fr:'bientôt', en:'soon', es:'pronto', de:'bald', it:'presto', ar:'قريباً', zh:'即将推出', ja:'近日', ru:'скоро', pl:'wkrótce' },
   dl:      { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
-  allVer:  { fr:'Toutes les versions (Intel, deb, rpm…)', en:'All versions (Intel, deb, rpm…)', es:'Todas las versiones (Intel, deb, rpm…)', de:'Alle Versionen (Intel, deb, rpm…)', it:'Tutte le versioni (Intel, deb, rpm…)', ar:'كل الإصدارات (Intel وdeb وrpm…)', zh:'全部版本（Intel、deb、rpm…）', ja:'すべてのバージョン（Intel・deb・rpm…）', ru:'Все версии (Intel, deb, rpm…)', pl:'Wszystkie wersje (Intel, deb, rpm…)' },
+  allVer:  { fr:'Toutes les versions & notes de release', en:'All versions & release notes', es:'Todas las versiones y notas de la versión', de:'Alle Versionen & Release-Notes', it:'Tutte le versioni e note di rilascio', ar:'كل الإصدارات وملاحظات النسخة', zh:'全部版本与发行说明', ja:'すべてのバージョンとリリースノート', ru:'Все версии и примечания к выпуску', pl:'Wszystkie wersje i informacje o wydaniu' },
   dlSha:   { fr:'Empreinte SHA-256 de l’installeur', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
 };
 const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
@@ -1829,15 +2072,33 @@ const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
 /* Téléchargements du launcher — UNE seule source de vérité pour les URLs.
    Windows : installeur auto-hébergé (léger, 1,7 Mo). macOS/Linux : renseigner
    les URLs GitHub Releases à la 1re release CI (tag launcher-v*). */
+/* Base des fichiers de la release CI signée — à bumper à chaque release. */
+const _DL_VER = '1.0.2';
+const _DL_REL = `https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v${_DL_VER}`;
 const LAUNCHER_DL = {
-  version: '1.0.0',
-  sizeMB: 1.7,
-  sha256: '7e3c72418291e1a1400a9be922c90edd70f66e75662b14cb0171b032b1ed1a59',
-  win: 'download/GEEKLEARN-GAMES-Setup.exe', // auto-hébergé (léger, domaine propre)
-  // Release CI signée (tag launcher-v1.0.0) — à mettre à jour à chaque release :
-  mac:   'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v1.0.0/GEEKLEARN.GAMES_1.0.0_aarch64.dmg',
-  linux: 'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v1.0.0/GEEKLEARN.GAMES_1.0.0_amd64.AppImage',
-  all:   'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/latest', // toutes plateformes (dmg Intel, deb, rpm…)
+  version: _DL_VER,
+  sizeMB: 2.1,
+  sha256: 'f6148bb868ccf129d97bf3287a095156330068fde563ba9afee21b29f7b4c06e',
+  all: 'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/latest',
+  /* Variantes par plateforme : la 1re = lien principal (gros bouton pour
+     l'OS détecté), toutes sont listées sur la carte de la plateforme. */
+  platforms: {
+    win: [
+      { l: 'x64 · .exe (NSIS)', u: 'download/GEEKLEARN-GAMES-Setup.exe' }, // auto-hébergé
+    ],
+    mac: [
+      { l: 'Apple Silicon · .dmg',  u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_aarch64.dmg` },
+      { l: 'Intel x86-64 · .dmg',   u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_x64.dmg` },
+    ],
+    linux: [
+      { l: 'x64 · .AppImage',   u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_amd64.AppImage` },
+      { l: 'x64 · .deb',        u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_amd64.deb` },
+      { l: 'x64 · .rpm',        u: `${_DL_REL}/GEEKLEARN.GAMES-${_DL_VER}-1.x86_64.rpm` },
+      { l: 'ARM64 · .AppImage', u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_aarch64.AppImage` },
+      { l: 'ARM64 · .deb',      u: `${_DL_REL}/GEEKLEARN.GAMES_${_DL_VER}_arm64.deb` },
+      { l: 'ARM64 · .rpm',      u: `${_DL_REL}/GEEKLEARN.GAMES-${_DL_VER}-1.aarch64.rpm` },
+    ],
+  },
 };
 /* OS du visiteur (pour proposer le bon bouton). iOS contient "like Mac OS X"
    → exclu. Android exclu de linux. Défaut raisonnable : windows. */
@@ -1869,20 +2130,21 @@ function buildLauncherTeaser() {
     ['f3t','f3d','<svg viewBox="0 0 24 24" fill="none"><path d="M19.5 9.5A7.5 7.5 0 006 7M4.5 14.5A7.5 7.5 0 0018 17" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M19.8 4.6v4.2h-4.2M4.2 19.4v-4.2h4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
     ['f4t','f4d','<svg viewBox="0 0 24 24" fill="none"><path d="M12 3L5 5.6v5.2c0 4.6 3 7.7 7 9.4 4-1.7 7-4.8 7-9.4V5.6L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 11.4l2.2 2.2 3.8-4.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
   ];
-  // Bouton principal selon l'OS du visiteur ; plateformes sans artefact
-  // publié = chip « bientôt » (URLs centralisées dans LAUNCHER_DL).
+  // Bouton principal selon l'OS du visiteur ; chaque carte plateforme liste
+  // TOUTES ses variantes (Apple Silicon/Intel, x64/ARM64, AppImage/deb/rpm) —
+  // URLs centralisées dans LAUNCHER_DL.platforms.
   const os = _dlOS();
+  const P = LAUNCHER_DL.platforms;
   const dlIcon = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   let sizeTxt = String(LAUNCHER_DL.sizeMB);
   try { sizeTxt = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: 1 }).format(LAUNCHER_DL.sizeMB); } catch (e) {}
-  const primary = (os === 'mac' && !LAUNCHER_DL.mac) || (os === 'linux' && !LAUNCHER_DL.linux)
-    ? `<span class="btn btn-outline btn-lg lt-dl-soon">${os === 'mac' ? 'macOS' : 'Linux'} — ${_lnt('dlSoon')}</span>
-       <a class="btn btn-primary btn-lg" href="${LAUNCHER_DL.win}" download>${dlIcon} ${_lnt('dlWin')}</a>`
-    : `<a class="btn btn-primary btn-lg" href="${LAUNCHER_DL[os === 'mac' ? 'mac' : os === 'linux' ? 'linux' : 'win'] || LAUNCHER_DL.win}" download>${dlIcon} ${os === 'mac' ? 'macOS' : os === 'linux' ? 'Linux' : _lnt('dlWin')}</a>`;
+  const priKey = (os === 'mac' || os === 'linux') && P[os] && P[os].length ? os : 'win';
+  const pri = P[priKey][0];
+  const primary = `<a class="btn btn-primary btn-lg" href="${pri.u}" ${pri.u.indexOf('http') !== 0 ? 'download' : ''}>${dlIcon} ${priKey === 'mac' ? 'macOS' : priKey === 'linux' ? 'Linux' : _lnt('dlWin')}</a>`;
   host.innerHTML = `
     <div class="lt-inner">
       <div class="lt-copy">
-        <p class="section-eye reveal">${_lnt('eyebrowDl')}</p>
+        <p class="section-eye reveal">${_lnt('eyebrowDl').replace('%s', LAUNCHER_DL.version)}</p>
         <h2 class="section-h reveal" style="margin:12px 0 16px">${_lnt('titleDl')}</h2>
         <p class="lt-sub reveal">${_lnt('sub')}</p>
         <div class="lt-feats">
@@ -1898,25 +2160,35 @@ function buildLauncherTeaser() {
         <p class="lt-dl-meta reveal">${_lnt('dlMeta').replace('%s', sizeTxt)}</p>
         <div class="lt-dl-grid reveal">
           ${[
-            ['win',   'Windows 10/11', '.exe · NSIS',                     LAUNCHER_DL.win,
+            ['win',   'Windows 10/11', '.exe · NSIS',
               '<svg viewBox="0 0 16 16" fill="none"><path d="M2 3.6l5.4-.8v4.9H2V3.6zM8.4 2.6L14 1.8v5.9H8.4V2.6zM2 8.7h5.4v4.9L2 12.8V8.7zM8.4 8.7H14v5.9l-5.6-.8V8.7z" fill="currentColor"/></svg>'],
-            ['mac',   'macOS',         '.dmg · Apple Silicon',            LAUNCHER_DL.mac,
+            ['mac',   'macOS',         'Apple Silicon & Intel',
               '<svg viewBox="0 0 16 16" fill="none"><path d="M11.1 8.5c0-1.5 1.2-2.2 1.3-2.3-.7-1-1.8-1.2-2.2-1.2-.9-.1-1.8.6-2.3.6-.5 0-1.2-.6-2-.5-1 0-2 .6-2.5 1.5-1.1 1.9-.3 4.6.8 6.1.5.8 1.1 1.6 1.9 1.6.8 0 1.1-.5 2-.5s1.2.5 2 .5 1.4-.7 1.9-1.5c.6-.9.8-1.7.8-1.8 0 0-1.6-.6-1.7-2.5zM9.6 3.9c.4-.5.7-1.2.6-2-.6 0-1.4.4-1.8 1-.4.4-.7 1.2-.6 1.9.7.1 1.4-.4 1.8-.9z" fill="currentColor"/></svg>'],
-            ['linux', 'Linux',         '.AppImage · MAJ auto',            LAUNCHER_DL.linux,
+            ['linux', 'Linux',         'x64 & ARM64',
               '<svg viewBox="0 0 16 16" fill="none"><rect x="1.6" y="2.4" width="12.8" height="11.2" rx="1.4" stroke="currentColor" stroke-width="1.2"/><path d="M4.4 6.2l2 1.8-2 1.8M8 10.6h3.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
-          ].map(([k, name, fmt, url, ico]) => url ? `
-          <a class="lt-dl-card lt-dl-card--on" href="${url}" download>
-            <span class="lt-dl-ico" aria-hidden="true">${ico}</span>
-            <span class="lt-dl-name">${name}</span>
-            <span class="lt-dl-fmt">${fmt}</span>
-            <span class="lt-dl-get">${dlIcon} ${_lnt('dl')}</span>
-          </a>` : `
+          ].map(([k, name, fmt, ico]) => {
+            const vars = P[k] || [];
+            if (!vars.length) return `
           <span class="lt-dl-card" aria-disabled="true">
             <span class="lt-dl-ico" aria-hidden="true">${ico}</span>
             <span class="lt-dl-name">${name}</span>
             <span class="lt-dl-fmt">${fmt}</span>
             <span class="lt-dl-get lt-dl-get--soon">${_lnt('dlSoon')}</span>
-          </span>`).join('')}
+          </span>`;
+            return `
+          <div class="lt-dl-card lt-dl-card--on">
+            <span class="lt-dl-ico" aria-hidden="true">${ico}</span>
+            <span class="lt-dl-name">${name}</span>
+            <span class="lt-dl-fmt">${fmt}</span>
+            <span class="lt-dl-vars">
+              ${vars.map(v => `
+              <a class="lt-dl-var" href="${v.u}" ${v.u.indexOf('http') !== 0 ? 'download' : ''} aria-label="${name} — ${v.l}">
+                <span class="lt-dl-var-l">${v.l}</span>
+                <span class="lt-dl-var-get" aria-hidden="true">${dlIcon}</span>
+              </a>`).join('')}
+            </span>
+          </div>`;
+          }).join('')}
         </div>
         <p class="lt-sha reveal">${_lnt('dlSha')} <code>${LAUNCHER_DL.sha256}</code></p>
         ${LAUNCHER_DL.all ? `<a class="lt-allver reveal" href="${LAUNCHER_DL.all}" target="_blank" rel="noopener">${_lnt('allVer')} <span aria-hidden="true">${_ARR()}</span></a>` : ''}
@@ -2782,7 +3054,7 @@ function footerHTML() {
         <div class="footer-links">
           <button onclick="showPage('home')">${nav[0]}</button>
           <button onclick="showPage('works')">${nav[1]}</button>
-          <button class="footer-lib" onclick="showPage('library')">${_lbt('navLabel')}</button>
+          ${IS_TAURI ? `<button class="footer-lib" onclick="showPage('library')">${_lbt('navLabel')}</button>` : ''}
           <button onclick="showPage('shop')">${nav[2]}</button>
           <button onclick="showPage('about')">${nav[3]}</button>
           <button onclick="showPage('contact')">${nav[4]}</button>
@@ -3416,10 +3688,11 @@ function _buildAccountButton() {
 
 /* Dropdown shown when clicking the avatar (logged in) */
 function _buildAccountMenu() {
-  // Contenu du menu — regénéré à chaque appel (les libellés suivent la langue)
+  // Contenu du menu — regénéré à chaque appel (les libellés suivent la langue).
+  // Bibliothèque : entrée réservée au launcher (le web n'y présente pas la page).
   const itemsHTML = `
     <button class="acct-menu-item" data-act="profile" role="menuitem">${_at('profileItem')}</button>
-    <button class="acct-menu-item" data-act="library" role="menuitem">${_lbt('navLabel')}</button>
+    ${IS_TAURI ? `<button class="acct-menu-item" data-act="library" role="menuitem">${_lbt('navLabel')}</button>` : ''}
     <button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>
     <button class="acct-menu-item acct-menu-item--danger" data-act="logout" role="menuitem">${_at('logout')}</button>`;
   const existing = $('nav-account-menu');
@@ -4581,11 +4854,11 @@ async function refreshAccountUI() {
     }
   }
 
-  /* ── Bibliothèque : le header ne la montre qu'aux joueurs CONNECTÉS ──
-     Déconnecté = site vitrine épuré ; connecté = le site devient launcher
-     (l'entrée apparaît aussi dans le menu déroulant de l'avatar et les
-     footers, via la classe globale body.glg-authed). */
-  ['nl-library', 'nml-library'].forEach(id => $(id)?.classList.toggle('is-auth', !!user));
+  /* ── Bibliothèque : EXCLUSIVE AU LAUNCHER (différenciation web/app) ──
+     Sur le site web, l'entrée n'existe plus dans le header : la route
+     #library y devient une page « exclusif au launcher » (buildLibraryPage).
+     Dans le launcher (IS_TAURI), elle n'apparaît qu'aux joueurs connectés. */
+  ['nl-library', 'nml-library'].forEach(id => $(id)?.classList.toggle('is-auth', !!user && IS_TAURI));
   document.body.classList.toggle('glg-authed', !!user);
 
   /* ── Cloche de notifications : visible seulement connecté ── */
@@ -4647,6 +4920,7 @@ const _PP_T = {
   edit:{fr:'Modifier le profil',en:'Edit profile',es:'Editar perfil',de:'Profil bearbeiten',ar:'تعديل الملف الشخصي',zh:'编辑资料',ja:'プロフィール編集',ru:'Редактировать профиль',pl:'Edytuj profil',it:'Modifica profilo'},
   editBanner:{fr:'Bannière',en:'Banner',es:'Portada',de:'Banner',ar:'الغلاف',zh:'横幅',ja:'バナー',ru:'Баннер',pl:'Baner',it:'Banner'},
   statWish:{fr:'Souhaits',en:'Wishlist',es:'Deseos',de:'Wunschliste',ar:'الرغبات',zh:'心愿单',ja:'ウィッシュリスト',ru:'Желаемое',pl:'Życzenia',it:'Desideri'},
+  statGames:{fr:'Jeux',en:'Games',es:'Juegos',de:'Spiele',ar:'الألعاب',zh:'游戏',ja:'ゲーム',ru:'Игры',pl:'Gry',it:'Giochi'},
   statMember:{fr:'Membre depuis',en:'Member since',es:'Miembro desde',de:'Mitglied seit',ar:'عضو منذ',zh:'注册于',ja:'登録日',ru:'В сообществе с',pl:'Członek od',it:'Membro dal'},
   statLib:{fr:'Bibliothèque',en:'Library',es:'Biblioteca',de:'Bibliothek',ar:'المكتبة',zh:'库',ja:'ライブラリ',ru:'Библиотека',pl:'Biblioteka',it:'Libreria'},
   soon:{fr:'Bientôt',en:'Soon',es:'Pronto',de:'Bald',ar:'قريبًا',zh:'即将推出',ja:'近日',ru:'Скоро',pl:'Wkrótce',it:'Presto'},
@@ -4696,9 +4970,13 @@ async function buildProfilePage(){
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
   const gLabel = p.gender==='male' ? _at('male') : p.gender==='female' ? _at('female') : (p.gender_other || _at('other'));
   const banner = safeMediaUrl(p.banner_url);
+  // Jeux possédés (le fondateur certifié possède le catalogue entier)
+  const gamesCount = (typeof _isVerified === 'function' && _isVerified(p.username))
+    ? ALL_WORKS.length
+    : (Array.isArray(p.library) ? p.library.length : 0);
 
   host.innerHTML = `
-    <section class="pp">
+    <section class="pp pp--v3">
       <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url(${banner})"`:''}>
         <div class="pp-banner-scrim"></div>
         <button class="pp-banner-edit" onclick="openBannerPicker()" title="${_ppt('editBanner')}" aria-label="${_ppt('pickBanner')}">
@@ -4707,6 +4985,8 @@ async function buildProfilePage(){
         </button>
       </div>
 
+      <!-- Plaque d'identité façon Steam-mais-mieux : elle chevauche la
+           bannière ; niveau de trophées en anneau à droite (geste Steam). -->
       <div class="pp-head">
         <button class="pp-avatar" onclick="openAvatarPicker()" title="${_at('avatarChange')}" aria-label="${_at('avatarChange')}">
           ${_avatarDiscHTML(p, user)}
@@ -4714,6 +4994,7 @@ async function buildProfilePage(){
         </button>
         <div class="pp-id">
           <h1 class="pp-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
+          <span class="pp-online"><i aria-hidden="true"></i>${_ft('online')}</span>
           ${pr.privacy.showTrophies ? `<span class="pp-level-chip" id="pp-level-chip"></span>` : ''}
           <div class="pp-badges">
             <span class="pp-badge">${escHtml(gLabel)}</span>
@@ -4723,15 +5004,19 @@ async function buildProfilePage(){
           ${p.bio ? `<p class="pp-bio">${escHtml(p.bio)}</p>` : `<button class="pp-bio-add" onclick="showPage('settings')">${_ppt('addBio')}</button>`}
         </div>
         <div class="pp-actions">
+          ${pr.privacy.showTrophies ? `<div class="pp-level-ring" id="pp-level-ring" title="${_tt('level')}" aria-label="${_tt('level')}"></div>` : ''}
           <button class="btn btn-outline pp-edit-btn" onclick="showPage('settings')">${_ppt('edit')}</button>
         </div>
       </div>
 
+      <!-- Compteurs cliquables (mieux que Steam : chaque compteur mène à sa
+           section — Jeux ouvre la bibliothèque du launcher). -->
       <div class="pp-stats">
-        <div class="pp-stat"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></div>
-        <div class="pp-stat"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></div>
-        <div class="pp-stat"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></div>
-        <div class="pp-stat"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></div>
+        <button class="pp-stat" onclick="showPage('library')"><b id="pp-stat-games">${gamesCount}</b><span>${_ppt('statGames')}</span></button>
+        <button class="pp-stat" onclick="document.querySelector('.pp-trophy-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></button>
+        <button class="pp-stat" onclick="document.querySelector('.pp-friends-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></button>
+        <button class="pp-stat" onclick="document.querySelector('.pp-rev-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
+        <button class="pp-stat" onclick="document.getElementById('pp-wish-grid')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></button>
       </div>
 
       <!-- Disposition launcher : colonne principale (contenu vivant) + rail (infos froides) -->
@@ -5454,6 +5739,9 @@ async function refreshTrophiesUI(){
   // Badge de niveau dans l'en-tête d'identité (geste PSN reconnaissable)
   const chip = document.getElementById('pp-level-chip');
   if (chip) chip.innerHTML = `<span class="pp-lc-cup">${_TROPHY_SVG}</span><b>${_tt('levelShort')} ${d.level}</b><span class="pp-lc-bar"><i style="width:${d.nextPct}%"></i></span>`;
+  // Anneau de niveau façon Steam (plaque d'identité, progression conique)
+  const ring = document.getElementById('pp-level-ring');
+  if (ring) ring.innerHTML = `<span class="pp-ring-track" style="--pct:${d.nextPct}"><span class="pp-ring-in"><b>${d.level}</b><small>${_tt('levelShort')}</small></span></span>`;
 }
 
 /* ── Section "Évaluations" du profil (perso + public) — via user_reviews ── */
@@ -6589,6 +6877,59 @@ document.addEventListener('DOMContentLoaded', () => {
    l'injection Tauri (pages locales) OU l'user-agent posé par la fenêtre
    du launcher (contenu distant, voir launcher/src-tauri/tauri.conf.json). */
 const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigator.userAgent);
+
+/* ── BARRE DE TITRE CUSTOM (launcher ≥ 1.0.2, fenêtre sans décorations) ──
+   Comme Discord : titre « GEEKLEARN GAMES » CENTRÉ, zone de drag pleine
+   largeur, contrôles fenêtre à droite. Ne se rend QUE si l'IPC fenêtre est
+   exposé (window.__TAURI__ ← capability remote-window-controls du shell) :
+   les anciens launchers à fenêtre décorée (≤ 1.0.1) ne changent pas. */
+const _TB_T = {
+  min:  { fr:'Réduire', en:'Minimize', es:'Minimizar', de:'Minimieren', it:'Riduci', ar:'تصغير', zh:'最小化', ja:'最小化', ru:'Свернуть', pl:'Minimalizuj' },
+  max:  { fr:'Agrandir / restaurer', en:'Maximize / restore', es:'Maximizar / restaurar', de:'Maximieren / wiederherstellen', it:'Ingrandisci / ripristina', ar:'تكبير / استعادة', zh:'最大化 / 还原', ja:'最大化 / 元に戻す', ru:'Развернуть / восстановить', pl:'Maksymalizuj / przywróć' },
+  close:{ fr:'Fermer', en:'Close', es:'Cerrar', de:'Schließen', it:'Chiudi', ar:'إغلاق', zh:'关闭', ja:'閉じる', ru:'Закрыть', pl:'Zamknij' },
+};
+const _tbT = k => (_TB_T[k] && (_TB_T[k][LANG] || _TB_T[k].en)) || '';
+function _refreshTitlebarLabels() {
+  const bar = document.getElementById('glg-titlebar'); if (!bar) return;
+  const set = (id, k) => { const b = bar.querySelector('#' + id); if (b) { b.setAttribute('aria-label', _tbT(k)); b.title = _tbT(k); } };
+  set('tb-min', 'min'); set('tb-max', 'max'); set('tb-close', 'close');
+}
+function _initTauriTitlebar() {
+  try {
+    const W = window.__TAURI__ && window.__TAURI__.window;
+    if (!IS_TAURI || !W || document.getElementById('glg-titlebar')) return;
+    const win = W.getCurrentWindow ? W.getCurrentWindow() : (W.getCurrent ? W.getCurrent() : null);
+    if (!win) return;
+    const bar = document.createElement('div');
+    bar.id = 'glg-titlebar';
+    bar.innerHTML = `
+      <div class="tb-drag" data-tauri-drag-region>
+        <span class="tb-title" aria-hidden="true">
+          <img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'">
+          <span>GEEKLEARN GAMES</span>
+        </span>
+      </div>
+      <div class="tb-controls">
+        <button class="tb-btn" id="tb-min">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M1 5.5h9" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+        <button class="tb-btn" id="tb-max">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+        <button class="tb-btn tb-btn--close" id="tb-close">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M1.5 1.5l8 8m0-8l-8 8" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+      </div>`;
+    document.body.prepend(bar);
+    document.documentElement.classList.add('glg-frameless');
+    _refreshTitlebarLabels();
+    bar.querySelector('#tb-min').addEventListener('click', () => { try { win.minimize(); } catch (e) {} });
+    bar.querySelector('#tb-max').addEventListener('click', () => { try { win.toggleMaximize(); } catch (e) {} });
+    bar.querySelector('#tb-close').addEventListener('click', () => { try { win.close(); } catch (e) {} });
+  } catch (e) {}
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initTauriTitlebar);
+else _initTauriTitlebar();
 
 /* ── DEEP-LINKS glg:// REÇUS PAR LE LAUNCHER ────────────────────────────
    Le shell Tauri (launcher/src-tauri/src/lib.rs) évalue

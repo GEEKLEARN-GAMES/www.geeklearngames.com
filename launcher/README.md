@@ -1,10 +1,18 @@
 # GEEKLEARN GAMES — Launcher de bureau (Tauri v2)
 
-Le launcher est un **shell natif Windows/macOS** qui affiche le site
+Le launcher est un **shell natif Windows/macOS/Linux** qui affiche le site
 (`https://www.geeklearngames.com`) dans une fenêtre dédiée. Le site détecte
 qu'il tourne « in-app » (user-agent `GLGLauncher`) et adapte son comportement :
-pas de service worker, pas de modale de passage de relais, section « Le
-launcher arrive » masquée, deep-links `glg://` reçus nativement.
+pas de service worker, pas de modale de passage de relais, bibliothèque
+exclusive au launcher, deep-links `glg://` reçus nativement.
+
+Depuis la **v1.0.2**, la fenêtre est *frameless* (`decorations:false`) : le
+site rend une **barre de titre custom façon Discord** (titre centré, contrôles
+fenêtre à droite) via la capability `remote-window-controls` — seul IPC exposé
+au contenu distant : minimiser/agrandir/fermer/déplacer SA fenêtre. Le shell
+intègre aussi **Discord Rich Presence** (logo + « Dans le launcher ») :
+renseigner `DISCORD_APP_ID` dans `src/lib.rs` (Application Discord portant un
+asset Rich Presence nommé `glg-logo`) — ID vide = fonctionnalité coupée.
 
 **Pourquoi Tauri v2 (et pas Electron)** : binaire ~5-10 Mo (vs ~120 Mo),
 webview système (WebView2/WKWebView), **updater signé intégré** (minisign),
@@ -113,7 +121,8 @@ notarisation Apple) pour supprimer les avertissements SmartScreen/Gatekeeper.
 |---|---|---|---|---|
 | Windows 10/11 | `.exe` NSIS | ✅ | ✅ (registre, via l'installeur) | ta machine OU la CI |
 | macOS (Apple Silicon + Intel) | `.dmg` / `.app` | ✅ | ✅ (Info.plist) | **la CI** (pas besoin d'un Mac) |
-| Linux | `.AppImage` + `.deb` + `.rpm` | ✅ AppImage uniquement | ✅ (entrée .desktop — deb/rpm ; AppImage : après intégration au système) | **la CI** (ubuntu-22.04) |
+| Linux x64 | `.AppImage` + `.deb` + `.rpm` | ✅ AppImage uniquement | ✅ (entrée .desktop — deb/rpm ; AppImage : après intégration au système) | **la CI** (ubuntu-22.04) |
+| Linux ARM64 (Raspberry Pi 5, portables ARM) | `.AppImage` + `.deb` + `.rpm` | ✅ AppImage uniquement | ✅ (idem x64) | **la CI** (ubuntu-22.04-arm) |
 
 Notes Linux : l'updater Tauri ne met à jour QUE le format AppImage (deb/rpm
 passent par le gestionnaire de paquets de la distribution) — recommander

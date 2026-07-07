@@ -434,6 +434,15 @@
     return { ok: true, friends, incoming, outgoing };
   }
 
+  /* « Contacts qui y ont joué » (bibliothèque launcher) — RPC friends_played :
+     mes amis qui possèdent/ont lancé l'œuvre, privacy showRecent respectée. */
+  async function friendsPlayed(workId) {
+    if (!_ready) return { ok: false, code: 'notConfigured', friends: [] };
+    const { data, error } = await _client.rpc('friends_played', { work: workId });
+    if (error) return { ok: false, code: 'network', friends: [], error };
+    return { ok: true, friends: data || [] };
+  }
+
   /* ── TROPHÉES / SUCCÈS ─────────────────────────────────
      Lecture protégée par RLS (chacun ne lit que SES déblocages).
      grantAchievement = pour l'intégration jeu (idéalement appelée
@@ -676,7 +685,7 @@
     signUp, signIn, signOut, changePassword,
     getSession, getUser, getProfile, updateProfile, deleteAccount,
     uploadAvatar, uploadBanner, moderateImage,
-    searchUsers, friendRequest, friendRespond, friendRemove, friendsList, getPublicProfile,
+    searchUsers, friendRequest, friendRespond, friendRemove, friendsList, friendsPlayed, getPublicProfile,
     getAchievements, grantAchievement, trophyRarity,
     upsertReview, deleteReview, reviewSummary, workReviews, userReviews, myReview, reportReview,
     wishlistCount, touchRecentGame, grantGame, setRemember,

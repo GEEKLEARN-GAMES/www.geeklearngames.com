@@ -3087,9 +3087,9 @@ body::after{
   letter-spacing:.18em; color:rgba(255,255,255,.28); text-transform:lowercase;
 }
 
-/* §63b · Bibliothèque dans le header : réservée aux joueurs CONNECTÉS.
-   Déconnecté = site vitrine épuré ; connecté = le site devient launcher
-   (l'entrée vit aussi dans le menu déroulant de l'avatar). */
+/* §63b · Bibliothèque dans le header : EXCLUSIVE AU LAUNCHER (IS_TAURI) et
+   réservée aux joueurs connectés. Sur le web, l'entrée n'existe pas — la
+   route #library y affiche la page « exclusif au launcher » (§68). */
 #nl-library:not(.is-auth), #nml-library:not(.is-auth){ display:none !important; }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -3322,3 +3322,307 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
   transition:color .25s, border-color .25s;
 }
 .lt-allver:hover{ color:#fff; border-color:rgba(255,255,255,.55); }
+/* Variantes par plateforme (Apple Silicon/Intel, x64/ARM64, AppImage/deb/rpm) :
+   lignes téléchargeables DANS la carte — la carte n'est plus un lien global. */
+.lt-dl-card--on{ cursor:default; }
+.lt-dl-vars{ display:flex; flex-direction:column; margin-top:7px; border-top:1px solid rgba(255,255,255,.08); }
+.lt-dl-var{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:6px 2px 5px; text-decoration:none; color:rgba(255,255,255,.62);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.12em;
+  text-transform:uppercase; transition:color .2s, padding .25s;
+}
+.lt-dl-var:last-child{ border-bottom:none; padding-bottom:1px; }
+.lt-dl-var:hover{ color:#fff; padding-left:4px; }
+[dir="rtl"] .lt-dl-var:hover{ padding-left:2px; padding-right:4px; }
+.lt-dl-var-get{ display:inline-flex; opacity:.55; transition:opacity .2s; }
+.lt-dl-var-get svg{ width:11px; height:11px; }
+.lt-dl-var:hover .lt-dl-var-get{ opacity:1; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §68 · « EXCLUSIF AU LAUNCHER » — la route #library sur le SITE WEB.
+   Invitation cinématique à installer l'app de bureau (fenêtre §64 réutilisée) ;
+   la vraie bibliothèque ne se rend que dans le launcher (IS_TAURI).
+════════════════════════════════════════════════════════════════════════ */
+.libx{
+  position:relative; overflow:hidden;
+  min-height:calc(100vh - var(--nav-h,64px)); margin-top:var(--nav-h,64px);
+  display:flex; align-items:center;
+}
+.libx-inner{
+  position:relative; z-index:2;
+  display:grid; grid-template-columns:1.05fr .95fr; align-items:center;
+  gap:clamp(30px,5vw,70px);
+  width:min(1180px,92vw); margin:0 auto; padding:70px 0;
+}
+.libx-title{
+  margin:14px 0 18px; font-family:var(--f-disp,sans-serif);
+  font-size:clamp(1.9rem,4vw,3.3rem); line-height:1.02; letter-spacing:.02em;
+  text-transform:uppercase; color:#fff;
+}
+.libx-sub{
+  margin:0; max-width:56ch; font-size:.92rem; line-height:1.75;
+  color:rgba(255,255,255,.62);
+}
+.libx-chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:20px; }
+.libx-chip{
+  font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.18em;
+  text-transform:uppercase; color:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.14); border-radius:2px; padding:.5em .8em .42em;
+}
+.libx-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:26px; }
+.libx-actions .btn{ display:inline-flex; align-items:center; gap:9px; }
+.libx-hint{
+  margin:16px 0 0; font-family:var(--f-mono,monospace); font-size:.54rem;
+  letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.4);
+}
+.libx-visual{ display:flex; justify-content:center; }
+@media (max-width:900px){
+  .libx-inner{ grid-template-columns:1fr; padding:50px 0 60px; }
+  .libx-visual{ display:none; } /* mobile : le message + CTA suffisent */
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   §69 · BIBLIOTHÈQUE v2 (launcher) — héro CENTRÉ ancré vers le bas,
+   rail rétractable fluide à la sélection (mode « zen »), et sections
+   façon Steam sous le héro : Succès / Contacts / DLC / Actualités.
+════════════════════════════════════════════════════════════════════════ */
+/* ── Héro : logo, tagline et boutons au CENTRE, légèrement en bas ── */
+.lib-hero{ justify-content:center; }
+.lib-hero-body{
+  margin:0 auto; max-width:860px;
+  align-items:center; text-align:center;
+  padding-bottom:clamp(48px,9vh,110px);
+}
+.lib-hero-veil{
+  background:
+    linear-gradient(0deg, rgba(5,5,6,.96) 0%, rgba(5,5,6,.55) 34%, rgba(5,5,6,.15) 62%, rgba(5,5,6,.35) 100%),
+    radial-gradient(85% 65% at 50% 88%, rgba(var(--tint-rgb,255,255,255),.14), transparent 62%);
+}
+[dir="rtl"] .lib-hero-veil{
+  background:
+    linear-gradient(0deg, rgba(5,5,6,.96) 0%, rgba(5,5,6,.55) 34%, rgba(5,5,6,.15) 62%, rgba(5,5,6,.35) 100%),
+    radial-gradient(85% 65% at 50% 88%, rgba(var(--tint-rgb,255,255,255),.14), transparent 62%);
+}
+.lib-logo{ max-width:min(440px,78%); }
+.lib-ctas, .lib-meta, .lib-links{ justify-content:center; }
+/* Indice de scroll : les sections vivent sous le héro */
+.lib-scroll-cue{
+  position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+  z-index:2; color:rgba(255,255,255,.4);
+  animation:libCue 2.2s ease-in-out infinite;
+}
+@keyframes libCue{ 0%,100%{ transform:translate(-50%,0); opacity:.4; } 50%{ transform:translate(-50%,5px); opacity:.85; } }
+@media (prefers-reduced-motion:reduce){ .lib-scroll-cue{ animation:none; } }
+
+/* ── Rail rétractable (mode « zen ») : sélectionner un jeu via la liste
+   réduit le rail aux jaquettes — la vitrine devient quasi plein écran.
+   Survoler le rail le ré-étend fluidement (:has ; sans :has il reste
+   compact, toujours utilisable — dégradation propre). ── */
+.lib-shell{ transition:grid-template-columns .65s cubic-bezier(.22,1,.36,1); }
+.lib-shell--zen{ grid-template-columns:78px 1fr; }
+.lib-rail-head, .lib-item-name{ transition:opacity .3s ease; }
+.lib-shell--zen .lib-rail-head{ opacity:0; }
+.lib-shell--zen .lib-item{ grid-template-columns:30px; justify-content:center; padding:9px 0; }
+.lib-shell--zen .lib-item-name{ opacity:0; }
+.lib-shell--zen:has(.lib-rail:hover){ grid-template-columns:288px 1fr; }
+.lib-shell--zen:has(.lib-rail:hover) .lib-rail-head{ opacity:1; }
+.lib-shell--zen:has(.lib-rail:hover) .lib-item{ grid-template-columns:30px 1fr; justify-content:stretch; padding:9px 22px; }
+.lib-shell--zen:has(.lib-rail:hover) .lib-item-name{ opacity:1; }
+@media (max-width:900px){ /* rail horizontal mobile : pas de mode zen */
+  .lib-shell--zen{ grid-template-columns:1fr; }
+  .lib-shell--zen .lib-rail-head, .lib-shell--zen .lib-item-name{ opacity:1; }
+  .lib-shell--zen .lib-item{ grid-template-columns:26px 1fr; justify-content:stretch; padding:8px 12px; }
+}
+
+/* ── Sections sous le héro (disposition Steam : actus à gauche, rail
+   Succès/Contacts/DLC à droite) ── */
+.lib-below{
+  display:grid; grid-template-columns:1.55fr 1fr; align-items:start;
+  gap:clamp(16px,2.6vw,34px);
+  padding:clamp(22px,3.4vw,48px);
+  background:linear-gradient(180deg,#070708,#09090b);
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.lib-sec{
+  border:1px solid rgba(255,255,255,.08); border-radius:8px;
+  background:linear-gradient(180deg,#0d0d0f,#0a0a0b);
+  padding:18px 20px 20px; margin-bottom:16px;
+}
+.lib-below-main .lib-sec:last-child, .lib-below-side .lib-sec:last-child{ margin-bottom:0; }
+.lib-sec-head{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.lib-sec-title{
+  margin:0; font-family:var(--f-mono,monospace); font-size:.58rem; font-weight:600;
+  letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,.65);
+}
+.lib-sec-count{
+  font-family:var(--f-mono,monospace); font-size:.52rem; padding:.3em .55em .24em;
+  border:1px solid rgba(255,255,255,.16); border-radius:2px; color:rgba(255,255,255,.75);
+}
+.lib-sec-note{ margin:0; font-size:.74rem; line-height:1.6; color:rgba(255,255,255,.42); }
+.lib-sec-btn{
+  margin-top:14px; background:none; border:none; padding:0 0 3px; cursor:pointer;
+  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.18em;
+  text-transform:uppercase; color:rgba(255,255,255,.55);
+  border-bottom:1px solid rgba(255,255,255,.18);
+  transition:color .25s, border-color .25s;
+}
+.lib-sec-btn:hover{ color:#fff; border-color:rgba(255,255,255,.6); }
+/* Succès : barre de progression teintée + tuiles trophées / verrous */
+.lib-ach-progress{ display:flex; flex-direction:column; gap:7px; margin-bottom:13px; }
+.lib-ach-of{
+  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.12em;
+  text-transform:uppercase; color:rgba(255,255,255,.55);
+}
+.lib-ach-bar{ display:block; height:5px; border-radius:3px; background:rgba(255,255,255,.08); overflow:hidden; }
+.lib-ach-bar i{
+  display:block; height:100%; border-radius:3px;
+  background:linear-gradient(90deg, rgba(var(--tint-rgb,255,255,255),.95), rgba(var(--tint-rgb,255,255,255),.55));
+  transition:width .8s cubic-bezier(.22,1,.36,1);
+}
+.lib-ach-row{ display:flex; flex-wrap:wrap; gap:7px; }
+.lib-ach-tile{
+  width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid rgba(255,255,255,.12); border-radius:5px; cursor:pointer;
+  background:rgba(255,255,255,.03); color:var(--tc,#fff);
+  transition:transform .25s cubic-bezier(.22,1,.36,1), border-color .25s, background .25s;
+}
+.lib-ach-tile:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.06); }
+.lib-ach-tile svg{ width:17px; height:17px; }
+.lib-ach-tile .trophy-ico{ width:17px; height:17px; }
+.lib-ach-tile--lock{ color:rgba(255,255,255,.28); }
+.lib-ach-lockl{
+  margin:13px 0 8px; font-family:var(--f-mono,monospace); font-size:.5rem;
+  letter-spacing:.18em; text-transform:uppercase; color:rgba(255,255,255,.35);
+}
+/* Contacts qui y ont joué — rangée d'avatars, volontairement minime */
+.lib-fp-row{ display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-bottom:9px; }
+.lib-fp-ava{
+  position:relative; width:34px; height:34px; border-radius:50%; overflow:hidden;
+  border:1px solid rgba(255,255,255,.18); padding:0; cursor:pointer; background:#141416;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:transform .25s cubic-bezier(.22,1,.36,1), border-color .25s;
+}
+.lib-fp-ava:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,.5); }
+.lib-fp-ava .ava-img{ width:100%; height:100%; object-fit:cover; }
+.lib-fp-ava .ava-init{ font-size:.72rem; font-weight:700; color:rgba(255,255,255,.75); }
+.lib-fp-more{
+  font-family:var(--f-mono,monospace); font-size:.56rem; color:rgba(255,255,255,.5);
+  letter-spacing:.08em; padding:0 3px;
+}
+/* DLC & extensions — carte horizontale : jaquette, parenté, prix/possédé */
+.lib-dlc-list{ display:flex; flex-direction:column; gap:10px; }
+.lib-dlc-card{
+  display:grid; grid-template-columns:44px 1fr auto; align-items:center; gap:13px;
+  padding:11px 12px; border:1px solid rgba(255,255,255,.09); border-radius:6px;
+  background:rgba(255,255,255,.02);
+  transition:border-color .25s, background .25s;
+}
+.lib-dlc-card:hover{ border-color:rgba(var(--tint-rgb,255,255,255),.4); background:rgba(255,255,255,.035); }
+.lib-dlc-cover{ width:44px; height:58px; border-radius:4px; overflow:hidden; background:#101012; }
+.lib-dlc-cover img{ width:100%; height:100%; object-fit:cover; display:block; }
+.lib-dlc-body{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.lib-dlc-kind{
+  font-family:var(--f-mono,monospace); font-size:.48rem; letter-spacing:.2em;
+  text-transform:uppercase; color:rgba(var(--tint-rgb,255,255,255),.85);
+}
+.lib-dlc-name{
+  font-family:var(--f-head,inherit); font-weight:700; font-size:.86rem; color:#fff;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.lib-dlc-meta{ font-size:.7rem; color:rgba(255,255,255,.55); }
+.lib-dlc-owned{
+  font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.14em;
+  text-transform:uppercase; color:#4cc38a;
+}
+.lib-dlc-btn{ padding:.55em 1.05em; font-size:.62rem; white-space:nowrap; }
+/* Actualités : réutilise les cartes .dp-news-item (§54) telles quelles */
+.lib-news-list{ margin:0; }
+@media (max-width:1080px){
+  .lib-below{ grid-template-columns:1fr; }
+  .lib-below-side{ order:-1; } /* Succès/Contacts/DLC d'abord, actus ensuite */
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   §70 · PROFIL v3 — plaque d'identité façon Steam-mais-mieux : statut en
+   ligne, anneau de niveau conique (geste Steam), 5 compteurs CLIQUABLES
+   (chacun mène à sa section — Jeux ouvre la bibliothèque), bannière + haute.
+════════════════════════════════════════════════════════════════════════ */
+.pp--v3 .pp-banner{ height:clamp(210px,32vw,370px); }
+/* Statut « en ligne » sous le pseudo (pastille animée, sobre) */
+.pp-online{
+  display:inline-flex; align-items:center; gap:7px;
+  margin-top:10px; margin-inline-end:14px;
+  font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.18em;
+  text-transform:uppercase; color:#4cc38a;
+}
+.pp-online i{
+  width:7px; height:7px; border-radius:50%; background:#4cc38a;
+  box-shadow:0 0 8px rgba(76,195,138,.8);
+  animation:ppPulse 2.4s ease-in-out infinite;
+}
+@keyframes ppPulse{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+@media (prefers-reduced-motion:reduce){ .pp-online i{ animation:none; } }
+/* Anneau de niveau (progression conique vers le niveau suivant) */
+.pp--v3 .pp-actions{ display:flex; align-items:center; gap:18px; }
+.pp-ring-track{
+  --pct:0;
+  display:flex; width:66px; height:66px; border-radius:50%; padding:3px;
+  background:conic-gradient(#fff calc(var(--pct)*1%), rgba(255,255,255,.13) 0);
+  box-shadow:0 10px 30px -12px rgba(0,0,0,.9);
+}
+.pp-ring-in{
+  flex:1; border-radius:50%; background:#0b0b0d;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+}
+.pp-ring-in b{ font-family:var(--f-disp,sans-serif); font-size:1.2rem; line-height:1; color:#fff; }
+.pp-ring-in small{
+  font-family:var(--f-mono,monospace); font-size:.4rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.5);
+}
+/* Compteurs : 5 tuiles, désormais des BOUTONS (reset + survol) */
+.pp--v3 .pp-stats{ grid-template-columns:repeat(5,1fr); }
+.pp--v3 .pp-stat{
+  border:none; cursor:pointer; color:inherit; font:inherit;
+  transition:background .25s;
+}
+.pp--v3 .pp-stat:hover{ background:#101013; }
+.pp--v3 .pp-stat:hover span{ color:rgba(255,255,255,.75); }
+@media (max-width:900px){ .pp--v3 .pp-stats{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:520px){ .pp--v3 .pp-stats{ grid-template-columns:1fr; } }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §71 · BARRE DE TITRE CUSTOM (launcher frameless ≥ 1.0.2) — façon Discord :
+   titre centré, drag pleine largeur, contrôles fenêtre Windows à droite.
+   Rendue par _initTauriTitlebar (app.js) uniquement quand l'IPC fenêtre
+   est exposé. html.glg-frameless décale nav + contenu de 32px.
+════════════════════════════════════════════════════════════════════════ */
+#glg-titlebar{
+  position:fixed; top:0; left:0; right:0; height:32px; z-index:100000;
+  display:flex; align-items:stretch;
+  background:#050506; border-bottom:1px solid rgba(255,255,255,.06);
+  user-select:none; -webkit-user-select:none;
+  direction:ltr; /* contrôles à droite même en RTL (convention OS) */
+}
+.tb-drag{ flex:1; position:relative; }
+.tb-title{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.3em;
+  text-transform:uppercase; color:rgba(255,255,255,.55);
+  pointer-events:none; /* le drag passe à travers, vers .tb-drag */
+}
+.tb-title img{ width:14px; height:14px; opacity:.9; }
+.tb-controls{ display:flex; }
+.tb-btn{
+  width:46px; border:none; background:transparent; color:rgba(255,255,255,.6);
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .15s, color .15s;
+}
+.tb-btn:hover{ background:rgba(255,255,255,.09); color:#fff; }
+.tb-btn--close:hover{ background:#e81123; color:#fff; }
+/* Décalage du site : le nav fixe et le flux descendent de 32px */
+html.glg-frameless{ --glg-tb:32px; }
+html.glg-frameless body{ padding-top:var(--glg-tb); }
+html.glg-frameless #nav{ top:var(--glg-tb); }
