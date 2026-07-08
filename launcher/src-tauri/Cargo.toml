@@ -1,6 +1,6 @@
 [package]
 name = "glg-launcher"
-version = "1.0.2"
+version = "1.0.3"
 description = "GEEKLEARN GAMES — launcher de bureau (Windows/macOS/Linux)"
 authors = ["GEEKLEARN GAMES"]
 edition = "2021"

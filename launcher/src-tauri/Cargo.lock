@@ -1357,7 +1357,7 @@ dependencies = [
 
 [[package]]
 name = "glg-launcher"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "discord-rich-presence",
  "serde_json",

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>GEEKLEARN GAMES</title>
+<style>
+  /* ── Splash de démarrage / mise à jour — façon Epic, signé GLG ──
+     Embarqué dans le binaire (protocole glgsplash://) : instantané,
+     fonctionne hors ligne, aucun réseau requis pour s'afficher. */
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ width:100%; height:100%; overflow:hidden; user-select:none; -webkit-user-select:none; cursor:default; }
+  body{
+    display:flex; align-items:center; justify-content:center;
+    background:#050506; color:#fff;
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .card{
+    position:relative; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:0; padding:34px 44px 30px;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.055), transparent 55%),
+      #050506;
+    border:1px solid rgba(255,255,255,.09);
+  }
+  /* coins « viseur » — la signature visuelle du site */
+  .c{ position:absolute; width:14px; height:14px; border:1px solid rgba(255,255,255,.35); }
+  .tl{ top:10px; left:10px; border-right:none; border-bottom:none; }
+  .tr{ top:10px; right:10px; border-left:none; border-bottom:none; }
+  .bl{ bottom:10px; left:10px; border-right:none; border-top:none; }
+  .br{ bottom:10px; right:10px; border-left:none; border-top:none; }
+  .logo{ width:76px; height:76px; margin-bottom:18px; filter:drop-shadow(0 10px 30px rgba(0,0,0,.9)); animation:breath 3.2s ease-in-out infinite; }
+  @keyframes breath{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(.96); opacity:.85; } }
+  .name{
+    font-size:15px; font-weight:800; letter-spacing:.42em; text-indent:.42em;
+    margin-bottom:26px; color:#fff;
+  }
+  .status{
+    font-size:9px; font-weight:600; letter-spacing:.32em; text-indent:.32em;
+    text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:14px;
+    min-height:12px; text-align:center;
+  }
+  .track{
+    width:min(320px, 78%); height:2px; border-radius:2px;
+    background:rgba(255,255,255,.12); overflow:hidden; position:relative;
+  }
+  .fill{
+    position:absolute; inset:0; width:0%; background:#fff; border-radius:2px;
+    transition:width .35s ease;
+  }
+  /* mode indéterminé (recherche de MAJ) : balayage */
+  .track.scan .fill{ width:34%; animation:scan 1.4s ease-in-out infinite; }
+  @keyframes scan{ 0%{ left:-34%; } 100%{ left:100%; } }
+  .pct{
+    margin-top:12px; font-size:9px; letter-spacing:.24em; text-indent:.24em;
+    color:rgba(255,255,255,.4); min-height:11px;
+    font-variant-numeric:tabular-nums;
+  }
+  .site{
+    position:absolute; bottom:16px; left:0; right:0; text-align:center;
+    font-size:8px; letter-spacing:.3em; text-indent:.3em;
+    text-transform:uppercase; color:rgba(255,255,255,.28);
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <img class="logo" src="/icon.png" alt="GLG" draggable="false"
+         onerror="this.outerHTML='<div class=&quot;name&quot; style=&quot;font-size:34px;margin-bottom:18px&quot;>GLG</div>'">
+    <div class="name">GEEKLEARN&nbsp;GAMES</div>
+    <div class="status" id="st">Recherche de mises à jour…</div>
+    <div class="track scan" id="track"><div class="fill" id="fill"></div></div>
+    <div class="pct" id="pct"></div>
+    <div class="site">www.geeklearngames.com</div>
+  </div>
+<script>
+  /* Piloté par le shell Rust : __GLG_SPLASH('check'|'update'|'restart', pct) */
+  (function () {
+    var L = {
+      check:   'Recherche de mises à jour…',
+      update:  'Mise à jour en cours — Updating…',
+      restart: 'Redémarrage — Restarting…',
+      launch:  'Lancement — Launching…',
+    };
+    window.__GLG_SPLASH = function (state, pct) {
+      var st = document.getElementById('st');
+      var tr = document.getElementById('track');
+      var fi = document.getElementById('fill');
+      var pc = document.getElementById('pct');
+      if (st && L[state]) st.textContent = L[state];
+      if (state === 'update' && typeof pct === 'number' && pct >= 0) {
+        tr.classList.remove('scan');
+        fi.style.width = Math.max(2, Math.min(100, pct)) + '%';
+        pc.textContent = pct + ' %';
+      } else if (state === 'restart' || state === 'launch') {
+        tr.classList.remove('scan');
+        fi.style.width = '100%';
+        pc.textContent = '';
+      }
+    };
+  })();
+</script>
+</body>
+</html>

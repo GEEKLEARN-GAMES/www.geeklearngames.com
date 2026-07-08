@@ -16,6 +16,30 @@
 
 use tauri::Manager;
 
+// ── Splash de démarrage / mise à jour (façon Epic, signé GLG) ────────────
+// HTML + logo EMBARQUÉS dans le binaire (protocole glgsplash://) : le
+// splash s'affiche instantanément, même hors ligne. La fenêtre `splash`
+// (tauri.conf.json) le charge pendant que `main` (cachée) prépare le site.
+const SPLASH_HTML: &str = include_str!("splash.html");
+const SPLASH_ICON: &[u8] = include_bytes!("../icons/128x128.png");
+
+/// Ferme le splash et révèle la fenêtre principale (site prêt derrière).
+fn show_main(app: &tauri::AppHandle) {
+    if let Some(m) = app.get_webview_window("main") {
+        let _ = m.show();
+        let _ = m.set_focus();
+    }
+    if let Some(s) = app.get_webview_window("splash") {
+        let _ = s.close();
+    }
+}
+
+fn splash_eval(app: &tauri::AppHandle, js: &str) {
+    if let Some(s) = app.get_webview_window("splash") {
+        let _ = s.eval(js);
+    }
+}
+
 // ── Discord Rich Presence ────────────────────────────────────────────────
 // Discord affiche « GEEKLEARN GAMES » + le logo officiel dans le statut du
 // joueur. Prérequis côté portail développeur Discord : une Application
@@ -94,6 +118,20 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        // Splash embarqué : HTML + logo servis depuis le binaire lui-même
+        .register_uri_scheme_protocol("glgsplash", |_ctx, request| {
+            if request.uri().path().ends_with("icon.png") {
+                tauri::http::Response::builder()
+                    .header("Content-Type", "image/png")
+                    .body(SPLASH_ICON.to_vec())
+                    .unwrap()
+            } else {
+                tauri::http::Response::builder()
+                    .header("Content-Type", "text/html; charset=utf-8")
+                    .body(SPLASH_HTML.as_bytes().to_vec())
+                    .unwrap()
+            }
+        })
         .setup(|app| {
             // Statut Discord (logo + « Dans le launcher ») — non bloquant.
             start_discord_presence();
@@ -116,18 +154,63 @@ pub fn run() {
             }
 
             // ── Mises à jour signées, vérifiées au démarrage ─────────────
-            // La signature minisign de chaque artefact est vérifiée avec la
-            // pubkey de tauri.conf.json AVANT installation : un binaire non
-            // signé par TA clé est refusé, même si l'endpoint est compromis.
+            // Façon Epic : le SPLASH GLG s'affiche d'abord (fenêtre `splash`),
+            // `main` reste cachée. Pas de MAJ → on révèle le site. MAJ trouvée
+            // → barre de progression sur le splash, installation signée
+            // (minisign vérifié AVANT installation), puis relance.
+            use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+            let updating = std::sync::Arc::new(AtomicBool::new(false));
+
+            // Garde-fou : si la vérification traîne (réseau lent/absent),
+            // on ne retient jamais le joueur plus de 12 s hors mise à jour.
+            {
+                let h = app.handle().clone();
+                let updating = updating.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(12));
+                    if !updating.load(Ordering::SeqCst) {
+                        show_main(&h);
+                    }
+                });
+            }
+
             let handle2 = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use tauri_plugin_updater::UpdaterExt;
-                let Ok(updater) = handle2.updater() else { return };
-                let Ok(Some(update)) = updater.check().await else { return };
-                // Téléchargement + installation silencieux, puis relance :
-                // même philosophie que Steam ("le launcher se met à jour").
-                if update.download_and_install(|_, _| {}, || {}).await.is_ok() {
-                    handle2.restart();
+                let Ok(updater) = handle2.updater() else { show_main(&handle2); return };
+                match updater.check().await {
+                    Ok(Some(update)) => {
+                        updating.store(true, Ordering::SeqCst);
+                        splash_eval(&handle2, "window.__GLG_SPLASH && __GLG_SPLASH('update', 0)");
+                        let progress_handle = handle2.clone();
+                        let downloaded = std::sync::Arc::new(AtomicU64::new(0));
+                        let ok = update
+                            .download_and_install(
+                                move |chunk, total| {
+                                    let d = downloaded.fetch_add(chunk as u64, Ordering::SeqCst)
+                                        + chunk as u64;
+                                    if let Some(t) = total {
+                                        let pct = (d.saturating_mul(100) / t.max(1)).min(100);
+                                        splash_eval(
+                                            &progress_handle,
+                                            &format!("window.__GLG_SPLASH && __GLG_SPLASH('update', {pct})"),
+                                        );
+                                    }
+                                },
+                                || {},
+                            )
+                            .await
+                            .is_ok();
+                        if ok {
+                            splash_eval(&handle2, "window.__GLG_SPLASH && __GLG_SPLASH('restart', 100)");
+                            handle2.restart();
+                        } else {
+                            // Échec de MAJ : ne JAMAIS bloquer le joueur — on
+                            // lance la version actuelle, retentative au prochain démarrage.
+                            show_main(&handle2);
+                        }
+                    }
+                    _ => show_main(&handle2),
                 }
             });
 
