@@ -840,6 +840,11 @@ function applyTranslations() {
   if (sinp) sinp.placeholder = t('searchHint') || 'Type a title...';
   // Barre de titre du launcher frameless : aria-labels dans la langue choisie
   if (typeof _refreshTitlebarLabels === 'function') _refreshTitlebarLabels();
+  // Messagerie : libellés du bouton header + page reconstruite dans la langue
+  const chatBtn = $('nav-chat-btn');
+  if (chatBtn) { chatBtn.title = _chT('navLabel'); chatBtn.setAttribute('aria-label', _chT('navLabel')); }
+  setText('nml-chat', _chT('navLabel'));
+  if ($('chat-root')?.childElementCount) buildChatPage();
   applyStudioThemes();
 }
 
@@ -999,6 +1004,8 @@ function showPage(name, itemId = null) {
     if (name === 'shop') buildShopPage();
     /* Build the player's game library on demand (Rockstar/Steam-style) */
     if (name === 'library') buildLibraryPage();
+    /* Build the chat (GLG Chat — MP + groupes) on demand */
+    if (name === 'chat') buildChatPage();
   }
 
   // Update browser URL without reload.
@@ -1598,11 +1605,13 @@ async function buildLibraryPage() {
       stage.innerHTML = _libStageHTML(lib.find(x => x.w.id === _libSelected), recent);
       _scrollTopInstant();          // repartir en haut de la nouvelle vitrine
       _libFillFriendsPlayed(_libSelected);
+      _libFillMyReview(_libSelected);
       setTimeout(() => stage.classList.add('lib-stage--in'), 20); // setTimeout, pas rAF (onglet caché)
     }
   }));
   setTimeout(() => $('lib-stage')?.classList.add('lib-stage--in'), 30);
   _libFillFriendsPlayed(_libSelected);
+  _libFillMyReview(_libSelected);
 }
 
 /* ══════════════════════════════════════════
@@ -1624,6 +1633,11 @@ const _LIBS_T = {
   kindExpansion:{ fr:'Extension', en:'Expansion', es:'Expansión', de:'Erweiterung', it:'Espansione', ar:'توسعة', zh:'扩展内容', ja:'拡張コンテンツ', ru:'Дополнение', pl:'Rozszerzenie' },
   kindBase:   { fr:'Jeu de base', en:'Base game', es:'Juego base', de:'Hauptspiel', it:'Gioco base', ar:'اللعبة الأساسية', zh:'本体游戏', ja:'ベースゲーム', ru:'Базовая игра', pl:'Gra podstawowa' },
   news:       { fr:'Actualités', en:'News', es:'Noticias', de:'Neuigkeiten', it:'Notizie', ar:'الأخبار', zh:'新闻动态', ja:'ニュース', ru:'Новости', pl:'Aktualności' },
+  store:      { fr:'Page du magasin', en:'Store page', es:'Página de la tienda', de:'Shopseite', it:'Pagina del negozio', ar:'صفحة المتجر', zh:'商店页面', ja:'ストアページ', ru:'Страница магазина', pl:'Strona sklepu' },
+  rev:        { fr:'Ton évaluation', en:'Your review', es:'Tu reseña', de:'Deine Bewertung', it:'La tua recensione', ar:'تقييمك', zh:'你的评价', ja:'あなたのレビュー', ru:'Ваш отзыв', pl:'Twoja recenzja' },
+  revPh:      { fr:'Partage ton avis sur ce titre…', en:'Share your thoughts on this title…', es:'Comparte tu opinión sobre este título…', de:'Teile deine Meinung zu diesem Titel…', it:'Condividi la tua opinione su questo titolo…', ar:'شارك رأيك في هذا العنوان…', zh:'分享你对这部作品的看法……', ja:'このタイトルの感想を書こう…', ru:'Поделитесь мнением об этом тайтле…', pl:'Podziel się opinią o tym tytule…' },
+  revSave:    { fr:'Publier', en:'Post', es:'Publicar', de:'Veröffentlichen', it:'Pubblica', ar:'نشر', zh:'发布', ja:'投稿', ru:'Опубликовать', pl:'Opublikuj' },
+  revSaved:   { fr:'Évaluation publiée ✓', en:'Review posted ✓', es:'Reseña publicada ✓', de:'Bewertung veröffentlicht ✓', it:'Recensione pubblicata ✓', ar:'نُشر التقييم ✓', zh:'评价已发布 ✓', ja:'レビューを投稿しました ✓', ru:'Отзыв опубликован ✓', pl:'Recenzja opublikowana ✓' },
   newsNone:   { fr:'Aucune actualité pour le moment — les mises à jour du studio pour ce titre apparaîtront ici.', en:'No news yet — studio updates for this title will appear here.', es:'Aún no hay noticias — las novedades del estudio sobre este título aparecerán aquí.', de:'Noch keine Neuigkeiten — Studio-Updates zu diesem Titel erscheinen hier.', it:'Ancora nessuna notizia — gli aggiornamenti dello studio su questo titolo appariranno qui.', ar:'لا أخبار بعد — ستظهر هنا تحديثات الأستوديو لهذا العنوان.', zh:'暂无新闻——工作室关于该作品的更新将显示在这里。', ja:'まだニュースはありません — このタイトルのアップデート情報がここに表示されます。', ru:'Пока нет новостей — обновления студии по этому тайтлу появятся здесь.', pl:'Brak aktualności — informacje studia o tym tytule pojawią się tutaj.' },
 };
 const _lst = k => (_LIBS_T[k] && (_LIBS_T[k][LANG] || _LIBS_T[k].en)) || '';
@@ -1749,13 +1763,84 @@ function _libNewsSectionHTML(gid) {
   </section>`;
 }
 
-/* Bandeau de sections sous le héro : actualités en colonne principale,
-   succès / contacts / DLC en rail latéral (disposition Steam, en mieux). */
+/* ── Barre d'outils sous la bannière (façon Steam : « Page du magasin »,
+   DLC, Succès, Actualités) — hors bannière/logo, ancres vers les sections. */
+function _libToolbarHTML(w) {
+  const scroll = sel => `document.querySelector('${sel}')?.scrollIntoView({behavior:'smooth',block:'start'})`;
+  const hasDlc  = typeof GLG_DLC !== 'undefined' && GLG_DLC[w.id] && GLG_DLC[w.id].length;
+  const hasAch  = typeof TROPHIES !== 'undefined' && TROPHIES[w.id] && TROPHIES[w.id].length;
+  const storeIco = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 5.5l1-3h9l1 3M2.5 5.5h11M2.5 5.5V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V5.5M6.5 13V9h3v4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+  return `
+  <div class="lib-toolbar">
+    <button class="lib-tool lib-tool--store" onclick="showPage('detail','${w.id}')">${storeIco} ${_lst('store')}</button>
+    ${hasDlc ? `<button class="lib-tool" onclick="${scroll('.lib-sec--dlc')}">DLC</button>` : ''}
+    ${hasAch ? `<button class="lib-tool" onclick="${scroll('.lib-sec--ach')}">${_lst('ach')}</button>` : ''}
+    <button class="lib-tool" onclick="${scroll('.lib-sec--news')}">${_lst('news')}</button>
+    <button class="lib-tool" onclick="${scroll('.lib-sec--rev')}">${_lst('rev')}</button>
+  </div>`;
+}
+
+/* ── « Ton évaluation » (bibliothèque) : la note du JOUEUR sur l'œuvre —
+   étoiles + texte, réutilise les RPC reviews des fiches (upsert/delete).
+   Coquille rendue tout de suite, remplie en asynchrone (myReview). ── */
+let _libRevState = { workId: null, rating: 0 };
+function _libReviewSectionHTML() {
+  return `
+  <section class="lib-sec lib-sec--rev">
+    <div class="lib-sec-head"><h2 class="lib-sec-title">${_lst('rev')}</h2></div>
+    <div id="lib-rev-body"><p class="lib-sec-note">···</p></div>
+  </section>`;
+}
+async function _libFillMyReview(gid) {
+  const body = document.getElementById('lib-rev-body'); if (!body) return;
+  const w = ALL_WORKS.find(x => x.id === gid); if (!w) return;
+  if (!_workIsReleased(w)) { body.innerHTML = `<p class="lib-sec-note">${_rvt('opens')}</p>`; return; }
+  let mine = null;
+  try { const r = await window.GLG_AUTH?.myReview?.(gid); mine = (r && r.review) || null; } catch (e) {}
+  if (document.getElementById('lib-rev-body') !== body) return; // œuvre changée entre-temps
+  _libRevState = { workId: gid, rating: mine ? (parseInt(mine.rating, 10) || 0) : 0 };
+  let updTxt = '';
+  if (mine && mine.updated_at) { try { updTxt = new Date(mine.updated_at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'short', year:'numeric' }); } catch (e) {} }
+  body.innerHTML = `
+    <div class="lib-rev-stars" role="radiogroup" aria-label="${_lst('rev')}">
+      ${[1,2,3,4,5].map(n => `<button type="button" class="rv-star-btn${n <= _libRevState.rating ? ' on' : ''}" data-n="${n}" onclick="_libRevSetStar(${n})" aria-label="${n}/5">${_RV_STAR}</button>`).join('')}
+    </div>
+    <textarea id="lib-rev-text" class="lib-rev-text" maxlength="1200" rows="3" placeholder="${_lst('revPh')}">${mine && mine.body ? escHtml(mine.body) : ''}</textarea>
+    <div class="lib-rev-actions">
+      <button class="btn btn-primary lib-rev-save" onclick="_libRevSubmit()">${_lst('revSave')}</button>
+      ${mine ? `<button class="lib-sec-btn lib-rev-del" onclick="_libRevDelete()">${_ft('remove')}</button>` : ''}
+      <span class="lib-rev-note" id="lib-rev-note">${mine && updTxt ? `${_lst('revSaved')} · ${updTxt}` : ''}</span>
+    </div>`;
+}
+function _libRevSetStar(n) {
+  _libRevState.rating = n;
+  document.querySelectorAll('.lib-rev-stars .rv-star-btn').forEach(b => b.classList.toggle('on', +b.dataset.n <= n));
+}
+async function _libRevSubmit() {
+  const gid = _libRevState.workId; if (!gid || !_libRevState.rating) return;
+  const txt = document.getElementById('lib-rev-text')?.value || '';
+  const btn = document.querySelector('.lib-rev-save'); if (btn) btn.disabled = true;
+  try {
+    const r = await window.GLG_AUTH?.upsertReview?.(gid, _libRevState.rating, txt.trim() || null);
+    if (r && r.ok) { _libFillMyReview(gid); return; }
+  } catch (e) {}
+  if (btn) btn.disabled = false;
+}
+async function _libRevDelete() {
+  const gid = _libRevState.workId; if (!gid) return;
+  try { await window.GLG_AUTH?.deleteReview?.(gid); } catch (e) {}
+  _libFillMyReview(gid);
+}
+
+/* Bandeau de sections sous le héro : actualités + évaluation du joueur en
+   colonne principale, succès / contacts / DLC en rail latéral (disposition
+   Steam, en mieux). */
 function _libBelowHTML(w) {
   return `
   <div class="lib-below" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
     <div class="lib-below-main">
       ${_libNewsSectionHTML(w.id)}
+      ${_libReviewSectionHTML()}
     </div>
     <aside class="lib-below-side">
       ${_libAchSectionHTML(w.id)}
@@ -1806,6 +1891,7 @@ function _libStageHTML(x, recent) {
       </div>
       <span class="lib-scroll-cue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
     </div>
+    ${_libToolbarHTML(w)}
     ${_libBelowHTML(w)}`;
 }
 
@@ -4862,6 +4948,11 @@ async function refreshAccountUI() {
   ['nl-library', 'nml-library'].forEach(id => $(id)?.classList.toggle('is-auth', !!user && IS_TAURI));
   document.body.classList.toggle('glg-authed', !!user);
 
+  /* ── Messagerie (GLG Chat) : bouton header + abonnement temps réel ── */
+  ['nav-chat-btn', 'nml-chat'].forEach(id => $(id)?.classList.toggle('is-auth', !!user));
+  if (user) { _chatMe = user.id || null; _chatEnsureRealtime(); }
+  else { _chatMe = null; _chatTeardownRealtime(); }
+
   /* ── Cloche de notifications : visible seulement connecté ── */
   const bell = $('nav-notif-btn');
   if (bell) {
@@ -5544,7 +5635,8 @@ async function buildPublicProfilePage(viewId){
   const wWorks = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => wids.includes(w.id) && !isMatureHidden(w));
   const rel = await _userRelation(viewId);
   let action = '';
-  if (rel === 'friend')        action = `<button class="btn btn-outline up-action up-action--remove" data-act="remove">${_upt('remove')}</button>`;
+  if (rel === 'friend')        action = `<button class="btn btn-primary up-action" onclick="openChatWith('${escHtml(viewId)}')">${_chT('navLabel')}</button>
+                                         <button class="btn btn-outline up-action up-action--remove" data-act="remove">${_upt('remove')}</button>`;
   else if (rel === 'incoming') action = `<button class="btn btn-primary up-action" data-act="accept">${_upt('accept')}</button>`;
   else if (rel === 'outgoing') action = `<span class="up-pending">${_upt('pending')}</span>`;
   else if (rel === 'self')     action = '';
@@ -6851,7 +6943,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // liens partagés). Consommé par selectLang après initSite, comme _bootWorkId.
   try {
     const h = (location.hash || '').replace(/^#/, '');
-    if (!window._bootWorkId && ['works', 'shop', 'library', 'about', 'contact', 'profile', 'settings'].includes(h)) {
+    if (!window._bootWorkId && ['works', 'shop', 'library', 'about', 'contact', 'profile', 'settings', 'chat'].includes(h)) {
       window._bootPage = h;
     }
   } catch (e) {}
@@ -6973,4 +7065,509 @@ if ('serviceWorker' in navigator && !IS_TAURI && /(^|\.)geeklearngames\.com$/.te
       });
     }).catch(() => {});
   });
+}
+
+/* ══════════════════════════════════════════
+   GLG CHAT — messagerie (MP entre amis + groupes « serveurs »)
+   ──────────────────────────────────────────
+   Backend : db/schema.sql § GLG CHAT (RLS + chat_can_access + realtime).
+   MP disponibles PARTOUT (site + launcher) ; les GROUPES sont une
+   exclusivité du launcher (le web affiche une invitation à l'installer).
+   Pièces jointes : images / vidéos / audios (bucket chat-media, 25 Mo) +
+   notes vocales enregistrées au micro (MediaRecorder, opt-in navigateur).
+══════════════════════════════════════════ */
+const _CHAT_T = {
+  navLabel:  { fr:'Messagerie', en:'Chat', es:'Chat', de:'Chat', it:'Chat', ar:'الدردشة', zh:'聊天', ja:'チャット', ru:'Чат', pl:'Czat' },
+  dms:       { fr:'Messages privés', en:'Direct messages', es:'Mensajes directos', de:'Direktnachrichten', it:'Messaggi diretti', ar:'الرسائل الخاصة', zh:'私信', ja:'ダイレクトメッセージ', ru:'Личные сообщения', pl:'Wiadomości prywatne' },
+  groups:    { fr:'Groupes', en:'Groups', es:'Grupos', de:'Gruppen', it:'Gruppi', ar:'المجموعات', zh:'群组', ja:'グループ', ru:'Группы', pl:'Grupy' },
+  newGroup:  { fr:'Nouveau groupe', en:'New group', es:'Nuevo grupo', de:'Neue Gruppe', it:'Nuovo gruppo', ar:'مجموعة جديدة', zh:'新建群组', ja:'新しいグループ', ru:'Новая группа', pl:'Nowa grupa' },
+  groupName: { fr:'Nom du groupe…', en:'Group name…', es:'Nombre del grupo…', de:'Gruppenname…', it:'Nome del gruppo…', ar:'اسم المجموعة…', zh:'群组名称……', ja:'グループ名…', ru:'Название группы…', pl:'Nazwa grupy…' },
+  create:    { fr:'Créer', en:'Create', es:'Crear', de:'Erstellen', it:'Crea', ar:'إنشاء', zh:'创建', ja:'作成', ru:'Создать', pl:'Utwórz' },
+  addMember: { fr:'Ajouter un membre', en:'Add a member', es:'Añadir un miembro', de:'Mitglied hinzufügen', it:'Aggiungi un membro', ar:'إضافة عضو', zh:'添加成员', ja:'メンバーを追加', ru:'Добавить участника', pl:'Dodaj członka' },
+  leave:     { fr:'Quitter le groupe', en:'Leave group', es:'Salir del grupo', de:'Gruppe verlassen', it:'Esci dal gruppo', ar:'مغادرة المجموعة', zh:'退出群组', ja:'グループを退出', ru:'Покинуть группу', pl:'Opuść grupę' },
+  members:   { fr:'%s membres', en:'%s members', es:'%s miembros', de:'%s Mitglieder', it:'%s membri', ar:'%s أعضاء', zh:'%s 位成员', ja:'%s人のメンバー', ru:'Участников: %s', pl:'%s członków' },
+  ph:        { fr:'Écris un message…', en:'Write a message…', es:'Escribe un mensaje…', de:'Nachricht schreiben…', it:'Scrivi un messaggio…', ar:'اكتب رسالة…', zh:'输入消息……', ja:'メッセージを入力…', ru:'Напишите сообщение…', pl:'Napisz wiadomość…' },
+  send:      { fr:'Envoyer', en:'Send', es:'Enviar', de:'Senden', it:'Invia', ar:'إرسال', zh:'发送', ja:'送信', ru:'Отправить', pl:'Wyślij' },
+  attach:    { fr:'Joindre une image, vidéo ou audio', en:'Attach an image, video or audio', es:'Adjuntar imagen, vídeo o audio', de:'Bild, Video oder Audio anhängen', it:'Allega immagine, video o audio', ar:'إرفاق صورة أو فيديو أو صوت', zh:'附加图片、视频或音频', ja:'画像・動画・音声を添付', ru:'Прикрепить фото, видео или аудио', pl:'Załącz obraz, wideo lub audio' },
+  record:    { fr:'Note vocale', en:'Voice note', es:'Nota de voz', de:'Sprachnotiz', it:'Nota vocale', ar:'رسالة صوتية', zh:'语音消息', ja:'ボイスメモ', ru:'Голосовое сообщение', pl:'Notatka głosowa' },
+  recStop:   { fr:'Terminer et envoyer', en:'Finish & send', es:'Terminar y enviar', de:'Beenden & senden', it:'Termina e invia', ar:'إنهاء وإرسال', zh:'结束并发送', ja:'終了して送信', ru:'Завершить и отправить', pl:'Zakończ i wyślij' },
+  recCancel: { fr:'Annuler', en:'Cancel', es:'Cancelar', de:'Abbrechen', it:'Annulla', ar:'إلغاء', zh:'取消', ja:'キャンセル', ru:'Отмена', pl:'Anuluj' },
+  recDenied: { fr:'Micro refusé — autorise-le pour envoyer des notes vocales.', en:'Microphone denied — allow it to send voice notes.', es:'Micrófono denegado — permítelo para enviar notas de voz.', de:'Mikrofon verweigert — erlaube es für Sprachnotizen.', it:'Microfono negato — consentilo per inviare note vocali.', ar:'رُفض الميكروفون — اسمح به لإرسال الرسائل الصوتية.', zh:'麦克风被拒绝——允许后才能发送语音。', ja:'マイクが拒否されました — ボイスメモには許可が必要です。', ru:'Микрофон запрещён — разрешите его для голосовых.', pl:'Mikrofon odrzucony — zezwól, aby wysyłać notatki głosowe.' },
+  typing:    { fr:'%s écrit…', en:'%s is typing…', es:'%s está escribiendo…', de:'%s schreibt…', it:'%s sta scrivendo…', ar:'%s يكتب…', zh:'%s 正在输入……', ja:'%sが入力中…', ru:'%s печатает…', pl:'%s pisze…' },
+  edited:    { fr:'modifié', en:'edited', es:'editado', de:'bearbeitet', it:'modificato', ar:'معدَّل', zh:'已编辑', ja:'編集済み', ru:'изменено', pl:'edytowano' },
+  edit:      { fr:'Modifier', en:'Edit', es:'Editar', de:'Bearbeiten', it:'Modifica', ar:'تعديل', zh:'编辑', ja:'編集', ru:'Изменить', pl:'Edytuj' },
+  del:       { fr:'Supprimer', en:'Delete', es:'Eliminar', de:'Löschen', it:'Elimina', ar:'حذف', zh:'删除', ja:'削除', ru:'Удалить', pl:'Usuń' },
+  save:      { fr:'Enregistrer', en:'Save', es:'Guardar', de:'Speichern', it:'Salva', ar:'حفظ', zh:'保存', ja:'保存', ru:'Сохранить', pl:'Zapisz' },
+  loadMore:  { fr:'Messages précédents', en:'Earlier messages', es:'Mensajes anteriores', de:'Frühere Nachrichten', it:'Messaggi precedenti', ar:'رسائل أقدم', zh:'更早的消息', ja:'以前のメッセージ', ru:'Более ранние сообщения', pl:'Wcześniejsze wiadomości' },
+  emptyConv: { fr:'Aucun message pour le moment — écris le premier.', en:'No messages yet — write the first one.', es:'Aún no hay mensajes — escribe el primero.', de:'Noch keine Nachrichten — schreib die erste.', it:'Nessun messaggio — scrivi il primo.', ar:'لا رسائل بعد — اكتب الأولى.', zh:'还没有消息——发出第一条吧。', ja:'まだメッセージがありません — 最初の一通を送ろう。', ru:'Сообщений пока нет — напишите первое.', pl:'Brak wiadomości — napisz pierwszą.' },
+  pickConv:  { fr:'Choisis une conversation à gauche — ou crée un groupe.', en:'Pick a conversation on the left — or create a group.', es:'Elige una conversación a la izquierda — o crea un grupo.', de:'Wähle links eine Unterhaltung — oder erstelle eine Gruppe.', it:'Scegli una conversazione a sinistra — o crea un gruppo.', ar:'اختر محادثة من اليسار — أو أنشئ مجموعة.', zh:'从左侧选择会话——或创建群组。', ja:'左から会話を選ぶか、グループを作成しよう。', ru:'Выберите беседу слева — или создайте группу.', pl:'Wybierz rozmowę po lewej — lub utwórz grupę.' },
+  noFriends: { fr:'Ajoute des amis depuis ton profil pour discuter en privé.', en:'Add friends from your profile to chat privately.', es:'Añade amigos desde tu perfil para chatear en privado.', de:'Füge im Profil Freunde hinzu, um privat zu chatten.', it:'Aggiungi amici dal profilo per chattare in privato.', ar:'أضف أصدقاء من ملفك للدردشة الخاصة.', zh:'在个人资料中添加好友即可私聊。', ja:'プロフィールからフレンドを追加してプライベートチャット。', ru:'Добавьте друзей в профиле, чтобы переписываться.', pl:'Dodaj znajomych w profilu, aby rozmawiać prywatnie.' },
+  groupsWeb: { fr:'Les groupes sont une exclusivité du launcher — télécharge-le pour créer tes serveurs.', en:'Groups are a launcher exclusive — download it to create your servers.', es:'Los grupos son exclusivos del launcher — descárgalo para crear tus servidores.', de:'Gruppen gibt es nur im Launcher — lade ihn herunter, um Server zu erstellen.', it:'I gruppi sono un\'esclusiva del launcher — scaricalo per creare i tuoi server.', ar:'المجموعات حصرية للمشغّل — حمّله لإنشاء خوادمك.', zh:'群组为启动器专属——下载后即可创建你的服务器。', ja:'グループはランチャー限定 — ダウンロードしてサーバーを作ろう。', ru:'Группы — эксклюзив лаунчера. Скачай его, чтобы создавать серверы.', pl:'Grupy są ekskluzywne dla launchera — pobierz go, aby tworzyć serwery.' },
+  signedOut: { fr:'Connecte-toi pour retrouver tes messages privés et tes groupes — synchronisés entre le site et le launcher.', en:'Sign in to find your direct messages and groups — synced between the site and the launcher.', es:'Inicia sesión para ver tus mensajes y grupos — sincronizados entre el sitio y el launcher.', de:'Melde dich an für deine Nachrichten und Gruppen — synchron zwischen Website und Launcher.', it:'Accedi per ritrovare messaggi e gruppi — sincronizzati tra sito e launcher.', ar:'سجّل الدخول لرؤية رسائلك ومجموعاتك — متزامنة بين الموقع والمشغّل.', zh:'登录即可查看你的私信和群组——在网站与启动器间同步。', ja:'サインインしてDMとグループへ — サイトとランチャーで同期。', ru:'Войдите, чтобы увидеть сообщения и группы — синхронизированы между сайтом и лаунчером.', pl:'Zaloguj się, aby zobaczyć wiadomości i grupy — zsynchronizowane między stroną a launcherem.' },
+  tooBig:    { fr:'Fichier trop lourd (25 Mo max).', en:'File too large (25 MB max).', es:'Archivo demasiado grande (máx. 25 MB).', de:'Datei zu groß (max. 25 MB).', it:'File troppo grande (max 25 MB).', ar:'الملف كبير جداً (25 م.ب كحد أقصى).', zh:'文件过大（最大 25 MB）。', ja:'ファイルが大きすぎます（最大25MB）。', ru:'Файл слишком большой (макс. 25 МБ).', pl:'Plik jest za duży (maks. 25 MB).' },
+  attImg:    { fr:'Image', en:'Image', es:'Imagen', de:'Bild', it:'Immagine', ar:'صورة', zh:'图片', ja:'画像', ru:'Изображение', pl:'Obraz' },
+  attVid:    { fr:'Vidéo', en:'Video', es:'Vídeo', de:'Video', it:'Video', ar:'فيديو', zh:'视频', ja:'動画', ru:'Видео', pl:'Wideo' },
+  attAud:    { fr:'Audio', en:'Audio', es:'Audio', de:'Audio', it:'Audio', ar:'صوت', zh:'音频', ja:'音声', ru:'Аудио', pl:'Audio' },
+  you:       { fr:'Toi', en:'You', es:'Tú', de:'Du', it:'Tu', ar:'أنت', zh:'你', ja:'あなた', ru:'Вы', pl:'Ty' },
+};
+const _chT = k => (_CHAT_T[k] && (_CHAT_T[k][LANG] || _CHAT_T[k].en)) || '';
+
+let _chatMe = null;
+let _chat = { channels: [], current: null, rows: [], typingCh: null, media: null, recTimer: null };
+let _chatRtUnsub = null;
+let _chatRefreshT = null;
+
+/* Badge du header (somme des non-lus) — mis à jour par la liste + le live */
+function _refreshChatBadge(n) {
+  const b = $('nav-chat-dot'); if (!b) return;
+  const count = (n != null) ? n : _chat.channels.reduce((s, c) => s + (c.unread || 0), 0);
+  b.classList.toggle('on', count > 0);
+}
+
+/* Abonnement temps réel GLOBAL, démarré à la connexion (badge vivant même
+   hors de la page chat). RLS filtre côté serveur : chacun ne reçoit que
+   les messages de SES conversations. */
+function _chatEnsureRealtime() {
+  if (_chatRtUnsub || !window.GLG_AUTH?.isConfigured?.()) return;
+  _chatRtUnsub = GLG_AUTH.chatSubscribe(p => {
+    const row = p?.new || p?.old || {};
+    const t = p?.eventType;
+    if (t === 'INSERT' && row.sender && row.sender !== _chatMe) {
+      if (row.channel === _chat.current && $('chat-msgs')) {
+        _chat.rows.push(p.new); _chatRenderMessages(true);
+        GLG_AUTH.chatMarkRead(_chat.current);
+      } else {
+        const c = _chat.channels.find(x => x.channel === row.channel);
+        if (c) c.unread = (c.unread || 0) + 1;
+        _refreshChatBadge();
+      }
+    }
+    if (t === 'INSERT' && row.sender === _chatMe && row.channel === _chat.current && $('chat-msgs')) {
+      if (!_chat.rows.some(r => r.id === row.id)) { _chat.rows.push(p.new); _chatRenderMessages(true); }
+    }
+    if (t === 'UPDATE' && row.channel === _chat.current) {
+      const i = _chat.rows.findIndex(r => r.id === row.id);
+      if (i >= 0) { _chat.rows[i] = p.new; _chatRenderMessages(); }
+    }
+    if (t === 'DELETE') {
+      const i = _chat.rows.findIndex(r => r.id === row.id);
+      if (i >= 0) { _chat.rows.splice(i, 1); _chatRenderMessages(); }
+    }
+    // Rafraîchit la liste (aperçus / tri / badge) au plus toutes les 2 s
+    clearTimeout(_chatRefreshT);
+    _chatRefreshT = setTimeout(() => { if ($('chat-rail')) _chatRefreshChannels(); }, 2000);
+  });
+}
+function _chatTeardownRealtime() {
+  try { _chatRtUnsub && _chatRtUnsub(); } catch (e) {}
+  _chatRtUnsub = null;
+  _chat = { channels: [], current: null, rows: [], typingCh: null, media: null, recTimer: null };
+  _refreshChatBadge(0);
+}
+
+async function buildChatPage() {
+  const root = $('chat-root'); if (!root) return;
+  const configured = !!window.GLG_AUTH?.isConfigured?.();
+  const user = configured ? await GLG_AUTH.getUser() : null;
+  if (!user) {
+    root.innerHTML = `
+      <section class="pp-signed-out"><div class="pp-so-inner reveal">
+        <div class="pp-so-badge">${_ACCOUNT_ICON}</div>
+        <h1 class="pp-so-title">${_chT('navLabel')}</h1>
+        <p class="pp-so-desc">${_chT('signedOut')}</p>
+        <div class="pp-so-actions">
+          <button class="btn btn-primary" onclick="openAuthModal('login')">${_ppt('signIn')}</button>
+          <button class="btn btn-outline" onclick="openAuthModal('signup')">${_ppt('createAcc')}</button>
+        </div>
+      </div></section>`;
+    setTimeout(initReveal, 60);
+    return;
+  }
+  _chatMe = user.id;
+  _chatEnsureRealtime();
+  root.innerHTML = `
+    <div class="chat-shell">
+      <aside class="chat-rail" id="chat-rail"><p class="lib-sec-note" style="padding:18px">···</p></aside>
+      <div class="chat-main" id="chat-main">
+        <div class="chat-empty">${_chT('pickConv')}</div>
+      </div>
+    </div>`;
+  await _chatRefreshChannels();
+  // Conversation demandée par openChatWith (profil public → « Message »).
+  // Peut être un canal complet ou un simple uid (résolu ici, _chatMe connu).
+  if (window._chatPending) {
+    let ch = window._chatPending; window._chatPending = null;
+    if (ch.indexOf(':') < 0) ch = GLG_AUTH.chatDmChannel(_chatMe, ch);
+    _chatOpen(ch);
+  }
+}
+
+async function _chatRefreshChannels() {
+  const rail = $('chat-rail'); if (!rail) return;
+  const r = await GLG_AUTH.chatChannels();
+  _chat.channels = r.channels || [];
+  _refreshChatBadge();
+  const dms  = _chat.channels.filter(c => c.kind === 'dm');
+  const grps = _chat.channels.filter(c => c.kind === 'group');
+  const item = c => {
+    const last = c.last_body ? escHtml(c.last_body.slice(0, 42))
+               : c.last_attach_kind ? ('📎 ' + _chT(c.last_attach_kind === 'image' ? 'attImg' : c.last_attach_kind === 'video' ? 'attVid' : 'attAud'))
+               : '';
+    return `
+    <button class="chat-conv ${c.channel === _chat.current ? 'active' : ''}" data-chan="${escHtml(c.channel)}" onclick="_chatOpen('${escHtml(c.channel)}')">
+      <span class="chat-conv-ava">${c.kind === 'group'
+        ? `<span class="chat-gava">${escHtml((c.name || '#').trim().charAt(0).toUpperCase())}</span>`
+        : _userAvatarHTML({ username: c.name, avatar_url: c.avatar_url })}
+        ${c.kind === 'dm' ? `<span class="pp-friend-dot" data-uid="${escHtml(c.other_id || '')}" aria-hidden="true"></span>` : ''}
+      </span>
+      <span class="chat-conv-body">
+        <span class="chat-conv-name">${escHtml(c.name || '')}${c.kind === 'dm' ? _verifiedTag(c.name) : ''}</span>
+        <span class="chat-conv-last">${last}</span>
+      </span>
+      ${c.unread ? `<span class="chat-conv-unread">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
+    </button>`;
+  };
+  rail.innerHTML = `
+    <div class="chat-rail-block">
+      <div class="chat-rail-label">${_chT('dms')}</div>
+      ${dms.length ? dms.map(item).join('') : `<p class="lib-sec-note chat-rail-note">${_chT('noFriends')}</p>`}
+    </div>
+    <div class="chat-rail-block">
+      <div class="chat-rail-label">${_chT('groups')}
+        ${IS_TAURI ? `<button class="chat-rail-add" onclick="_chatOpenGroupModal()" title="${_chT('newGroup')}" aria-label="${_chT('newGroup')}">+</button>` : ''}
+      </div>
+      ${IS_TAURI
+        ? (grps.length ? grps.map(item).join('') : '')
+        : `<div class="chat-groups-lock">
+             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M8.5 10V8a3.5 3.5 0 0 1 7 0v2" stroke="currentColor" stroke-width="1.4"/></svg>
+             <p>${_chT('groupsWeb')}</p>
+             <button class="lib-sec-btn" onclick="showPage('library')">${_lxt('cta')} ${_ARR()}</button>
+           </div>`}
+    </div>`;
+  document.dispatchEvent(new CustomEvent('glg:presence-changed'));
+}
+
+/* Ouvre le MP avec un joueur — bouton « Message » du profil public. */
+function openChatWith(uid) {
+  if (!uid) return;
+  if (_chatMe) window._chatPending = GLG_AUTH.chatDmChannel(_chatMe, uid);
+  else window._chatPending = uid; // résolu au build (getUser)
+  showPage('chat');
+}
+
+async function _chatOpen(channel) {
+  _chat.current = channel; _chat.rows = [];
+  document.querySelectorAll('.chat-conv').forEach(b => b.classList.toggle('active', b.dataset.chan === channel));
+  const c = _chat.channels.find(x => x.channel === channel);
+  const main = $('chat-main'); if (!main) return;
+  const isGroup = channel.indexOf('g:') === 0;
+  main.innerHTML = `
+    <div class="chat-head">
+      <span class="chat-head-ava">${isGroup
+        ? `<span class="chat-gava">${escHtml(((c && c.name) || '#').trim().charAt(0).toUpperCase())}</span>`
+        : _userAvatarHTML({ username: (c && c.name) || '', avatar_url: c && c.avatar_url })}</span>
+      <span class="chat-head-id">
+        <b>${escHtml((c && c.name) || '')}</b>
+        <small>${isGroup ? _chT('members').replace('%s', (c && c.members) || '?') : (GLG_PRESENCE.isOnline(c && c.other_id) ? _ft('online') : '')}</small>
+      </span>
+      <span class="chat-head-actions">
+        ${!isGroup && c ? `<button class="chat-ic-btn" onclick="openUserProfile('${escHtml(c.other_id || '')}')" title="${_at('profileItem')}" aria-label="${_at('profileItem')}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.4" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M5.4 19c1-3 3.5-4.6 6.6-4.6s5.6 1.6 6.6 4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>` : ''}
+        ${isGroup ? `<button class="chat-ic-btn" onclick="_chatAddMemberModal()" title="${_chT('addMember')}" aria-label="${_chT('addMember')}">+</button>
+        <button class="chat-ic-btn chat-ic-danger" onclick="_chatLeaveGroup()" title="${_chT('leave')}" aria-label="${_chT('leave')}">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 2H3.5A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14H6M10.5 11.5 14 8l-3.5-3.5M14 8H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>` : ''}
+      </span>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"><p class="lib-sec-note" style="padding:20px">···</p></div>
+    <div class="chat-typing" id="chat-typing" aria-live="polite"></div>
+    <div class="chat-compose">
+      <button class="chat-ic-btn" id="chat-attach" title="${_chT('attach')}" aria-label="${_chT('attach')}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14 7.5 8.7 12.8a3.4 3.4 0 0 1-4.8-4.8L9.2 2.7a2.3 2.3 0 0 1 3.2 3.2L7.2 11a1.1 1.1 0 0 1-1.6-1.6l4.8-4.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="chat-ic-btn" id="chat-mic" title="${_chT('record')}" aria-label="${_chT('record')}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <textarea id="chat-input" rows="1" maxlength="4000" placeholder="${_chT('ph')}"></textarea>
+      <button class="chat-send" id="chat-send" title="${_chT('send')}" aria-label="${_chT('send')}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.8 8 14 2 11 14 7.6 9.6 1.8 8zM7.6 9.6 14 2" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </button>
+      <input type="file" id="chat-file" hidden accept="image/*,video/*,audio/*">
+    </div>
+    <div class="chat-recbar" id="chat-recbar" hidden>
+      <span class="chat-rec-dot" aria-hidden="true"></span>
+      <span id="chat-rec-time">0:00</span>
+      <button class="lib-sec-btn" id="chat-rec-send">${_chT('recStop')}</button>
+      <button class="lib-sec-btn" id="chat-rec-cancel">${_chT('recCancel')}</button>
+    </div>`;
+  // Composer : Entrée = envoyer (Maj+Entrée = retour ligne) + auto-hauteur + typing
+  const inp = $('chat-input');
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _chatSendCurrent(); }
+  });
+  inp.addEventListener('input', () => {
+    inp.style.height = 'auto'; inp.style.height = Math.min(120, inp.scrollHeight) + 'px';
+    _chatTypingPing();
+  });
+  $('chat-send').addEventListener('click', _chatSendCurrent);
+  $('chat-attach').addEventListener('click', () => $('chat-file').click());
+  $('chat-file').addEventListener('change', _chatAttachPicked);
+  $('chat-mic').addEventListener('click', _chatMicStart);
+  $('chat-rec-send').addEventListener('click', () => _chatMicStop(true));
+  $('chat-rec-cancel').addEventListener('click', () => _chatMicStop(false));
+  _chatTypingSetup(channel);
+
+  const r = await GLG_AUTH.chatMessages(channel);
+  if (_chat.current !== channel) return;          // conversation changée entre-temps
+  _chat.rows = r.messages || [];
+  _chatRenderMessages(true);
+  GLG_AUTH.chatMarkRead(channel);
+  const cc = _chat.channels.find(x => x.channel === channel);
+  if (cc) cc.unread = 0;
+  _refreshChatBadge();
+  document.querySelector(`.chat-conv[data-chan="${channel.replace(/"/g, '')}"] .chat-conv-unread`)?.remove();
+  inp.focus();
+}
+
+function _chatAttachmentHTML(att) {
+  if (!att || !att.url) return '';
+  const url = safeMediaUrl(att.url); if (!url) return '';
+  if (att.kind === 'image') return `<a class="chat-att chat-att--img" href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${escHtml(att.name || '')}" loading="lazy"></a>`;
+  if (att.kind === 'video') return `<video class="chat-att chat-att--vid" src="${url}" controls preload="metadata"></video>`;
+  if (att.kind === 'audio') return `<audio class="chat-att chat-att--aud" src="${url}" controls preload="metadata"></audio>`;
+  return `<a class="chat-att chat-att--file" href="${url}" target="_blank" rel="noopener">📎 ${escHtml(att.name || 'fichier')}</a>`;
+}
+
+function _chatMsgHTML(m, prev) {
+  const own = m.sender === _chatMe;
+  const c = _chat.channels.find(x => x.channel === _chat.current);
+  const name = own ? _chT('you') : (c && c.kind === 'dm' ? (c.name || '') : '');
+  let time = '';
+  try { time = new Date(m.created_at).toLocaleTimeString(LANG_LOCALE[LANG] || 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (e) {}
+  const compact = prev && prev.sender === m.sender && (new Date(m.created_at) - new Date(prev.created_at)) < 300000;
+  const bodyHTML = m.body ? escHtml(m.body).replace(/\n/g, '<br>') : '';
+  return `
+  <div class="chat-msg ${own ? 'chat-msg--own' : ''} ${compact ? 'chat-msg--compact' : ''}" data-mid="${m.id}">
+    ${!compact ? `<div class="chat-msg-meta"><b>${escHtml(name)}</b><time>${time}</time></div>` : ''}
+    <div class="chat-bubble">
+      ${bodyHTML ? `<span class="chat-msg-body" id="chat-body-${m.id}">${bodyHTML}</span>` : ''}
+      ${_chatAttachmentHTML(m.attachment)}
+      ${m.edited_at ? `<span class="chat-edited">${_chT('edited')}</span>` : ''}
+      ${own ? `<span class="chat-msg-tools">
+        ${m.body ? `<button class="chat-tool" onclick="_chatEditStart(${m.id})" title="${_chT('edit')}" aria-label="${_chT('edit')}">✎</button>` : ''}
+        <button class="chat-tool" onclick="_chatMsgDelete(${m.id})" title="${_chT('del')}" aria-label="${_chT('del')}">✕</button>
+      </span>` : ''}
+    </div>
+  </div>`;
+}
+
+function _chatRenderMessages(scroll) {
+  const box = $('chat-msgs'); if (!box) return;
+  if (!_chat.rows.length) { box.innerHTML = `<div class="chat-empty">${_chT('emptyConv')}</div>`; return; }
+  let html = _chat.rows.length >= 40 ? `<button class="lib-sec-btn chat-more" onclick="_chatLoadMore()">${_chT('loadMore')}</button>` : '';
+  let lastDay = '';
+  _chat.rows.forEach((m, i) => {
+    let day = '';
+    try { day = new Date(m.created_at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) {}
+    if (day && day !== lastDay) { html += `<div class="chat-day"><span>${day}</span></div>`; lastDay = day; }
+    html += _chatMsgHTML(m, i > 0 ? _chat.rows[i - 1] : null);
+  });
+  box.innerHTML = html;
+  if (scroll) box.scrollTop = box.scrollHeight;
+}
+
+async function _chatLoadMore() {
+  if (!_chat.rows.length) return;
+  const r = await GLG_AUTH.chatMessages(_chat.current, _chat.rows[0].id);
+  if (r.messages && r.messages.length) {
+    _chat.rows = r.messages.concat(_chat.rows);
+    _chatRenderMessages(false);
+  } else { document.querySelector('.chat-more')?.remove(); }
+}
+
+async function _chatSendCurrent() {
+  const inp = $('chat-input'); if (!inp || !_chat.current) return;
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = ''; inp.style.height = 'auto';
+  const r = await GLG_AUTH.chatSend(_chat.current, txt, null);
+  if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
+    _chat.rows.push(r.message); _chatRenderMessages(true);
+  }
+  _chatRefreshChannels();
+}
+
+async function _chatAttachPicked() {
+  const f = $('chat-file')?.files?.[0]; if (!f || !_chat.current) return;
+  $('chat-file').value = '';
+  if (f.size > 25 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
+  _chatNote('⬆ …');
+  const up = await GLG_AUTH.chatUpload(f);
+  _chatNote('');
+  if (!up.ok) { _chatNote(up.code === 'size' ? _chT('tooBig') : '✕'); return; }
+  const r = await GLG_AUTH.chatSend(_chat.current, null, up.attachment);
+  if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
+    _chat.rows.push(r.message); _chatRenderMessages(true);
+  }
+  _chatRefreshChannels();
+}
+function _chatNote(t) { const el = $('chat-typing'); if (el) { el.textContent = t || ''; el.classList.toggle('on', !!t); } }
+
+/* ── Note vocale (MediaRecorder → webm/opus → pièce jointe audio) ── */
+let _chatRec = null, _chatRecChunks = [], _chatRecT0 = 0;
+async function _chatMicStart() {
+  if (_chatRec || !_chat.current) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { _chatNote(_chT('recDenied')); return; }
+  _chatRecChunks = [];
+  try { _chatRec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); }
+  catch (e) { _chatRec = new MediaRecorder(stream); }
+  _chatRec.ondataavailable = ev => { if (ev.data && ev.data.size) _chatRecChunks.push(ev.data); };
+  _chatRec.start(250);
+  _chatRecT0 = Date.now();
+  const bar = $('chat-recbar'); if (bar) bar.hidden = false;
+  _chat.recTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - _chatRecT0) / 1000);
+    const el = $('chat-rec-time'); if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    if (s >= 120) _chatMicStop(true);                    // 2 min max
+  }, 500);
+}
+function _chatMicStop(send) {
+  if (!_chatRec) return;
+  clearInterval(_chat.recTimer);
+  const rec = _chatRec; _chatRec = null;
+  rec.onstop = async () => {
+    try { rec.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    const bar = $('chat-recbar'); if (bar) bar.hidden = true;
+    if (!send || !_chatRecChunks.length) return;
+    const blob = new Blob(_chatRecChunks, { type: rec.mimeType || 'audio/webm' });
+    const file = new File([blob], 'note-vocale-' + Date.now() + '.webm', { type: blob.type });
+    _chatNote('⬆ …');
+    const up = await GLG_AUTH.chatUpload(file);
+    _chatNote('');
+    if (up.ok) {
+      const r = await GLG_AUTH.chatSend(_chat.current, null, up.attachment);
+      if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
+        _chat.rows.push(r.message); _chatRenderMessages(true);
+      }
+      _chatRefreshChannels();
+    }
+  };
+  rec.stop();
+}
+
+/* ── Édition / suppression de SES messages ── */
+function _chatEditStart(id) {
+  const m = _chat.rows.find(x => x.id === id); if (!m || m.sender !== _chatMe) return;
+  const span = $('chat-body-' + id); if (!span) return;
+  span.outerHTML = `<span class="chat-edit-zone" id="chat-body-${id}">
+      <textarea id="chat-edit-${id}" rows="2" maxlength="4000">${escHtml(m.body || '')}</textarea>
+      <span class="chat-edit-actions">
+        <button class="lib-sec-btn" onclick="_chatEditSave(${id})">${_chT('save')}</button>
+        <button class="lib-sec-btn" onclick="_chatRenderMessages()">${_chT('recCancel')}</button>
+      </span>
+    </span>`;
+  $('chat-edit-' + id)?.focus();
+}
+async function _chatEditSave(id) {
+  const v = $('chat-edit-' + id)?.value?.trim(); if (!v) return;
+  const r = await GLG_AUTH.chatEdit(id, v);
+  if (r.ok) {
+    const m = _chat.rows.find(x => x.id === id);
+    if (m) { m.body = v; m.edited_at = new Date().toISOString(); }
+  }
+  _chatRenderMessages();
+}
+async function _chatMsgDelete(id) {
+  const r = await GLG_AUTH.chatDelete(id);
+  if (r.ok) { _chat.rows = _chat.rows.filter(x => x.id !== id); _chatRenderMessages(); _chatRefreshChannels(); }
+}
+
+/* ── Indicateur « écrit… » (broadcast éphémère, jamais stocké) ── */
+let _chatTypingLast = 0, _chatTypingHide = null;
+function _chatTypingSetup(channel) {
+  const sb = window.GLG_AUTH?.getClient?.(); if (!sb) return;
+  if (_chat.typingCh) { try { sb.removeChannel(_chat.typingCh); } catch (e) {} }
+  _chat.typingCh = sb.channel('glg:typing:' + channel);
+  _chat.typingCh.on('broadcast', { event: 'typing' }, p => {
+    if (!p?.payload || p.payload.uid === _chatMe) return;
+    const el = $('chat-typing'); if (!el) return;
+    el.textContent = _chT('typing').replace('%s', p.payload.name || '…');
+    el.classList.add('on');
+    clearTimeout(_chatTypingHide);
+    _chatTypingHide = setTimeout(() => el.classList.remove('on'), 3500);
+  }).subscribe();
+}
+function _chatTypingPing() {
+  const now = Date.now();
+  if (now - _chatTypingLast < 2500 || !_chat.typingCh) return;
+  _chatTypingLast = now;
+  try {
+    _chat.typingCh.send({ type: 'broadcast', event: 'typing',
+      payload: { uid: _chatMe, name: (_accountProfile && _accountProfile.username) || '' } });
+  } catch (e) {}
+}
+
+/* ── Groupes : création / ajout de membre / départ (modales légères) ── */
+function _chatOpenGroupModal() {
+  const m = $('glg-auth-modal'); if (!m) return;
+  const friends = (_friendsCache && _friendsCache.friends) || [];
+  m.innerHTML = `
+    <div class="auth-box fr-modal" role="dialog" aria-modal="true" aria-label="${_chT('newGroup')}">
+      <button class="auth-close" onclick="closeAuthModal()" aria-label="Close">${_XSVG}</button>
+      <h3 class="auth-title">${_chT('newGroup')}</h3>
+      <input type="text" id="chat-gname" class="auth-input" maxlength="60" placeholder="${_chT('groupName')}" style="margin-bottom:14px">
+      <div class="chat-gm-list">
+        ${friends.length ? friends.map(u => `
+        <label class="chat-gm-row">
+          <input type="checkbox" value="${escHtml(u.id)}">
+          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+          <span>${escHtml(u.username || '')}</span>
+        </label>`).join('') : `<p class="lib-sec-note">${_chT('noFriends')}</p>`}
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="_chatCreateGroup()">${_chT('create')}</button>
+    </div>`;
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('chat-gname')?.focus(), 60);
+}
+async function _chatCreateGroup() {
+  const name = $('chat-gname')?.value?.trim(); if (!name) return;
+  const ids = [...document.querySelectorAll('.chat-gm-row input:checked')].map(i => i.value);
+  const r = await GLG_AUTH.chatGroupCreate(name, ids);
+  closeAuthModal();
+  if (r.ok) { await _chatRefreshChannels(); _chatOpen('g:' + r.gid); }
+}
+function _chatAddMemberModal() {
+  const m = $('glg-auth-modal'); if (!m || !_chat.current || _chat.current.indexOf('g:') !== 0) return;
+  const friends = (_friendsCache && _friendsCache.friends) || [];
+  m.innerHTML = `
+    <div class="auth-box fr-modal" role="dialog" aria-modal="true" aria-label="${_chT('addMember')}">
+      <button class="auth-close" onclick="closeAuthModal()" aria-label="Close">${_XSVG}</button>
+      <h3 class="auth-title">${_chT('addMember')}</h3>
+      <div class="chat-gm-list">
+        ${friends.length ? friends.map(u => `
+        <button class="chat-gm-row chat-gm-row--btn" onclick="_chatAddMember('${escHtml(u.id)}')">
+          <span class="pp-fr-ava">${_userAvatarHTML(u)}</span>
+          <span>${escHtml(u.username || '')}</span>
+        </button>`).join('') : `<p class="lib-sec-note">${_chT('noFriends')}</p>`}
+      </div>
+    </div>`;
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+async function _chatAddMember(uid) {
+  const gid = parseInt(String(_chat.current).slice(2), 10);
+  await GLG_AUTH.chatGroupAdd(gid, uid);
+  closeAuthModal();
+  _chatRefreshChannels();
+}
+async function _chatLeaveGroup() {
+  const gid = parseInt(String(_chat.current).slice(2), 10);
+  await GLG_AUTH.chatGroupLeave(gid);
+  _chat.current = null;
+  const main = $('chat-main'); if (main) main.innerHTML = `<div class="chat-empty">${_chT('pickConv')}</div>`;
+  _chatRefreshChannels();
 }

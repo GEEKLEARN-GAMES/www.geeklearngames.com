@@ -676,6 +676,116 @@
     document.addEventListener('DOMContentLoaded', () => boot());
   else boot();
 
+  /* ══════════ GLG CHAT — MP + groupes (db/schema.sql § GLG CHAT) ═══════
+     Canaux : 'dm:<uuidA>:<uuidB>' (uuid triés) | 'g:<group_id>'.
+     La sécurité vit côté base (RLS + chat_can_access) — le client reste
+     une simple vue. Pièces jointes : bucket public chat-media (25 Mo). */
+  const CHAT_MEDIA_MAX = 25 * 1024 * 1024;
+  function chatDmChannel(a, b) { return 'dm:' + (a < b ? a + ':' + b : b + ':' + a); }
+  async function chatChannels() {
+    if (!_ready) return { ok: false, code: 'notConfigured', channels: [] };
+    const { data, error } = await _client.rpc('chat_channels');
+    if (error) return { ok: false, code: 'network', channels: [], error };
+    return { ok: true, channels: Array.isArray(data) ? data : [] };
+  }
+  async function chatMessages(channel, beforeId, limit = 40) {
+    if (!_ready) return { ok: false, code: 'notConfigured', messages: [] };
+    let q = _client.from('chat_messages').select('*')
+      .eq('channel', channel).order('id', { ascending: false }).limit(limit);
+    if (beforeId) q = q.lt('id', beforeId);
+    const { data, error } = await q;
+    if (error) return { ok: false, code: 'network', messages: [], error };
+    return { ok: true, messages: (data || []).reverse() };   // ancien → récent
+  }
+  async function chatSend(channel, body, attachment) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const user = await getUser();
+    if (!user) return { ok: false, code: 'notAuth' };
+    const row = {
+      channel, sender: user.id,
+      body: body ? String(body).slice(0, 4000) : null,
+      attachment: attachment || null,
+    };
+    const { data, error } = await _client.from('chat_messages').insert(row).select().single();
+    if (error) return { ok: false, code: /rate/.test(error.message || '') ? 'rate' : 'network', error };
+    return { ok: true, message: data };
+  }
+  async function chatEdit(id, body) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { error } = await _client.from('chat_messages')
+      .update({ body: String(body || '').slice(0, 4000), edited_at: new Date().toISOString() })
+      .eq('id', id);
+    return error ? { ok: false, code: 'network', error } : { ok: true };
+  }
+  async function chatDelete(id) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { error } = await _client.from('chat_messages').delete().eq('id', id);
+    return error ? { ok: false, code: 'network', error } : { ok: true };
+  }
+  async function chatUpload(file) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    if (!file) return { ok: false, code: 'noFile' };
+    if (file.size > CHAT_MEDIA_MAX) return { ok: false, code: 'size' };
+    const user = await getUser();
+    if (!user) return { ok: false, code: 'notAuth' };
+    const mime = file.type || 'application/octet-stream';
+    const kind = mime.startsWith('image/') ? 'image'
+               : mime.startsWith('video/') ? 'video'
+               : mime.startsWith('audio/') ? 'audio' : 'file';
+    const safe = String(file.name || 'fichier').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-60);
+    const path = `${user.id}/${Date.now()}-${safe}`;
+    const { error } = await _client.storage.from('chat-media')
+      .upload(path, file, { contentType: mime, upsert: false });
+    if (error) return { ok: false, code: 'upload', error };
+    const { data } = _client.storage.from('chat-media').getPublicUrl(path);
+    return { ok: true, attachment: { kind, url: data?.publicUrl || null, name: String(file.name || '').slice(0, 120), size: file.size, mime } };
+  }
+  async function chatMarkRead(channel) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { error } = await _client.rpc('chat_mark_read', { ch: channel });
+    return error ? { ok: false, code: 'network', error } : { ok: true };
+  }
+  async function chatGroupCreate(name, memberIds) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('chat_group_create', {
+      gname: String(name || '').slice(0, 60), members: memberIds || [],
+    });
+    if (error) return { ok: false, code: /limit|badName|notAuth/.exec(error.message || '')?.[0] || 'network', error };
+    return { ok: true, gid: data };
+  }
+  async function chatGroupAdd(gid, target) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('chat_group_add', { gid, target });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data };
+  }
+  async function chatGroupLeave(gid) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('chat_group_leave', { gid });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data };
+  }
+  async function chatGroupMembers(gid) {
+    if (!_ready) return { ok: false, code: 'notConfigured', members: [] };
+    const { data, error } = await _client.from('chat_members')
+      .select('user_id, role, profiles(username, avatar_url)').eq('group_id', gid);
+    if (error) return { ok: false, code: 'network', members: [], error };
+    return { ok: true, members: (data || []).map(r => ({
+      id: r.user_id, role: r.role,
+      username: r.profiles?.username || '', avatar_url: r.profiles?.avatar_url || null,
+    })) };
+  }
+  /* Abonnement temps réel GLOBAL (un seul canal ; RLS filtre côté serveur :
+     chacun ne reçoit que les messages de SES conversations). Retourne un
+     désabonnement. */
+  function chatSubscribe(cb) {
+    if (!_ready) return () => {};
+    const ch = _client.channel('glg:chat')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, payload => { try { cb(payload); } catch (e) {} })
+      .subscribe();
+    return () => { try { _client.removeChannel(ch); } catch (e) {} };
+  }
+
   /* ── API publique ──────────────────────────────────────── */
   window.GLG_AUTH = {
     isConfigured: () => _ready,
@@ -691,6 +801,9 @@
     wishlistCount, touchRecentGame, grantGame, setRemember,
     mfaFactors, mfaEnroll, mfaVerifyEnroll, mfaUnenroll, mfaAal, mfaChallengeVerify,
     listScreenshots, uploadScreenshot, deleteScreenshot,
+    chatDmChannel, chatChannels, chatMessages, chatSend, chatEdit, chatDelete,
+    chatUpload, chatMarkRead, chatGroupCreate, chatGroupAdd, chatGroupLeave,
+    chatGroupMembers, chatSubscribe,
     onChange,
   };
 })();

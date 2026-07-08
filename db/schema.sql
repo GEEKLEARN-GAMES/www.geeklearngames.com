@@ -772,6 +772,262 @@ exception
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
+--  GLG CHAT — messagerie (MP entre amis + groupes « serveurs »)
+--  ────────────────────────────────────────────────────────────────────────
+--  Canaux : 'dm:<uuidA>:<uuidB>' (uuid TRIÉS — clé stable du duo, amis
+--  acceptés uniquement) et 'g:<group_id>' (membres uniquement).
+--  Sécurité : chat_can_access() centralise l'autorisation ; RLS partout ;
+--  anti-spam par trigger (20 messages / 10 s). Pièces jointes : bucket
+--  public `chat-media`, écriture limitée au dossier de l'expéditeur.
+-- ════════════════════════════════════════════════════════════════════════
+create table if not exists public.chat_groups (
+  id          bigint generated always as identity primary key,
+  name        text not null check (char_length(name) between 1 and 60),
+  owner       uuid not null references public.profiles (id) on delete cascade,
+  created_at  timestamptz not null default now()
+);
+create table if not exists public.chat_members (
+  group_id    bigint not null references public.chat_groups (id) on delete cascade,
+  user_id     uuid   not null references public.profiles (id) on delete cascade,
+  role        text   not null default 'member' check (role in ('owner','member')),
+  joined_at   timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+create index if not exists chat_members_user_idx on public.chat_members (user_id);
+create table if not exists public.chat_messages (
+  id          bigint generated always as identity primary key,
+  channel     text not null check (channel ~ '^(dm:[0-9a-f-]{36}:[0-9a-f-]{36}|g:[0-9]+)$'),
+  sender      uuid not null references public.profiles (id) on delete cascade,
+  body        text check (body is null or char_length(body) <= 4000),
+  attachment  jsonb,   -- {kind:'image|video|audio|file', url, name, size, mime}
+  created_at  timestamptz not null default now(),
+  edited_at   timestamptz,
+  constraint chat_messages_not_empty check (body is not null or attachment is not null)
+);
+create index if not exists chat_messages_channel_idx on public.chat_messages (channel, id desc);
+create table if not exists public.chat_reads (
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  channel    text not null,
+  last_read  timestamptz not null default now(),
+  primary key (user_id, channel)
+);
+
+-- ── Autorisation d'accès à un canal (DÉFINITION UNIQUE de la règle) ──────
+create or replace function public.chat_can_access(ch text, uid uuid)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare a uuid; b uuid; gid bigint;
+begin
+  if uid is null then return false; end if;
+  if ch like 'dm:%' then
+    a := split_part(ch, ':', 2)::uuid;
+    b := split_part(ch, ':', 3)::uuid;
+    if a >= b then return false; end if;          -- clé canonique : uuid triés
+    if uid <> a and uid <> b then return false; end if;
+    return exists (
+      select 1 from public.friendships f
+      where f.status = 'accepted'
+        and ((f.requester = a and f.addressee = b) or (f.requester = b and f.addressee = a)));
+  elsif ch like 'g:%' then
+    gid := split_part(ch, ':', 2)::bigint;
+    return exists (select 1 from public.chat_members m where m.group_id = gid and m.user_id = uid);
+  end if;
+  return false;
+exception when others then return false;
+end; $$;
+revoke all on function public.chat_can_access(text, uuid) from public;
+grant execute on function public.chat_can_access(text, uuid) to authenticated;
+
+-- ── RLS ──────────────────────────────────────────────────────────────────
+alter table public.chat_groups   enable row level security;
+alter table public.chat_members  enable row level security;
+alter table public.chat_messages enable row level security;
+alter table public.chat_reads    enable row level security;
+
+drop policy if exists "chat_groups_select_member" on public.chat_groups;
+create policy "chat_groups_select_member" on public.chat_groups
+  for select using (exists (select 1 from public.chat_members m
+                            where m.group_id = id and m.user_id = auth.uid()));
+
+drop policy if exists "chat_members_select_same_group" on public.chat_members;
+create policy "chat_members_select_same_group" on public.chat_members
+  for select using (user_id = auth.uid() or exists (
+    select 1 from public.chat_members me
+    where me.group_id = chat_members.group_id and me.user_id = auth.uid()));
+
+drop policy if exists "chat_messages_select_access" on public.chat_messages;
+create policy "chat_messages_select_access" on public.chat_messages
+  for select using (public.chat_can_access(channel, auth.uid()));
+drop policy if exists "chat_messages_insert_own" on public.chat_messages;
+create policy "chat_messages_insert_own" on public.chat_messages
+  for insert with check (sender = auth.uid() and public.chat_can_access(channel, auth.uid()));
+drop policy if exists "chat_messages_update_own" on public.chat_messages;
+create policy "chat_messages_update_own" on public.chat_messages
+  for update using (sender = auth.uid())
+  with check (sender = auth.uid() and public.chat_can_access(channel, auth.uid()));
+drop policy if exists "chat_messages_delete_own" on public.chat_messages;
+create policy "chat_messages_delete_own" on public.chat_messages
+  for delete using (sender = auth.uid());
+
+drop policy if exists "chat_reads_own" on public.chat_reads;
+create policy "chat_reads_own" on public.chat_reads
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ── Anti-spam : 20 messages / 10 secondes par expéditeur ─────────────────
+create or replace function public.chat_rate_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from public.chat_messages
+      where sender = new.sender and created_at > now() - interval '10 seconds') >= 20 then
+    raise exception 'rate';
+  end if;
+  return new;
+end; $$;
+drop trigger if exists chat_messages_rate on public.chat_messages;
+create trigger chat_messages_rate before insert on public.chat_messages
+  for each row execute function public.chat_rate_limit();
+
+-- ── Groupes : création / ajout / départ (RPC — jamais d'insert direct) ───
+create or replace function public.chat_group_create(gname text, members uuid[])
+returns bigint language plpgsql security definer set search_path = public as $$
+declare gid bigint; m uuid;
+begin
+  if auth.uid() is null then raise exception 'notAuth'; end if;
+  if char_length(trim(gname)) < 1 then raise exception 'badName'; end if;
+  if (select count(*) from public.chat_groups where owner = auth.uid()) >= 20 then
+    raise exception 'limit';
+  end if;
+  insert into public.chat_groups (name, owner) values (trim(gname), auth.uid()) returning id into gid;
+  insert into public.chat_members (group_id, user_id, role) values (gid, auth.uid(), 'owner');
+  foreach m in array coalesce(members, '{}') loop
+    -- seuls des AMIS acceptés du créateur peuvent être embarqués (32 max)
+    if m <> auth.uid()
+       and (select count(*) from public.chat_members where group_id = gid) < 32
+       and exists (select 1 from public.friendships f where f.status = 'accepted'
+                   and ((f.requester = auth.uid() and f.addressee = m)
+                     or (f.requester = m and f.addressee = auth.uid()))) then
+      insert into public.chat_members (group_id, user_id) values (gid, m)
+      on conflict do nothing;
+    end if;
+  end loop;
+  return gid;
+end; $$;
+revoke all on function public.chat_group_create(text, uuid[]) from public;
+grant execute on function public.chat_group_create(text, uuid[]) to authenticated;
+
+create or replace function public.chat_group_add(gid bigint, target uuid)
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.chat_members
+                 where group_id = gid and user_id = auth.uid()) then return 'notMember'; end if;
+  if (select count(*) from public.chat_members where group_id = gid) >= 32 then return 'full'; end if;
+  if not exists (select 1 from public.friendships f where f.status = 'accepted'
+                 and ((f.requester = auth.uid() and f.addressee = target)
+                   or (f.requester = target and f.addressee = auth.uid()))) then return 'notFriend'; end if;
+  insert into public.chat_members (group_id, user_id) values (gid, target)
+  on conflict do nothing;
+  return 'ok';
+end; $$;
+revoke all on function public.chat_group_add(bigint, uuid) from public;
+grant execute on function public.chat_group_add(bigint, uuid) to authenticated;
+
+create or replace function public.chat_group_leave(gid bigint)
+returns text language plpgsql security definer set search_path = public as $$
+declare next_owner uuid;
+begin
+  delete from public.chat_members where group_id = gid and user_id = auth.uid();
+  if not exists (select 1 from public.chat_members where group_id = gid) then
+    delete from public.chat_groups where id = gid;                       -- groupe vide → supprimé
+  elsif exists (select 1 from public.chat_groups where id = gid and owner = auth.uid()) then
+    select user_id into next_owner from public.chat_members
+      where group_id = gid order by joined_at limit 1;                    -- transfert au plus ancien
+    update public.chat_groups set owner = next_owner where id = gid;
+    update public.chat_members set role = 'owner' where group_id = gid and user_id = next_owner;
+  end if;
+  return 'ok';
+end; $$;
+revoke all on function public.chat_group_leave(bigint) from public;
+grant execute on function public.chat_group_leave(bigint) to authenticated;
+
+-- ── Inbox : toutes MES conversations + dernier message + non-lus ─────────
+-- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
+drop function if exists public.chat_channels();
+create or replace function public.chat_channels()
+returns table (channel text, kind text, gid bigint, name text, avatar_url text,
+               other_id uuid, members int, last_body text, last_attach_kind text,
+               last_sender uuid, last_at timestamptz, unread int)
+language sql security definer set search_path = public as $$
+  with me as (select auth.uid() as uid),
+  dms as (
+    select 'dm:' || least(p.id, (select uid from me))::text || ':' || greatest(p.id, (select uid from me))::text as channel,
+           'dm'::text as kind, null::bigint as gid,
+           p.username as name, p.avatar_url, p.id as other_id, 2 as members
+    from public.friendships f
+    join public.profiles p on p.id = case when f.requester = (select uid from me) then f.addressee else f.requester end
+    where f.status = 'accepted' and (select uid from me) in (f.requester, f.addressee)
+  ),
+  grps as (
+    select 'g:' || g.id::text as channel, 'group'::text as kind, g.id as gid,
+           g.name, null::text as avatar_url, null::uuid as other_id,
+           (select count(*)::int from public.chat_members m2 where m2.group_id = g.id) as members
+    from public.chat_groups g
+    join public.chat_members m on m.group_id = g.id and m.user_id = (select uid from me)
+  ),
+  chans as (select * from dms union all select * from grps)
+  select c.channel, c.kind, c.gid, c.name, c.avatar_url, c.other_id, c.members,
+         lm.body, lm.attachment ->> 'kind', lm.sender, lm.created_at,
+         coalesce((select count(*)::int from public.chat_messages cm
+                   where cm.channel = c.channel
+                     and cm.sender <> (select uid from me)
+                     and cm.created_at > coalesce((select r.last_read from public.chat_reads r
+                                                   where r.user_id = (select uid from me)
+                                                     and r.channel = c.channel), 'epoch'::timestamptz)), 0)
+  from chans c
+  left join lateral (select body, attachment, sender, created_at
+                     from public.chat_messages where channel = c.channel
+                     order by id desc limit 1) lm on true
+  order by lm.created_at desc nulls last, c.name;
+$$;
+revoke all on function public.chat_channels() from public;
+grant execute on function public.chat_channels() to authenticated;
+
+-- ── Marquer lu ────────────────────────────────────────────────────────────
+create or replace function public.chat_mark_read(ch text)
+returns void language sql security definer set search_path = public as $$
+  insert into public.chat_reads (user_id, channel, last_read)
+  select auth.uid(), ch, now()
+  where public.chat_can_access(ch, auth.uid())
+  on conflict (user_id, channel) do update set last_read = now();
+$$;
+revoke all on function public.chat_mark_read(text) from public;
+grant execute on function public.chat_mark_read(text) to authenticated;
+
+-- ── Pièces jointes : bucket public `chat-media` (25 Mo max) ──────────────
+insert into storage.buckets (id, name, public)
+values ('chat-media', 'chat-media', true)
+on conflict (id) do nothing;
+drop policy if exists "chatmedia_read" on storage.objects;
+create policy "chatmedia_read" on storage.objects
+  for select using (bucket_id = 'chat-media');
+drop policy if exists "chatmedia_write_own" on storage.objects;
+create policy "chatmedia_write_own" on storage.objects
+  for insert with check (
+    bucket_id = 'chat-media' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+drop policy if exists "chatmedia_delete_own" on storage.objects;
+create policy "chatmedia_delete_own" on storage.objects
+  for delete using (
+    bucket_id = 'chat-media' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ── Temps réel : messages live (RLS s'applique aux événements) ───────────
+do $$ begin
+  alter publication supabase_realtime add table public.chat_messages;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
 --  FIN. Après exécution : Project Settings → API → copier URL + anon key
 --  dans js/config.js.
 -- ════════════════════════════════════════════════════════════════════════

@@ -109,7 +109,7 @@
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=58">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=59">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
@@ -234,6 +234,14 @@
         <path d="M14 14l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </button>
+    <!-- GLG Chat (visible only when signed in; wired by app.js) -->
+    <button class="nav-notif-btn nav-chat-btn" id="nav-chat-btn" onclick="showPage('chat')" aria-label="Chat" title="Chat">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M17 9.5c0 3.3-3.1 6-7 6-.9 0-1.8-.1-2.6-.4L3 16.5l1.2-3A5.6 5.6 0 0 1 3 9.5c0-3.3 3.1-6 7-6s7 2.7 7 6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M6.8 9.5h.01M10 9.5h.01M13.2 9.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-notif-dot" id="nav-chat-dot" aria-hidden="true"></span>
+    </button>
     <!-- Notification bell (visible only when signed in; populated by app.js) -->
     <button class="nav-notif-btn" id="nav-notif-btn" onclick="toggleNotifPanel(event)" aria-label="Notifications" title="Notifications" aria-haspopup="true">
       <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -252,6 +260,7 @@
   <button class="nav-mobile-link" id="nml-home"    onclick="showPage('home')">Home</button>
   <button class="nav-mobile-link" id="nml-works"   onclick="showPage('works')">Our Works</button>
   <button class="nav-mobile-link" id="nml-library" onclick="showPage('library')">Library</button>
+  <button class="nav-mobile-link" id="nml-chat"    onclick="showPage('chat')">Chat</button>
   <button class="nav-mobile-link" id="nml-shop"    onclick="showPage('shop')">Shop</button>
   <button class="nav-mobile-link" id="nml-about"   onclick="showPage('about')">About Us</button>
   <button class="nav-mobile-link" id="nml-contact" onclick="showPage('contact')">Contact</button>
@@ -460,6 +469,15 @@
 <main class="page" id="page-library">
   <div id="library-root"></div>
   <div class="page-footer-slot"></div>
+</main>
+
+<!-- ═══════════════════════
+     PAGE : CHAT (GLG Chat — MP + groupes « serveurs »)
+     Rendue par buildChatPage() : rail des conversations + fil de messages.
+     MP partout ; groupes exclusifs au launcher. Pas de footer (app-like).
+═══════════════════════ -->
+<main class="page" id="page-chat">
+  <div id="chat-root"></div>
 </main>
 
 
@@ -714,11 +732,11 @@
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=107"></script>
+<script src="js/app.js?v=108"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>
-<script src="js/auth.js?v=17" defer></script>
+<script src="js/auth.js?v=18" defer></script>
 <!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
 <script src="js/vendor/gsap.min.js?v=1" defer></script>
 <script src="js/vendor/ScrollTrigger.min.js?v=1" defer></script>
