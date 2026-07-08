@@ -3885,3 +3885,106 @@ html.glg-frameless #nav{ top:var(--glg-tb); }
   .chat-rail{ max-height:32vh; border-right:none; border-bottom:1px solid rgba(255,255,255,.07); }
   .chat-msg{ max-width:92%; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §74 · CHAT v1.1 — bulles AJUSTÉES AU CONTENU (plus d'espace vide),
+   média nu sans cadre, visionneuse plein écran (clic image / ⤢ vidéo),
+   carte d'appel vocal flottante (sonnerie, en ligne, mute, raccrocher).
+════════════════════════════════════════════════════════════════════════ */
+/* Bulles : largeur = contenu (fini les bulles pleine largeur) */
+.chat-bubble{ width:fit-content; max-width:100%; letter-spacing:normal; }
+.chat-msg--own .chat-bubble{ margin-left:auto; }
+[dir="rtl"] .chat-msg--own .chat-bubble{ margin-left:0; margin-right:auto; }
+/* Pièce jointe SEULE : média nu, sans cadre ni fond (façon Discord) */
+.chat-bubble--media{ padding:0; background:transparent; border-color:transparent; }
+.chat-bubble--media .chat-att{ margin-top:0; }
+.chat-msg-body + .chat-att{ margin-top:8px; }
+.chat-bubble--media .chat-msg-tools{ top:6px; right:6px; }
+/* Image : bouton nu, zoom au clic */
+.chat-att--img{ border:none; background:none; padding:0; cursor:zoom-in; display:block; }
+.chat-att--img img{ display:block; }
+.chat-att--img:hover img{ filter:brightness(1.06); }
+/* Vidéo : lecteur inline + bouton agrandir */
+.chat-att--vid{ position:relative; display:block; }
+.chat-att--vid video{ display:block; max-width:min(100%,380px); border-radius:9px; }
+.chat-att-expand{
+  position:absolute; top:8px; right:8px; width:26px; height:26px;
+  border-radius:6px; border:1px solid rgba(255,255,255,.25); cursor:pointer;
+  background:rgba(0,0,0,.6); color:#fff;
+  display:inline-flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s;
+}
+.chat-att--vid:hover .chat-att-expand{ opacity:1; }
+/* ── Visionneuse plein écran ── */
+#glg-mediaview{
+  position:fixed; inset:0; z-index:200000; padding:28px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.93);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  opacity:0; transition:opacity .25s ease;
+}
+#glg-mediaview.open{ opacity:1; }
+#glg-mediaview img, #glg-mediaview video{
+  max-width:min(1400px,94vw); max-height:88vh;
+  border-radius:10px; box-shadow:0 50px 140px -30px #000;
+}
+.mv-close{
+  position:absolute; top:18px; right:18px; width:38px; height:38px;
+  border-radius:50%; border:1px solid rgba(255,255,255,.3); cursor:pointer;
+  background:rgba(0,0,0,.55); color:#fff;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:background .2s;
+}
+.mv-close:hover{ background:#e81123; border-color:#e81123; }
+html.glg-frameless .mv-close{ top:calc(18px + var(--glg-tb,32px)); }
+.mv-name{
+  position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+  font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.5); max-width:80vw;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* ── Carte d'appel vocal flottante ── */
+#glg-callbar{
+  position:fixed; z-index:150000;
+  top:calc(var(--nav-h,64px) + var(--glg-tb,0px) + 14px); right:16px;
+}
+.cb-card{
+  display:flex; align-items:center; gap:13px;
+  min-width:264px; padding:13px 15px;
+  background:linear-gradient(180deg,#16161a,#0d0d0f);
+  border:1px solid rgba(255,255,255,.16); border-radius:13px;
+  box-shadow:0 30px 80px -18px #000;
+}
+.cb-pulse, .cb-live-dot{
+  flex-shrink:0; width:38px; height:38px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center; color:#fff;
+}
+.cb-pulse{ background:rgba(76,195,138,.16); border:1px solid rgba(76,195,138,.5); color:#4cc38a; animation:cbRing 1.3s ease-in-out infinite; }
+.cb-live-dot{ background:rgba(76,195,138,.2); border:1px solid #4cc38a; color:#4cc38a; }
+@keyframes cbRing{
+  0%,100%{ transform:rotate(0); box-shadow:0 0 0 0 rgba(76,195,138,.35); }
+  20%{ transform:rotate(-12deg); }
+  40%{ transform:rotate(10deg); }
+  60%{ box-shadow:0 0 0 9px rgba(76,195,138,0); }
+}
+@media (prefers-reduced-motion:reduce){ .cb-pulse{ animation:none; } }
+.cb-id{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cb-id b{ font-size:.84rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-id small{ font-size:.62rem; color:rgba(255,255,255,.5); }
+.cb-id #cb-timer{
+  font-family:var(--f-mono,monospace); font-size:.62rem; letter-spacing:.12em; color:#4cc38a;
+}
+.cb-actions{ display:flex; gap:8px; }
+.cb-btn{
+  width:36px; height:36px; border-radius:50%; border:none; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; color:#fff;
+  transition:transform .18s, background .2s, opacity .2s;
+}
+.cb-btn:hover{ transform:translateY(-1px); }
+.cb-btn--ok{ background:#2ea043; }
+.cb-btn--ok:hover{ background:#3cbb53; }
+.cb-btn--no{ background:#e81123; }
+.cb-btn--no:hover{ background:#ff2d3f; }
+.cb-btn--mute{ background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); }
+.cb-btn--mute.off{ background:#e81123; border-color:#e81123; }
+@media (max-width:640px){ #glg-callbar{ left:12px; right:12px; } .cb-card{ min-width:0; } }

@@ -80,6 +80,7 @@
                  style-src  'self' 'unsafe-inline';
                  font-src   'self';
                  img-src    'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co;
+                 media-src  'self' blob: https://rjtccuikevoeqgbssjnx.supabase.co;
                  frame-src  https://www.youtube-nocookie.com https://www.youtube.com;
                  connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co;
                  object-src  'none';
@@ -91,8 +92,9 @@
   <!-- Limit referrer leakage -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- Disable unnecessary browser features -->
+  <!-- microphone=(self) : requis par GLG Chat (notes vocales + appels) -->
   <meta http-equiv="Permissions-Policy"
-        content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()">
+        content="camera=(), microphone=(self), geolocation=(), payment=(), usb=(), bluetooth=()">
   <!-- Prevent this page from being embedded in iframes (clickjacking protection) -->
   <meta http-equiv="X-Frame-Options" content="DENY">
   <!-- ══════════════════════════════════════════════════════════════════════════════ -->
@@ -109,7 +111,7 @@
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=59">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=60">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
@@ -732,7 +734,7 @@
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=108"></script>
+<script src="js/app.js?v=109"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>

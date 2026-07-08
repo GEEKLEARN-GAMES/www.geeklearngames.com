@@ -3120,6 +3120,9 @@ function closeTrailerModal() {
    FOOTER HTML
 ══════════════════════════════════════════ */
 function footerHTML() {
+  // DANS le launcher : pas de footer — un launcher est une APPLICATION
+  // (Steam/Discord/Epic n'en ont pas). Le footer reste un geste de site web.
+  if (IS_TAURI) return '';
   const nav = t('nav'); // [home, works, shop, about, contact]
   return `
   <footer>
@@ -7109,6 +7112,14 @@ const _CHAT_T = {
   attVid:    { fr:'Vidéo', en:'Video', es:'Vídeo', de:'Video', it:'Video', ar:'فيديو', zh:'视频', ja:'動画', ru:'Видео', pl:'Wideo' },
   attAud:    { fr:'Audio', en:'Audio', es:'Audio', de:'Audio', it:'Audio', ar:'صوت', zh:'音频', ja:'音声', ru:'Аудио', pl:'Audio' },
   you:       { fr:'Toi', en:'You', es:'Tú', de:'Du', it:'Tu', ar:'أنت', zh:'你', ja:'あなた', ru:'Вы', pl:'Ty' },
+  call:      { fr:'Appel vocal', en:'Voice call', es:'Llamada de voz', de:'Sprachanruf', it:'Chiamata vocale', ar:'مكالمة صوتية', zh:'语音通话', ja:'ボイス通話', ru:'Голосовой звонок', pl:'Połączenie głosowe' },
+  calling:   { fr:'Appel en cours…', en:'Calling…', es:'Llamando…', de:'Anruf läuft…', it:'Chiamata in corso…', ar:'جارٍ الاتصال…', zh:'呼叫中……', ja:'呼び出し中…', ru:'Звоним…', pl:'Dzwonię…' },
+  incoming:  { fr:'%s t\'appelle…', en:'%s is calling you…', es:'%s te está llamando…', de:'%s ruft dich an…', it:'%s ti sta chiamando…', ar:'%s يتصل بك…', zh:'%s 正在呼叫你……', ja:'%sから着信中…', ru:'%s звонит вам…', pl:'%s dzwoni do ciebie…' },
+  accept:    { fr:'Répondre', en:'Answer', es:'Responder', de:'Annehmen', it:'Rispondi', ar:'رد', zh:'接听', ja:'応答', ru:'Ответить', pl:'Odbierz' },
+  hangup:    { fr:'Raccrocher', en:'Hang up', es:'Colgar', de:'Auflegen', it:'Riaggancia', ar:'إنهاء المكالمة', zh:'挂断', ja:'通話終了', ru:'Завершить', pl:'Rozłącz' },
+  mute:      { fr:'Couper le micro', en:'Mute microphone', es:'Silenciar micrófono', de:'Mikrofon stummschalten', it:'Disattiva microfono', ar:'كتم الميكروفون', zh:'静音麦克风', ja:'マイクをミュート', ru:'Выключить микрофон', pl:'Wycisz mikrofon' },
+  unmute:    { fr:'Réactiver le micro', en:'Unmute microphone', es:'Activar micrófono', de:'Mikrofon aktivieren', it:'Riattiva microfono', ar:'إلغاء كتم الميكروفون', zh:'取消静音', ja:'ミュート解除', ru:'Включить микрофон', pl:'Włącz mikrofon' },
+  busy:      { fr:'Occupé — déjà en communication.', en:'Busy — already in a call.', es:'Ocupado — ya está en una llamada.', de:'Besetzt — bereits im Gespräch.', it:'Occupato — già in chiamata.', ar:'مشغول — في مكالمة بالفعل.', zh:'忙线中——正在通话。', ja:'通話中のため応答できません。', ru:'Занято — уже в разговоре.', pl:'Zajęte — trwa już rozmowa.' },
 };
 const _chT = k => (_CHAT_T[k] && (_CHAT_T[k][LANG] || _CHAT_T[k].en)) || '';
 
@@ -7129,6 +7140,7 @@ function _refreshChatBadge(n) {
    les messages de SES conversations. */
 function _chatEnsureRealtime() {
   if (_chatRtUnsub || !window.GLG_AUTH?.isConfigured?.()) return;
+  _callListen();   // appels vocaux : réception des sonneries sur MON canal
   _chatRtUnsub = GLG_AUTH.chatSubscribe(p => {
     const row = p?.new || p?.old || {};
     const t = p?.eventType;
@@ -7163,6 +7175,7 @@ function _chatTeardownRealtime() {
   _chatRtUnsub = null;
   _chat = { channels: [], current: null, rows: [], typingCh: null, media: null, recTimer: null };
   _refreshChatBadge(0);
+  _callTeardownListen();   // raccroche + ferme le canal d'appels au logout
 }
 
 async function buildChatPage() {
@@ -7271,7 +7284,10 @@ async function _chatOpen(channel) {
         <small>${isGroup ? _chT('members').replace('%s', (c && c.members) || '?') : (GLG_PRESENCE.isOnline(c && c.other_id) ? _ft('online') : '')}</small>
       </span>
       <span class="chat-head-actions">
-        ${!isGroup && c ? `<button class="chat-ic-btn" onclick="openUserProfile('${escHtml(c.other_id || '')}')" title="${_at('profileItem')}" aria-label="${_at('profileItem')}">
+        ${!isGroup && c ? `<button class="chat-ic-btn chat-ic-call" onclick="_callStart('${escHtml(c.other_id || '')}','${escHtml(c.name || '')}')" title="${_chT('call')}" aria-label="${_chT('call')}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.2 2.4 5 2.1c.4-.1.8.1 1 .5l1 2.1c.2.4.1.8-.2 1.1l-1 1c.7 1.4 1.9 2.6 3.4 3.4l1-1c.3-.3.7-.4 1.1-.2l2.1 1c.4.2.6.6.5 1l-.3 1.8c-.1.5-.5.8-1 .8C7.3 13.6 2.4 8.7 2.4 3.4c0-.5.3-.9.8-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="chat-ic-btn" onclick="openUserProfile('${escHtml(c.other_id || '')}')" title="${_at('profileItem')}" aria-label="${_at('profileItem')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.4" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M5.4 19c1-3 3.5-4.6 6.6-4.6s5.6 1.6 6.6 4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         </button>` : ''}
         ${isGroup ? `<button class="chat-ic-btn" onclick="_chatAddMemberModal()" title="${_chT('addMember')}" aria-label="${_chT('addMember')}">+</button>
@@ -7330,13 +7346,48 @@ async function _chatOpen(channel) {
   inp.focus();
 }
 
-function _chatAttachmentHTML(att) {
+function _chatAttachmentHTML(att, mid) {
   if (!att || !att.url) return '';
   const url = safeMediaUrl(att.url); if (!url) return '';
-  if (att.kind === 'image') return `<a class="chat-att chat-att--img" href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${escHtml(att.name || '')}" loading="lazy"></a>`;
-  if (att.kind === 'video') return `<video class="chat-att chat-att--vid" src="${url}" controls preload="metadata"></video>`;
+  // image : clic → visionneuse plein écran ; vidéo : lecteur inline + bouton ⤢
+  if (att.kind === 'image') return `
+    <button class="chat-att chat-att--img" onclick="_chatMediaOpen(${mid})" title="${escHtml(att.name || '')}">
+      <img src="${url}" alt="${escHtml(att.name || '')}" loading="lazy">
+    </button>`;
+  if (att.kind === 'video') return `
+    <span class="chat-att chat-att--vid">
+      <video src="${url}" controls preload="metadata"></video>
+      <button class="chat-att-expand" onclick="_chatMediaOpen(${mid})" title="⤢" aria-label="⤢">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M9.5 2h4.5v4.5M14 2 9 7M6.5 14H2V9.5M2 14l5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </span>`;
   if (att.kind === 'audio') return `<audio class="chat-att chat-att--aud" src="${url}" controls preload="metadata"></audio>`;
   return `<a class="chat-att chat-att--file" href="${url}" target="_blank" rel="noopener">📎 ${escHtml(att.name || 'fichier')}</a>`;
+}
+
+/* Visionneuse plein écran (image agrandie / vidéo lecture) — Échap ou clic
+   hors du média pour fermer. */
+function _chatMediaOpen(mid) {
+  const m = _chat.rows.find(x => x.id === mid);
+  const att = m && m.attachment; if (!att) return;
+  const url = safeMediaUrl(att.url); if (!url) return;
+  document.getElementById('glg-mediaview')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'glg-mediaview';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.innerHTML = `
+    <button class="mv-close" aria-label="✕">${_XSVG}</button>
+    ${att.kind === 'video'
+      ? `<video src="${url}" controls autoplay></video>`
+      : `<img src="${url}" alt="${escHtml(att.name || '')}">`}
+    ${att.name ? `<span class="mv-name">${escHtml(att.name)}</span>` : ''}`;
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.mv-close')) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  setTimeout(() => ov.classList.add('open'), 20);
 }
 
 function _chatMsgHTML(m, prev) {
@@ -7350,9 +7401,9 @@ function _chatMsgHTML(m, prev) {
   return `
   <div class="chat-msg ${own ? 'chat-msg--own' : ''} ${compact ? 'chat-msg--compact' : ''}" data-mid="${m.id}">
     ${!compact ? `<div class="chat-msg-meta"><b>${escHtml(name)}</b><time>${time}</time></div>` : ''}
-    <div class="chat-bubble">
+    <div class="chat-bubble ${!bodyHTML && m.attachment ? 'chat-bubble--media' : ''}">
       ${bodyHTML ? `<span class="chat-msg-body" id="chat-body-${m.id}">${bodyHTML}</span>` : ''}
-      ${_chatAttachmentHTML(m.attachment)}
+      ${_chatAttachmentHTML(m.attachment, m.id)}
       ${m.edited_at ? `<span class="chat-edited">${_chT('edited')}</span>` : ''}
       ${own ? `<span class="chat-msg-tools">
         ${m.body ? `<button class="chat-tool" onclick="_chatEditStart(${m.id})" title="${_chT('edit')}" aria-label="${_chT('edit')}">✎</button>` : ''}
@@ -7570,4 +7621,239 @@ async function _chatLeaveGroup() {
   _chat.current = null;
   const main = $('chat-main'); if (main) main.innerHTML = `<div class="chat-empty">${_chT('pickConv')}</div>`;
   _chatRefreshChannels();
+}
+
+/* ══════════════════════════════════════════
+   APPELS VOCAUX 1:1 — WebRTC pair-à-pair, qualité « Nitro » :
+   opus (echoCancellation + noiseSuppression + autoGainControl, 64 kbps),
+   liaison DIRECTE entre les deux joueurs (la distance ne dégrade pas :
+   seul leur débit compte). Signalisation : Supabase broadcast éphémère
+   (glg:call:<uid> — chacun écoute SON canal, on émet sur celui de l'autre).
+   Garde-fou : seuls les AMIS peuvent faire sonner (vérifié à la réception).
+══════════════════════════════════════════ */
+let _call = { pc:null, stream:null, otherId:null, otherName:'', state:'idle', t0:0, timer:null,
+              sendCh:null, sendReady:false, sendQ:[], pendingOffer:null, iceQueue:[], ringTimeout:null };
+let _callMyCh = null;
+const _CALL_ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+
+/* Canal personnel de réception — démarré à la connexion (chat realtime). */
+function _callListen() {
+  const sb = window.GLG_AUTH?.getClient?.();
+  if (!sb || _callMyCh || !_chatMe) return;
+  _callMyCh = sb.channel('glg:call:' + _chatMe);
+  _callMyCh.on('broadcast', { event: 'sig' }, p => { try { _callOnSignal(p.payload || {}); } catch (e) {} }).subscribe();
+}
+function _callTeardownListen() {
+  const sb = window.GLG_AUTH?.getClient?.();
+  try { _callMyCh && sb && sb.removeChannel(_callMyCh); } catch (e) {}
+  _callMyCh = null;
+  if (_call.state !== 'idle') _callEnd(false);
+}
+/* Émission one-shot (decline/busy — pas de canal d'appel ouvert). */
+function _callSendTo(uid, payload) {
+  try {
+    const sb = window.GLG_AUTH?.getClient?.(); if (!sb || !uid) return;
+    const ch = sb.channel('glg:call:' + uid);
+    ch.subscribe(st => {
+      if (st === 'SUBSCRIBED') {
+        ch.send({ type: 'broadcast', event: 'sig', payload });
+        setTimeout(() => { try { sb.removeChannel(ch); } catch (e) {} }, 1500);
+      }
+    });
+  } catch (e) {}
+}
+/* Canal d'émission de l'appel EN COURS (offre/réponse/ICE/fin). */
+function _callOpenSendCh(uid) {
+  const sb = window.GLG_AUTH?.getClient?.(); if (!sb) return;
+  _call.sendQ = []; _call.sendReady = false;
+  _call.sendCh = sb.channel('glg:call:' + uid);
+  _call.sendCh.subscribe(st => {
+    if (st === 'SUBSCRIBED') {
+      _call.sendReady = true;
+      (_call.sendQ || []).forEach(p => _call.sendCh.send({ type: 'broadcast', event: 'sig', payload: p }));
+      _call.sendQ = [];
+    }
+  });
+}
+function _callSend(p) {
+  if (_call.sendReady && _call.sendCh) _call.sendCh.send({ type: 'broadcast', event: 'sig', payload: p });
+  else (_call.sendQ = _call.sendQ || []).push(p);
+}
+
+const _CALL_MIC = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
+
+function _callAudioEl() {
+  let a = document.getElementById('glg-call-audio');
+  if (!a) { a = document.createElement('audio'); a.id = 'glg-call-audio'; a.autoplay = true; document.body.appendChild(a); }
+  return a;
+}
+function _callNewPC() {
+  const pc = new RTCPeerConnection(_CALL_ICE);
+  _call.pc = pc;
+  pc.onicecandidate = ev => { if (ev.candidate) _callSend({ t: 'ice', from: _chatMe, cand: ev.candidate.toJSON() }); };
+  pc.ontrack = ev => {
+    const a = _callAudioEl();
+    a.srcObject = ev.streams[0];
+    const pr = a.play && a.play(); if (pr && pr.catch) pr.catch(() => {});
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'connected' && _call.state !== 'live') {
+      _call.state = 'live'; _call.t0 = Date.now(); _callStartTimer(); _callRenderBar();
+    }
+    if ((pc.connectionState === 'failed' || pc.connectionState === 'closed' ||
+         pc.connectionState === 'disconnected') && _call.state === 'live') {
+      _callEnd(false);
+    }
+  };
+  return pc;
+}
+/* Qualité : plafond opus 64 kbps (voix cristalline, au-delà = inutile). */
+function _callTune(pc) {
+  try {
+    pc.getSenders().forEach(s => {
+      if (s.track && s.track.kind === 'audio') {
+        const p = s.getParameters();
+        p.encodings = [{ maxBitrate: 64000 }];
+        const pr = s.setParameters(p); if (pr && pr.catch) pr.catch(() => {});
+      }
+    });
+  } catch (e) {}
+}
+
+async function _callStart(uid, name) {
+  if (!uid || _call.state !== 'idle' || uid === _chatMe) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia(_CALL_MIC); }
+  catch (e) { _chatNote(_chT('recDenied')); return; }
+  _call.state = 'ringing-out'; _call.otherId = uid; _call.otherName = name || ''; _call.stream = stream; _call.iceQueue = [];
+  _callOpenSendCh(uid);
+  const pc = _callNewPC();
+  stream.getTracks().forEach(tr => pc.addTrack(tr, stream));
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  _callTune(pc);
+  _callSend({ t: 'ring', from: _chatMe, name: (_accountProfile && _accountProfile.username) || '', sdp: offer.sdp });
+  _callRenderBar();
+  // Sans réponse au bout de 45 s → on raccroche proprement
+  _call.ringTimeout = setTimeout(() => { if (_call.state === 'ringing-out') _callEnd(true); }, 45000);
+}
+
+async function _callOnSignal(s) {
+  if (!s || !s.t) return;
+  if (s.t === 'ring') {
+    if (_call.state !== 'idle') { _callSendTo(s.from, { t: 'busy', from: _chatMe }); return; }
+    // Garde-fou : seuls les AMIS acceptés peuvent faire sonner
+    let ok = ((_friendsCache && _friendsCache.friends) || []).some(f => f.id === s.from)
+          || _chat.channels.some(c => c.kind === 'dm' && c.other_id === s.from);
+    if (!ok) { try { const r = await GLG_AUTH.friendsList(); ok = (r.friends || []).some(f => f.id === s.from); } catch (e) {} }
+    if (!ok) return;
+    _call.state = 'ringing-in'; _call.otherId = s.from; _call.otherName = s.name || '';
+    _call.pendingOffer = s.sdp; _call.iceQueue = [];
+    _callRenderBar();
+  } else if (s.t === 'answer') {
+    if (_call.state !== 'ringing-out' || !_call.pc) return;
+    clearTimeout(_call.ringTimeout);
+    try { await _call.pc.setRemoteDescription({ type: 'answer', sdp: s.sdp }); } catch (e) { _callEnd(true); }
+  } else if (s.t === 'ice') {
+    if (_call.pc && _call.pc.remoteDescription) { try { await _call.pc.addIceCandidate(s.cand); } catch (e) {} }
+    else if (s.cand) (_call.iceQueue = _call.iceQueue || []).push(s.cand);
+  } else if (s.t === 'decline' || s.t === 'busy') {
+    if (_call.state === 'ringing-out') { if (s.t === 'busy') _chatNote(_chT('busy')); _callEnd(false); }
+  } else if (s.t === 'end') {
+    if (_call.state !== 'idle' && s.from === _call.otherId) _callEnd(false);
+  }
+}
+
+async function _callAccept() {
+  if (_call.state !== 'ringing-in' || !_call.pendingOffer) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia(_CALL_MIC); }
+  catch (e) { _callDecline(); return; }
+  _call.stream = stream;
+  _callOpenSendCh(_call.otherId);
+  const pc = _callNewPC();
+  stream.getTracks().forEach(tr => pc.addTrack(tr, stream));
+  try {
+    await pc.setRemoteDescription({ type: 'offer', sdp: _call.pendingOffer });
+    (_call.iceQueue || []).forEach(c => { const pr = pc.addIceCandidate(c); if (pr && pr.catch) pr.catch(() => {}); });
+    _call.iceQueue = [];
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    _callTune(pc);
+    _callSend({ t: 'answer', from: _chatMe, sdp: ans.sdp });
+    _call.state = 'connecting';
+    _callRenderBar();
+  } catch (e) { _callEnd(true); }
+}
+function _callDecline() {
+  _callSendTo(_call.otherId, { t: 'decline', from: _chatMe });
+  _callEnd(false);
+}
+function _callToggleMute() {
+  if (!_call.stream) return;
+  _call.stream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
+  const muted = _call.stream.getAudioTracks().some(t => !t.enabled);
+  const b = document.getElementById('cb-mute');
+  if (b) { b.classList.toggle('off', muted); b.title = muted ? _chT('unmute') : _chT('mute'); b.setAttribute('aria-label', b.title); }
+}
+function _callEnd(notify) {
+  if (notify === undefined) notify = true;
+  if (notify && _call.otherId) {
+    if (_call.sendReady) _callSend({ t: 'end', from: _chatMe });
+    else _callSendTo(_call.otherId, { t: 'end', from: _chatMe });
+  }
+  try { _call.pc && _call.pc.close(); } catch (e) {}
+  try { (_call.stream ? _call.stream.getTracks() : []).forEach(t => t.stop()); } catch (e) {}
+  clearInterval(_call.timer); clearTimeout(_call.ringTimeout);
+  const sb = window.GLG_AUTH?.getClient?.();
+  try { _call.sendCh && sb && sb.removeChannel(_call.sendCh); } catch (e) {}
+  const a = document.getElementById('glg-call-audio'); if (a) a.srcObject = null;
+  _call = { pc:null, stream:null, otherId:null, otherName:'', state:'idle', t0:0, timer:null,
+            sendCh:null, sendReady:false, sendQ:[], pendingOffer:null, iceQueue:[], ringTimeout:null };
+  _callRenderBar();
+}
+function _callStartTimer() {
+  clearInterval(_call.timer);
+  _call.timer = setInterval(() => {
+    const el = document.getElementById('cb-timer'); if (!el) return;
+    const s = Math.floor((Date.now() - _call.t0) / 1000);
+    el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
+}
+
+/* Carte d'appel flottante (indépendante de la page — l'appel survit à la
+   navigation dans le launcher, comme Discord). */
+function _callRenderBar() {
+  document.getElementById('glg-callbar')?.remove();
+  if (_call.state === 'idle') return;
+  const bar = document.createElement('div');
+  bar.id = 'glg-callbar';
+  const phoneIco = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.2 2.4 5 2.1c.4-.1.8.1 1 .5l1 2.1c.2.4.1.8-.2 1.1l-1 1c.7 1.4 1.9 2.6 3.4 3.4l1-1c.3-.3.7-.4 1.1-.2l2.1 1c.4.2.6.6.5 1l-.3 1.8c-.1.5-.5.8-1 .8C7.3 13.6 2.4 8.7 2.4 3.4c0-.5.3-.9.8-1z" fill="currentColor"/></svg>';
+  const hangIco  = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.6 9.4C3.3 7.3 5.5 6.2 8 6.2s4.7 1.1 6.4 3.2c.3.4.3.9-.1 1.2l-1.3 1.2c-.3.3-.8.3-1.1 0l-1.5-1.3c-.2-.2-.3-.5-.3-.8v-1c-1.4-.5-2.8-.5-4.2 0v1c0 .3-.1.6-.3.8l-1.5 1.3c-.3.3-.8.3-1.1 0L1.7 10.6c-.4-.3-.4-.8-.1-1.2z" fill="currentColor"/></svg>';
+  const micIco   = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  if (_call.state === 'ringing-in') {
+    bar.innerHTML = `
+    <div class="cb-card cb-card--ring">
+      <span class="cb-pulse" aria-hidden="true">${phoneIco}</span>
+      <span class="cb-id"><b>${escHtml(_call.otherName || '')}</b><small>${_chT('incoming').replace('%s', escHtml(_call.otherName || ''))}</small></span>
+      <span class="cb-actions">
+        <button class="cb-btn cb-btn--ok" onclick="_callAccept()" title="${_chT('accept')}" aria-label="${_chT('accept')}">${phoneIco}</button>
+        <button class="cb-btn cb-btn--no" onclick="_callDecline()" title="${_ft('decline')}" aria-label="${_ft('decline')}">${hangIco}</button>
+      </span>
+    </div>`;
+  } else {
+    const status = _call.state === 'live'
+      ? `<span id="cb-timer">0:00</span>`
+      : `<small>${_chT('calling')}</small>`;
+    bar.innerHTML = `
+    <div class="cb-card ${_call.state === 'live' ? 'cb-card--live' : ''}">
+      <span class="${_call.state === 'live' ? 'cb-live-dot' : 'cb-pulse'}" aria-hidden="true">${phoneIco}</span>
+      <span class="cb-id"><b>${escHtml(_call.otherName || '')}</b>${status}</span>
+      <span class="cb-actions">
+        ${_call.state === 'live' ? `<button class="cb-btn cb-btn--mute" id="cb-mute" onclick="_callToggleMute()" title="${_chT('mute')}" aria-label="${_chT('mute')}">${micIco}</button>` : ''}
+        <button class="cb-btn cb-btn--no" onclick="_callEnd()" title="${_chT('hangup')}" aria-label="${_chT('hangup')}">${hangIco}</button>
+      </span>
+    </div>`;
+  }
+  document.body.appendChild(bar);
 }
