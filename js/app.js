@@ -2159,12 +2159,12 @@ const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
    Windows : installeur auto-hébergé (léger, 1,7 Mo). macOS/Linux : renseigner
    les URLs GitHub Releases à la 1re release CI (tag launcher-v*). */
 /* Base des fichiers de la release CI signée — à bumper à chaque release. */
-const _DL_VER = '1.0.2';
+const _DL_VER = '1.0.3';
 const _DL_REL = `https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v${_DL_VER}`;
 const LAUNCHER_DL = {
   version: _DL_VER,
   sizeMB: 2.1,
-  sha256: 'f6148bb868ccf129d97bf3287a095156330068fde563ba9afee21b29f7b4c06e',
+  sha256: 'e888b37efff6fa32a54247b5c72b5a34e2996ee1d6fbf0fa6c659df3070db76d',
   all: 'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/latest',
   /* Variantes par plateforme : la 1re = lien principal (gros bouton pour
      l'OS détecté), toutes sont listées sur la carte de la plateforme. */
