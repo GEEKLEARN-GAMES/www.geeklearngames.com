@@ -10,7 +10,7 @@
      • cross-origin (Supabase, API de change) → JAMAIS interceptés.
    Discipline : bumper CACHE à chaque déploiement (PROGRESS.md).
 ═══════════════════════════════════════════════════════════ */
-const CACHE = 'glg-v8';
+const CACHE = 'glg-v9';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./'])).catch(() => {}));

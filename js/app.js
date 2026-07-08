@@ -6999,12 +6999,11 @@ function _initTauriTitlebar() {
     const bar = document.createElement('div');
     bar.id = 'glg-titlebar';
     bar.innerHTML = `
-      <div class="tb-drag" data-tauri-drag-region>
-        <span class="tb-title" aria-hidden="true">
-          <img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'">
-          <span>GEEKLEARN GAMES</span>
-        </span>
-      </div>
+      <div class="tb-drag" data-tauri-drag-region></div>
+      <span class="tb-title" aria-hidden="true">
+        <img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'">
+        <span>GEEKLEARN GAMES</span>
+      </span>
       <div class="tb-controls">
         <button class="tb-btn" id="tb-min">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M1 5.5h9" stroke="currentColor" stroke-width="1.1"/></svg>

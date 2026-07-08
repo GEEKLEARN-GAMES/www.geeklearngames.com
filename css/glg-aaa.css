@@ -3605,15 +3605,19 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
   user-select:none; -webkit-user-select:none;
   direction:ltr; /* contrôles à droite même en RTL (convention OS) */
 }
-.tb-drag{ flex:1; position:relative; }
+.tb-drag{ flex:1; }
+/* Titre centré sur la LARGEUR TOTALE de la fenêtre (comme Discord) — pas
+   sur la seule zone de drag, que les boutons de droite décaleraient. */
 .tb-title{
   position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center; gap:8px;
+  display:flex; align-items:center; justify-content:center; gap:9px;
   font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.3em;
+  text-indent:.3em; /* compense l'espace du letter-spacing après la dernière lettre */
   text-transform:uppercase; color:rgba(255,255,255,.55);
-  pointer-events:none; /* le drag passe à travers, vers .tb-drag */
+  pointer-events:none; /* drag et clics passent à travers */
 }
-.tb-title img{ width:14px; height:14px; opacity:.9; }
+/* glg-mark.png est un wordmark ~3:1 — hauteur fixe, largeur AUTO (zéro étirement) */
+.tb-title img{ height:11px; width:auto; opacity:.9; }
 .tb-controls{ display:flex; }
 .tb-btn{
   width:46px; border:none; background:transparent; color:rgba(255,255,255,.6);
