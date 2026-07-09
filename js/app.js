@@ -1428,6 +1428,11 @@ const _LIB_T = {
   missT:      { fr:'Launcher introuvable', en:'Launcher not found', es:'Launcher no encontrado', de:'Launcher nicht gefunden', it:'Launcher non trovato', ar:'المشغّل غير موجود', zh:'未找到启动器', ja:'ランチャーが見つかりません', ru:'Лаунчер не найден', pl:'Nie znaleziono launchera' },
   missNote:   { fr:'Le launcher GEEKLEARN GAMES n’est pas encore installé sur cette machine. Il arrive très bientôt en téléchargement — tes jeux restent liés à ton compte, rien n’est perdu.', en:'The GEEKLEARN GAMES launcher isn’t installed on this machine yet. It’s coming very soon — your games stay tied to your account, nothing is lost.', es:'El launcher de GEEKLEARN GAMES aún no está instalado en este equipo. Llegará muy pronto — tus juegos permanecen vinculados a tu cuenta.', de:'Der GEEKLEARN-GAMES-Launcher ist auf diesem Rechner noch nicht installiert. Er kommt sehr bald — deine Spiele bleiben mit deinem Konto verknüpft.', it:'Il launcher GEEKLEARN GAMES non è ancora installato su questa macchina. Arriverà molto presto — i tuoi giochi restano legati al tuo account.', ar:'مشغّل GEEKLEARN GAMES غير مثبّت على هذا الجهاز بعد. سيتوفر قريباً جداً — تبقى ألعابك مرتبطة بحسابك.', zh:'这台设备尚未安装 GEEKLEARN GAMES 启动器。它很快就会推出——你的游戏始终绑定在你的账户上。', ja:'このマシンにはGEEKLEARN GAMESランチャーがまだインストールされていません。まもなく登場します — ゲームはアカウントに紐づいたままです。', ru:'Лаунчер GEEKLEARN GAMES ещё не установлен на этом компьютере. Он скоро выйдет — ваши игры остаются привязанными к аккаунту.', pl:'Launcher GEEKLEARN GAMES nie jest jeszcze zainstalowany na tym komputerze. Pojawi się już wkrótce — twoje gry pozostają przypisane do konta.' },
   ok:         { fr:'Compris', en:'Got it', es:'Entendido', de:'Verstanden', it:'Capito', ar:'فهمت', zh:'知道了', ja:'了解', ru:'Понятно', pl:'Rozumiem' },
+  colFavs:    { fr:'Favoris', en:'Favorites', es:'Favoritos', de:'Favoriten', it:'Preferiti', ar:'المفضلة', zh:'收藏', ja:'お気に入り', ru:'Избранное', pl:'Ulubione' },
+  colGames:   { fr:'Jeux vidéo', en:'Video games', es:'Videojuegos', de:'Videospiele', it:'Videogiochi', ar:'ألعاب الفيديو', zh:'电子游戏', ja:'ゲーム', ru:'Видеоигры', pl:'Gry wideo' },
+  colFilms:   { fr:'Films interactifs', en:'Interactive films', es:'Películas interactivas', de:'Interaktive Filme', it:'Film interattivi', ar:'أفلام تفاعلية', zh:'互动电影', ja:'インタラクティブ映画', ru:'Интерактивные фильмы', pl:'Filmy interaktywne' },
+  favAdd:     { fr:'Ajouter aux favoris', en:'Add to favorites', es:'Añadir a favoritos', de:'Zu Favoriten hinzufügen', it:'Aggiungi ai preferiti', ar:'أضف إلى المفضلة', zh:'加入收藏', ja:'お気に入りに追加', ru:'В избранное', pl:'Dodaj do ulubionych' },
+  favDel:     { fr:'Retirer des favoris', en:'Remove from favorites', es:'Quitar de favoritos', de:'Aus Favoriten entfernen', it:'Rimuovi dai preferiti', ar:'أزل من المفضلة', zh:'移出收藏', ja:'お気に入りから削除', ru:'Убрать из избранного', pl:'Usuń z ulubionych' },
 };
 const _lbt = k => (_LIB_T[k] && (_LIB_T[k][LANG] || _LIB_T[k].en)) || '';
 /* Flèche directionnelle : « → » pointe EN ARRIÈRE en RTL (arabe) — miroir. */
@@ -1576,6 +1581,26 @@ async function buildLibraryPage() {
   // Succès réels du joueur — alimente la section « Succès » de chaque vitrine
   if (configured) { try { const r = await GLG_AUTH.getAchievements(); _achKeys = new Set(r.keys || []); } catch (e) {} }
 
+  // Collections façon Steam : Favoris (prefs.favs) puis, OBLIGATOIREMENT,
+  // Jeux vidéo et Films interactifs (une œuvre favorite apparaît dans les 2).
+  const prf = _applyPrefs(p.prefs);
+  const favSet = new Set(prf.favs || []);
+  const _STAR = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.8 9.9 5.9l4.4.5-3.3 3 .9 4.4L8 11.5 4.1 13.8l.9-4.4-3.3-3 4.4-.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>';
+  const railItem = x => `
+          <button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="${x.w.id}" aria-current="${x.w.id === _libSelected ? 'true' : 'false'}">
+            <span class="lib-item-cover"><img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async"></span>
+            <span class="lib-item-name">${x.w.title}</span>
+            <span class="lib-item-fav ${favSet.has(x.w.id) ? 'on' : ''}" data-fav="${x.w.id}" role="button" tabindex="0"
+              aria-label="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}" title="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}">${_STAR}</span>
+          </button>`;
+  const favList = lib.filter(x => favSet.has(x.w.id));
+  const games   = lib.filter(x => x.w.type !== 'film');
+  const films   = lib.filter(x => x.w.type === 'film');
+  const groups  = [];
+  if (favList.length) groups.push(['colFavs', favList]);
+  if (games.length)   groups.push(['colGames', games]);
+  if (films.length)   groups.push(['colFilms', films]);
+
   root.innerHTML = `
     <div class="lib-shell">
       <aside class="lib-rail" aria-label="${_lbt('eyebrow')}">
@@ -1584,15 +1609,22 @@ async function buildLibraryPage() {
           <span class="lib-count">${lib.length}</span>
         </div>
         <div class="lib-rail-list">
-          ${lib.map(x => `
-          <button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="${x.w.id}" aria-current="${x.w.id === _libSelected ? 'true' : 'false'}">
-            <span class="lib-item-cover"><img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async"></span>
-            <span class="lib-item-name">${x.w.title}</span>
-          </button>`).join('')}
+          ${groups.map(([key, arr]) => `
+          <div class="lib-col">
+            <div class="lib-col-head">${key === 'colFavs' ? `<span class="lib-col-star">${_STAR}</span>` : ''}<span>${_lbt(key)}</span><span class="lib-col-n">${arr.length}</span></div>
+            ${arr.map(railItem).join('')}
+          </div>`).join('')}
         </div>
       </aside>
       <div class="lib-stage" id="lib-stage">${_libStageHTML(lib.find(x => x.w.id === _libSelected), recent)}</div>
     </div>`;
+
+  // Étoiles favoris : toggle + re-render (les collections se regroupent)
+  root.querySelectorAll('[data-fav]').forEach(s => {
+    const toggle = ev => { ev.stopPropagation(); ev.preventDefault(); _libToggleFav(s.dataset.fav); };
+    s.addEventListener('click', toggle);
+    s.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') toggle(ev); });
+  });
 
   root.querySelectorAll('[data-lib]').forEach(b => b.addEventListener('click', () => {
     _libSelected = b.dataset.lib;
@@ -1600,7 +1632,7 @@ async function buildLibraryPage() {
     // (bannière, logo, boutons) occupe quasi tout l'écran. Survoler le rail
     // le ré-étend temporairement (§69, :has).
     root.querySelector('.lib-shell')?.classList.add('lib-shell--zen');
-    root.querySelectorAll('[data-lib]').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-current', x === b ? 'true' : 'false'); });
+    root.querySelectorAll('[data-lib]').forEach(x => { x.classList.toggle('active', x.dataset.lib === b.dataset.lib); x.setAttribute('aria-current', x.dataset.lib === b.dataset.lib ? 'true' : 'false'); });
     const stage = $('lib-stage');
     if (stage) {
       stage.classList.remove('lib-stage--in');
@@ -1852,6 +1884,18 @@ function _libBelowHTML(w) {
   </div>`;
 }
 
+/* Favori on/off (étoile du rail + lien du héro) → prefs.favs, puis
+   re-render (les collections se regroupent) en préservant le mode zen. */
+async function _libToggleFav(id) {
+  const favs = ((_userPrefs && _userPrefs.favs) || []).slice();
+  const i = favs.indexOf(id);
+  if (i >= 0) favs.splice(i, 1); else favs.push(id);
+  const wasZen = !!document.querySelector('.lib-shell--zen');
+  await _savePrefs({ favs });
+  await buildLibraryPage();
+  if (wasZen) document.querySelector('.lib-shell')?.classList.add('lib-shell--zen');
+}
+
 /* Vitrine du jeu sélectionné (key art plein cadre + actions launcher). */
 function _libStageHTML(x, recent) {
   if (!x) return '';
@@ -1887,6 +1931,8 @@ function _libStageHTML(x, recent) {
           ${playedTxt ? `<span class="lib-meta-dot">·</span><span>${playedTxt}</span>` : ''}
         </div>
         <div class="lib-links">
+          ${(() => { const isFav = !!(_userPrefs && _userPrefs.favs && _userPrefs.favs.includes(w.id));
+            return `<button class="lib-link lib-link-fav ${isFav ? 'on' : ''}" onclick="_libToggleFav('${w.id}')">★ ${isFav ? _lbt('favDel') : _lbt('favAdd')}</button>`; })()}
           <button class="lib-link" onclick="showPage('detail','${w.id}')">${_st('view')} <span aria-hidden="true">${_ARR()}</span></button>
           ${troph ? `<button class="lib-link" onclick="openTrophyList('${w.id}')">${_tt('section')} <span aria-hidden="true">${_ARR()}</span></button>` : ''}
         </div>
@@ -4122,6 +4168,17 @@ const _OPT_T = {
   descPrivacy:{fr:'Ce que les autres joueurs voient de toi. Toi seul décides.',en:'What other players see of you. You alone decide.',es:'Lo que otros jugadores ven de ti. Solo tú decides.',de:'Was andere Spieler von dir sehen. Du allein entscheidest.',it:'Ciò che gli altri giocatori vedono di te. Decidi solo tu.',ar:'ما يراه اللاعبون الآخرون عنك. أنت وحدك من يقرر.',zh:'其他玩家能看到你的哪些内容，由你决定。',ja:'他のプレイヤーに何を見せるか。決めるのはあなただけ。',ru:'Что видят о вас другие игроки. Решаете только вы.',pl:'Co widzą o tobie inni gracze. Tylko ty decydujesz.'},
   descAccount:{fr:'Sécurité et accès — mot de passe, double authentification, langue, session.',en:'Security and access — password, two-factor, language, session.',es:'Seguridad y acceso — contraseña, doble factor, idioma, sesión.',de:'Sicherheit und Zugang — Passwort, 2FA, Sprache, Sitzung.',it:'Sicurezza e accesso — password, 2FA, lingua, sessione.',ar:'الأمان والوصول — كلمة المرور والمصادقة الثنائية واللغة والجلسة.',zh:'安全与访问——密码、两步验证、语言、会话。',ja:'セキュリティとアクセス — パスワード・2FA・言語・セッション。',ru:'Безопасность и доступ — пароль, 2FA, язык, сессия.',pl:'Bezpieczeństwo i dostęp — hasło, 2FA, język, sesja.'},
   descUpdates:{fr:'La version du launcher, les mises à jour signées et le journal des nouveautés.',en:'Launcher version, signed updates and the changelog.',es:'La versión del launcher, actualizaciones firmadas y novedades.',de:'Launcher-Version, signierte Updates und das Änderungsprotokoll.',it:'Versione del launcher, aggiornamenti firmati e novità.',ar:'إصدار المشغّل والتحديثات الموقّعة وسجل الجديد.',zh:'启动器版本、签名更新与更新日志。',ja:'ランチャーのバージョン、署名付きアップデート、更新履歴。',ru:'Версия лаунчера, подписанные обновления и журнал изменений.',pl:'Wersja launchera, podpisane aktualizacje i dziennik zmian.'},
+  tabAv:{fr:'Voix & vidéo',en:'Voice & video',es:'Voz y vídeo',de:'Sprache & Video',it:'Voce e video',ar:'الصوت والفيديو',zh:'语音与视频',ja:'音声・ビデオ',ru:'Голос и видео',pl:'Głos i wideo'},
+  descAv:{fr:'Micro, sortie audio et caméra — teste tout ici avant tes appels et notes vocales.',en:'Microphone, audio output and camera — test everything here before your calls and voice notes.',es:'Micrófono, salida de audio y cámara — pruébalo todo aquí antes de tus llamadas.',de:'Mikrofon, Audioausgabe und Kamera — teste hier alles vor deinen Anrufen.',it:'Microfono, uscita audio e fotocamera — prova tutto qui prima delle chiamate.',ar:'الميكروفون ومخرج الصوت والكاميرا — اختبر كل شيء هنا قبل مكالماتك.',zh:'麦克风、音频输出与摄像头——通话前在这里全部测试。',ja:'マイク・オーディオ出力・カメラ — 通話前にここですべてテスト。',ru:'Микрофон, вывод звука и камера — проверьте всё здесь перед звонками.',pl:'Mikrofon, wyjście audio i kamera — przetestuj wszystko przed rozmowami.'},
+  micIn:{fr:'Périphérique d’entrée',en:'Input device',es:'Dispositivo de entrada',de:'Eingabegerät',it:'Dispositivo di ingresso',ar:'جهاز الإدخال',zh:'输入设备',ja:'入力デバイス',ru:'Устройство ввода',pl:'Urządzenie wejściowe'},
+  audioOut:{fr:'Périphérique de sortie',en:'Output device',es:'Dispositivo de salida',de:'Ausgabegerät',it:'Dispositivo di uscita',ar:'جهاز الإخراج',zh:'输出设备',ja:'出力デバイス',ru:'Устройство вывода',pl:'Urządzenie wyjściowe'},
+  camera:{fr:'Caméra',en:'Camera',es:'Cámara',de:'Kamera',it:'Fotocamera',ar:'الكاميرا',zh:'摄像头',ja:'カメラ',ru:'Камера',pl:'Kamera'},
+  devDefault:{fr:'Par défaut du système',en:'System default',es:'Predeterminado del sistema',de:'Systemstandard',it:'Predefinito di sistema',ar:'افتراضي النظام',zh:'系统默认',ja:'システム既定',ru:'Системный по умолчанию',pl:'Domyślne systemowe'},
+  micTest:{fr:'Tester le micro',en:'Test microphone',es:'Probar el micrófono',de:'Mikrofon testen',it:'Prova il microfono',ar:'اختبار الميكروفون',zh:'测试麦克风',ja:'マイクをテスト',ru:'Проверить микрофон',pl:'Przetestuj mikrofon'},
+  testStop:{fr:'Arrêter le test',en:'Stop test',es:'Detener la prueba',de:'Test beenden',it:'Ferma il test',ar:'إيقاف الاختبار',zh:'停止测试',ja:'テストを停止',ru:'Остановить проверку',pl:'Zatrzymaj test'},
+  outTest:{fr:'Tester la sortie',en:'Test output',es:'Probar la salida',de:'Ausgabe testen',it:'Prova l’uscita',ar:'اختبار الإخراج',zh:'测试输出',ja:'出力をテスト',ru:'Проверить вывод',pl:'Przetestuj wyjście'},
+  camTest:{fr:'Aperçu de la caméra',en:'Camera preview',es:'Vista previa de la cámara',de:'Kameravorschau',it:'Anteprima fotocamera',ar:'معاينة الكاميرا',zh:'摄像头预览',ja:'カメラプレビュー',ru:'Предпросмотр камеры',pl:'Podgląd kamery'},
+  devHint:{fr:'Les noms des périphériques apparaissent après la première autorisation du micro/caméra.',en:'Device names appear after the first microphone/camera permission.',es:'Los nombres de los dispositivos aparecen tras el primer permiso de micro/cámara.',de:'Gerätenamen erscheinen nach der ersten Mikrofon-/Kamera-Freigabe.',it:'I nomi dei dispositivi appaiono dopo il primo consenso a micro/fotocamera.',ar:'تظهر أسماء الأجهزة بعد أول إذن للميكروفون/الكاميرا.',zh:'设备名称在首次授权麦克风/摄像头后显示。',ja:'デバイス名はマイク／カメラの初回許可後に表示されます。',ru:'Названия устройств появляются после первого разрешения микрофона/камеры.',pl:'Nazwy urządzeń pojawiają się po pierwszej zgodzie na mikrofon/kamerę.'},
   optxTitle:{fr:'LES OPTIONS VIVENT DANS LE LAUNCHER',en:'SETTINGS LIVE IN THE LAUNCHER',es:'LOS AJUSTES VIVEN EN EL LAUNCHER',de:'DIE OPTIONEN LEBEN IM LAUNCHER',it:'LE OPZIONI VIVONO NEL LAUNCHER',ar:'الإعدادات تعيش في المشغّل',zh:'设置安家于启动器',ja:'設定はランチャーの中に',ru:'НАСТРОЙКИ ЖИВУТ В ЛАУНЧЕРЕ',pl:'OPCJE ŻYJĄ W LAUNCHERZE'},
   optxSub:{fr:'Profil, personnalisation, notifications, confidentialité, sécurité (2FA) et mises à jour — le centre de contrôle complet est réservé à l’application de bureau.',en:'Profile, personalization, notifications, privacy, security (2FA) and updates — the full control center is exclusive to the desktop app.',es:'Perfil, personalización, notificaciones, privacidad, seguridad (2FA) y actualizaciones — el centro de control completo es exclusivo de la aplicación de escritorio.',de:'Profil, Personalisierung, Benachrichtigungen, Privatsphäre, Sicherheit (2FA) und Updates — das komplette Kontrollzentrum gibt es nur in der Desktop-App.',it:'Profilo, personalizzazione, notifiche, privacy, sicurezza (2FA) e aggiornamenti — il centro di controllo completo è esclusivo dell’app desktop.',ar:'الملف والتخصيص والإشعارات والخصوصية والأمان (2FA) والتحديثات — مركز التحكم الكامل حصري لتطبيق سطح المكتب.',zh:'个人资料、个性化、通知、隐私、安全（两步验证）与更新——完整的控制中心为桌面应用独享。',ja:'プロフィール、カスタマイズ、通知、プライバシー、セキュリティ（2FA）、アップデート — 完全なコントロールセンターはデスクトップアプリ限定。',ru:'Профиль, персонализация, уведомления, приватность, безопасность (2FA) и обновления — полный центр управления только в настольном приложении.',pl:'Profil, personalizacja, powiadomienia, prywatność, bezpieczeństwo (2FA) i aktualizacje — pełne centrum sterowania wyłącznie w aplikacji desktopowej.'},
   sfx:{fr:'Sons d’interface',en:'Interface sounds',es:'Sonidos de interfaz',de:'Interface-Sounds',it:'Suoni dell’interfaccia',ar:'أصوات الواجهة',zh:'界面音效',ja:'インターフェース音',ru:'Звуки интерфейса',pl:'Dźwięki interfejsu'},
@@ -4169,13 +4226,17 @@ function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
 
 let _userPrefs = null;
-function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true} }; }
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true}, favs:[], av:{micId:null,outId:null,camId:null} }; }
 function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
   accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
   reducedMotion:!!p.reducedMotion,
   sfx:!!p.sfx,
   notif:Object.assign({},d.notif,p.notif||{}),
-  privacy:Object.assign({},d.privacy,p.privacy||{}) }; }
+  privacy:Object.assign({},d.privacy,p.privacy||{}),
+  favs:Array.isArray(p.favs)?p.favs.filter(x=>typeof x==='string').slice(0,64):[],   // jeux favoris (bibliothèque)
+  av:{ micId:(p.av&&typeof p.av.micId==='string')?p.av.micId:null,                   // périphériques voix/vidéo
+       outId:(p.av&&typeof p.av.outId==='string')?p.av.outId:null,
+       camId:(p.av&&typeof p.av.camId==='string')?p.av.camId:null } }; }
 function _applyPrefs(p){
   _userPrefs = _normPrefs(p);
   document.documentElement.classList.toggle('glg-reduce-motion', _userPrefs.reducedMotion);
@@ -4227,6 +4288,7 @@ const _SET_TAB_ICONS = {
   privacy: '<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8L3 3.6v3.6c0 3.2 2.1 5.4 5 6.6 2.9-1.2 5-3.4 5-6.6V3.6L8 1.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.8 7.8l1.6 1.6 2.8-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   account: '<svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="8" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M8.6 8H14M12 8v2.4M14 8v1.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   updates: '<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 6.5A5.5 5.5 0 003.6 5M2.6 9.5A5.5 5.5 0 0012.4 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13.6 2.6v3h-3M2.4 13.4v-3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  av:      '<svg viewBox="0 0 16 16" fill="none"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
 };
 function _settingsTabs(){
   const tab = (key, label, active) => `
@@ -4236,6 +4298,7 @@ function _settingsTabs(){
         </button>`;
   return tab('profile', _ot('tabProfile'), true)
        + tab('perso',   _ot('tabPerso'))
+       + tab('av',      _ot('tabAv'))
        + tab('notif',   _ot('tabNotif'))
        + tab('privacy', _ot('tabPrivacy'))
        + tab('account', _ot('tabAccount'))
@@ -4281,6 +4344,33 @@ function _settingsPanels(p, u, pr){
             ${_toggleHTML('ap-rmotion', _ot('reducedMotion'), _ot('reducedMotionD'), pr.reducedMotion)}
             ${_toggleHTML('ap-sfx', _ot('sfx'), _ot('sfxD'), pr.sfx)}
           </div>
+          </div>
+        </div>
+        <div class="set-panel" data-panel="av" hidden>
+          ${head('tabAv', 'descAv')}
+          <div class="set-card">
+            <div class="set-group-label">${_ot('micIn')}</div>
+            <div class="set-av-row">
+              <select id="ap-av-mic" class="set-av-select"><option value="">${_ot('devDefault')}</option></select>
+              <button type="button" class="btn btn-outline set-av-btn" id="ap-av-mictest">${_ot('micTest')}</button>
+            </div>
+            <div class="set-av-meter" id="ap-av-meter" aria-hidden="true"><i></i></div>
+          </div>
+          <div class="set-card">
+            <div class="set-group-label">${_ot('audioOut')}</div>
+            <div class="set-av-row">
+              <select id="ap-av-out" class="set-av-select"><option value="">${_ot('devDefault')}</option></select>
+              <button type="button" class="btn btn-outline set-av-btn" id="ap-av-outtest">${_ot('outTest')}</button>
+            </div>
+          </div>
+          <div class="set-card">
+            <div class="set-group-label">${_ot('camera')}</div>
+            <div class="set-av-row">
+              <select id="ap-av-cam" class="set-av-select"><option value="">${_ot('devDefault')}</option></select>
+              <button type="button" class="btn btn-outline set-av-btn" id="ap-av-camtest">${_ot('camTest')}</button>
+            </div>
+            <video id="ap-av-campreview" class="set-av-campreview" autoplay muted playsinline hidden></video>
+            <p class="set-update-note" style="margin-top:12px">${_ot('devHint')}</p>
           </div>
         </div>
         <div class="set-panel" data-panel="notif" hidden>
@@ -4434,6 +4524,7 @@ async function buildSettingsPage(){
 function _wireSettings(root) {
   root = root || $('glg-auth-modal'); if (!root) return;
   const q = sel => root.querySelector(sel);
+  _wireAvPanel(q);   // onglet Voix & vidéo (périphériques + tests)
   // Onglets
   root.querySelectorAll('.set-tab').forEach(t => t.addEventListener('click', () => {
     root.querySelectorAll('.set-tab').forEach(x => x.classList.toggle('active', x === t));
@@ -7191,6 +7282,10 @@ const _CHAT_T = {
   unmute:    { fr:'Réactiver le micro', en:'Unmute microphone', es:'Activar micrófono', de:'Mikrofon aktivieren', it:'Riattiva microfono', ar:'إلغاء كتم الميكروفون', zh:'取消静音', ja:'ミュート解除', ru:'Включить микрофон', pl:'Włącz mikrofon' },
   busy:      { fr:'Occupé — déjà en communication.', en:'Busy — already in a call.', es:'Ocupado — ya está en una llamada.', de:'Besetzt — bereits im Gespräch.', it:'Occupato — già in chiamata.', ar:'مشغول — في مكالمة بالفعل.', zh:'忙线中——正在通话。', ja:'通話中のため応答できません。', ru:'Занято — уже в разговоре.', pl:'Zajęte — trwa już rozmowa.' },
   confirm:   { fr:'Valider', en:'Confirm', es:'Validar', de:'Bestätigen', it:'Conferma', ar:'تأكيد', zh:'确认', ja:'確定', ru:'Готово', pl:'Zatwierdź' },
+  emojiT:    { fr:'Émojis', en:'Emoji', es:'Emojis', de:'Emojis', it:'Emoji', ar:'الإيموجي', zh:'表情符号', ja:'絵文字', ru:'Эмодзи', pl:'Emoji' },
+  gifT:      { fr:'Envoyer un GIF', en:'Send a GIF', es:'Enviar un GIF', de:'GIF senden', it:'Invia una GIF', ar:'إرسال GIF', zh:'发送 GIF', ja:'GIFを送信', ru:'Отправить GIF', pl:'Wyślij GIF-a' },
+  stickerT:  { fr:'Stickers', en:'Stickers', es:'Stickers', de:'Sticker', it:'Sticker', ar:'الملصقات', zh:'贴纸', ja:'スタンプ', ru:'Стикеры', pl:'Naklejki' },
+  reactT:    { fr:'Réagir', en:'React', es:'Reaccionar', de:'Reagieren', it:'Reagisci', ar:'تفاعل', zh:'回应', ja:'リアクション', ru:'Отреагировать', pl:'Zareaguj' },
   playA:     { fr:'Écouter', en:'Play', es:'Reproducir', de:'Abspielen', it:'Riproduci', ar:'تشغيل', zh:'播放', ja:'再生', ru:'Слушать', pl:'Odtwórz' },
   pauseA:    { fr:'Pause', en:'Pause', es:'Pausa', de:'Pause', it:'Pausa', ar:'إيقاف مؤقت', zh:'暂停', ja:'一時停止', ru:'Пауза', pl:'Pauza' },
 };
@@ -7407,10 +7502,18 @@ async function _chatOpen(channel) {
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       </button>
       <textarea id="chat-input" rows="1" maxlength="4000" placeholder="${_chT('ph')}"></textarea>
+      <button class="chat-ic-btn chat-ic-gif" id="chat-gifbtn" title="${_chT('gifT')}" aria-label="${_chT('gifT')}">GIF</button>
+      <button class="chat-ic-btn" id="chat-stickbtn" title="${_chT('stickerT')}" aria-label="${_chT('stickerT')}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4A1.5 1.5 0 0 1 4 2.5h8A1.5 1.5 0 0 1 13.5 4v5L9 13.5H4A1.5 1.5 0 0 1 2.5 12V4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 13.5V10.5A1.5 1.5 0 0 1 10.5 9h3" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="chat-ic-btn" id="chat-emojibtn" title="${_chT('emojiT')}" aria-label="${_chT('emojiT')}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.4 9.4a3.4 3.4 0 0 0 5.2 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5.9 6.2h.01M10.1 6.2h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
       <button class="chat-send" id="chat-send" title="${_chT('send')}" aria-label="${_chT('send')}">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.8 8 14 2 11 14 7.6 9.6 1.8 8zM7.6 9.6 14 2" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
       </button>
       <input type="file" id="chat-file" hidden accept="image/*,video/*,audio/*">
+      <input type="file" id="chat-gif" hidden accept="image/gif">
     </div>`;
   // Composer : Entrée = envoyer (Maj+Entrée = retour ligne) + auto-hauteur + typing
   const inp = $('chat-input');
@@ -7423,7 +7526,11 @@ async function _chatOpen(channel) {
   });
   $('chat-send').addEventListener('click', _chatSendCurrent);
   $('chat-attach').addEventListener('click', () => $('chat-file').click());
-  $('chat-file').addEventListener('change', _chatAttachPicked);
+  $('chat-file').addEventListener('change', () => _chatFilePicked('chat-file'));
+  $('chat-gifbtn').addEventListener('click', () => $('chat-gif').click());
+  $('chat-gif').addEventListener('change', () => _chatFilePicked('chat-gif'));
+  $('chat-emojibtn').addEventListener('click', ev => { ev.stopPropagation(); _chatEmojiToggle(); });
+  $('chat-stickbtn').addEventListener('click', ev => { ev.stopPropagation(); _chatStickToggle(); });
   $('chat-mic').addEventListener('click', _chatMicStart);
   _chatRenderPending();          // restaure le chip vocal en attente (si présent)
   _chatTypingSetup(channel);
@@ -7456,6 +7563,10 @@ function _chatAttachmentHTML(att, mid) {
       </button>
     </span>`;
   if (att.kind === 'audio') return `<audio class="chat-att chat-att--aud" src="${url}" controls preload="metadata"></audio>`;
+  if (att.kind === 'sticker') return `
+    <button class="chat-att chat-att--sticker" onclick="_chatMediaOpen(${mid})" title="${escHtml(att.name || '')}">
+      <img src="${url}" alt="${escHtml(att.name || '')}" loading="lazy">
+    </button>`;
   return `<a class="chat-att chat-att--file" href="${url}" target="_blank" rel="noopener">📎 ${escHtml(att.name || 'fichier')}</a>`;
 }
 
@@ -7492,6 +7603,12 @@ function _chatMsgHTML(m, prev) {
   try { time = new Date(m.created_at).toLocaleTimeString(LANG_LOCALE[LANG] || 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (e) {}
   const compact = prev && prev.sender === m.sender && (new Date(m.created_at) - new Date(prev.created_at)) < 300000;
   const bodyHTML = m.body ? escHtml(m.body).replace(/\n/g, '<br>') : '';
+  // Réactions : chips { émoji: [uids] } — clic = toggle (optimiste + realtime)
+  const rx = m.reactions && Object.keys(m.reactions).length ? `
+    <div class="chat-rx">${Object.entries(m.reactions).map(([e, u]) => `
+      <button class="chat-rx-chip ${Array.isArray(u) && u.indexOf(_chatMe) >= 0 ? 'mine' : ''}"
+        onclick="_chatReact(${m.id}, '${escHtml(e).replace(/'/g, '&#39;')}')">${escHtml(e)} <b>${Array.isArray(u) ? u.length : 0}</b></button>`).join('')}
+    </div>` : '';
   return `
   <div class="chat-msg ${own ? 'chat-msg--own' : ''} ${compact ? 'chat-msg--compact' : ''}" data-mid="${m.id}">
     ${!compact ? `<div class="chat-msg-meta"><b>${escHtml(name)}</b><time>${time}</time></div>` : ''}
@@ -7499,11 +7616,13 @@ function _chatMsgHTML(m, prev) {
       ${bodyHTML ? `<span class="chat-msg-body" id="chat-body-${m.id}">${bodyHTML}</span>` : ''}
       ${_chatAttachmentHTML(m.attachment, m.id)}
       ${m.edited_at ? `<span class="chat-edited">${_chT('edited')}</span>` : ''}
-      ${own ? `<span class="chat-msg-tools">
-        ${m.body ? `<button class="chat-tool" onclick="_chatEditStart(${m.id})" title="${_chT('edit')}" aria-label="${_chT('edit')}">✎</button>` : ''}
-        <button class="chat-tool" onclick="_chatMsgDelete(${m.id})" title="${_chT('del')}" aria-label="${_chT('del')}">✕</button>
-      </span>` : ''}
+      <span class="chat-msg-tools">
+        <button class="chat-tool" onclick="_chatReactOpen(${m.id}, event)" title="${_chT('reactT')}" aria-label="${_chT('reactT')}">☺</button>
+        ${own && m.body ? `<button class="chat-tool" onclick="_chatEditStart(${m.id})" title="${_chT('edit')}" aria-label="${_chT('edit')}">✎</button>` : ''}
+        ${own ? `<button class="chat-tool" onclick="_chatMsgDelete(${m.id})" title="${_chT('del')}" aria-label="${_chT('del')}">✕</button>` : ''}
+      </span>
     </div>
+    ${rx}
   </div>`;
 }
 
@@ -7557,9 +7676,10 @@ async function _chatSendCurrent() {
   _chatRefreshChannels();
 }
 
-async function _chatAttachPicked() {
-  const f = $('chat-file')?.files?.[0]; if (!f || !_chat.current) return;
-  $('chat-file').value = '';
+async function _chatFilePicked(inputId) {
+  const inp = $(inputId || 'chat-file');
+  const f = inp?.files?.[0]; if (!f || !_chat.current) return;
+  inp.value = '';
   if (f.size > 25 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
   _chatNote('⬆ …');
   const up = await GLG_AUTH.chatUpload(f);
@@ -7613,7 +7733,7 @@ function _chatRecModalOpen() {
 async function _chatMicStart() {
   if (_chatRecSess || !_chat.current) return;
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
   catch (e) { _chatNote(_chT('recDenied')); return; }
   let rec;
   try { rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); }
@@ -7621,30 +7741,36 @@ async function _chatMicStart() {
   const chunks = [];
   rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
   // Analyse temps réel de l'intensité vocale (échec ≠ bloquant : les barres
-  // retombent sur une animation neutre si l'AudioContext est indisponible)
+  // retombent sur une animation neutre si l'AudioContext est indisponible).
+  // ⚠ resume() OBLIGATOIRE : l'AudioContext naît « suspended » (politique
+  // autoplay — le geste utilisateur est consommé par le await getUserMedia)
+  // et un contexte suspendu renvoie des zéros → barres inertes.
   let ctx = null, analyser = null;
   try {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
     const src = ctx.createMediaStreamSource(stream);
     analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.72;
+    analyser.fftSize = 1024;                 // domaine TEMPOREL (RMS voix)
+    analyser.smoothingTimeConstant = 0.6;
     src.connect(analyser);
   } catch (e) {}
   _chatRecSess = { rec, stream, ctx, analyser, chunks, t0: Date.now(), peaks: [], raf: 0, timer: 0 };
   rec.start(250);
   _chatRecModalOpen();
 
-  const data = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+  const data = analyser ? new Uint8Array(analyser.fftSize) : null;
   const bars = [...document.querySelectorAll('#rm-viz i')];
   const loop = () => {
     if (!_chatRecSess) return;
     let level = 0.12;
     if (analyser && data) {
-      analyser.getByteFrequencyData(data);
-      let sum = 0; const n = Math.min(48, data.length);   // bande voix (graves/médiums)
-      for (let i = 0; i < n; i++) sum += data[i];
-      level = sum / (n * 255);
+      // RMS du signal temporel = intensité RÉELLE de la voix (fiable même
+      // avec noiseSuppression, contrairement au spectre fréquentiel)
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) { const d = (data[i] - 128) / 128; sum += d * d; }
+      level = Math.min(1, Math.sqrt(sum / data.length) * 3.4);   // parole ≈ RMS .05-.2
     }
     const t = Date.now() / 1000;
     bars.forEach((b, i) => {
@@ -7891,11 +8017,21 @@ function _callSend(p) {
   else (_call.sendQ = _call.sendQ || []).push(p);
 }
 
-const _CALL_MIC = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
+/* Contraintes micro : qualité voix + périphérique choisi dans Options →
+   Voix & vidéo (prefs.av.micId). Utilisé par les APPELS et les NOTES VOCALES. */
+function _glgMicConstraints() {
+  const av = (_userPrefs && _userPrefs.av) || {};
+  const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  if (av.micId) audio.deviceId = { exact: av.micId };
+  return { audio };
+}
 
 function _callAudioEl() {
   let a = document.getElementById('glg-call-audio');
   if (!a) { a = document.createElement('audio'); a.id = 'glg-call-audio'; a.autoplay = true; document.body.appendChild(a); }
+  // Sortie audio choisie dans Options → Voix & vidéo (setSinkId si dispo)
+  const av = (_userPrefs && _userPrefs.av) || {};
+  if (av.outId && a.setSinkId) { try { const p = a.setSinkId(av.outId); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
   return a;
 }
 function _callNewPC() {
@@ -7934,7 +8070,7 @@ function _callTune(pc) {
 async function _callStart(uid, name) {
   if (!uid || _call.state !== 'idle' || uid === _chatMe) return;
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia(_CALL_MIC); }
+  try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
   catch (e) { _chatNote(_chT('recDenied')); return; }
   _call.state = 'ringing-out'; _call.otherId = uid; _call.otherName = name || ''; _call.stream = stream; _call.iceQueue = [];
   _callOpenSendCh(uid);
@@ -7978,7 +8114,7 @@ async function _callOnSignal(s) {
 async function _callAccept() {
   if (_call.state !== 'ringing-in' || !_call.pendingOffer) return;
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia(_CALL_MIC); }
+  try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
   catch (e) { _callDecline(); return; }
   _call.stream = stream;
   _callOpenSendCh(_call.otherId);
@@ -8067,4 +8203,243 @@ function _callRenderBar() {
     </div>`;
   }
   document.body.appendChild(bar);
+}
+
+/* ══════════════════════════════════════════
+   OPTIONS → VOIX & VIDÉO (launcher) — façon Discord, en mieux :
+   périphériques d'entrée/sortie audio + caméra (enumerateDevices),
+   TEST MICRO avec vumètre RMS live, bip de test de sortie (setSinkId),
+   aperçu caméra. Choix persistés dans prefs.av, appliqués partout
+   (_glgMicConstraints pour appels + notes vocales, _callAudioEl pour la
+   sortie). Les libellés des périphériques n'apparaissent qu'après la
+   première permission (comportement navigateur — repopulé après test).
+══════════════════════════════════════════ */
+let _avTest = null;   // test micro en cours { stream, ctx, raf }
+let _avCam = null;    // flux d'aperçu caméra
+
+async function _avPopulate(q) {
+  const av = (_userPrefs && _userPrefs.av) || {};
+  let devs = [];
+  try { devs = await navigator.mediaDevices.enumerateDevices(); } catch (e) {}
+  const fill = (sel, kind, cur) => {
+    const el = q(sel); if (!el) return;
+    el.innerHTML = `<option value="">${_ot('devDefault')}</option>` +
+      devs.filter(d => d.kind === kind).map((d, i) =>
+        `<option value="${escHtml(d.deviceId)}" ${d.deviceId === cur ? 'selected' : ''}>${escHtml(d.label || (_ot(kind === 'videoinput' ? 'camera' : kind === 'audioinput' ? 'micIn' : 'audioOut') + ' ' + (i + 1)))}</option>`).join('');
+  };
+  fill('#ap-av-mic', 'audioinput', av.micId);
+  fill('#ap-av-out', 'audiooutput', av.outId);
+  fill('#ap-av-cam', 'videoinput', av.camId);
+}
+function _avStopMicTest() {
+  if (!_avTest) return;
+  cancelAnimationFrame(_avTest.raf);
+  try { _avTest.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { _avTest.ctx && _avTest.ctx.close(); } catch (e) {}
+  _avTest = null;
+  const b = document.getElementById('ap-av-mictest'); if (b) b.textContent = _ot('micTest');
+  const m = document.querySelector('#ap-av-meter i'); if (m) m.style.width = '0%';
+}
+function _avStopCam() {
+  if (!_avCam) return;
+  try { _avCam.getTracks().forEach(t => t.stop()); } catch (e) {}
+  _avCam = null;
+  const v = document.getElementById('ap-av-campreview');
+  if (v) { v.srcObject = null; v.hidden = true; }
+  const b = document.getElementById('ap-av-camtest'); if (b) b.textContent = _ot('camTest');
+}
+/* Quitter la page = couper micro/caméra de test (jamais de flux fantôme) */
+document.addEventListener('glg:page-changed', () => { _avStopMicTest(); _avStopCam(); });
+
+function _wireAvPanel(q) {
+  if (!q('#ap-av-mic')) return;
+  _avPopulate(q);
+  const save = () => _savePrefs({ av: {
+    micId: q('#ap-av-mic')?.value || null,
+    outId: q('#ap-av-out')?.value || null,
+    camId: q('#ap-av-cam')?.value || null,
+  } });
+  ['#ap-av-mic', '#ap-av-out', '#ap-av-cam'].forEach(s => q(s)?.addEventListener('change', save));
+
+  // ── Test micro : vumètre RMS live (mêmes réglages que les notes vocales)
+  q('#ap-av-mictest')?.addEventListener('click', async () => {
+    if (_avTest) { _avStopMicTest(); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); } catch (e) { return; }
+    let ctx = null, analyser = null, data = null;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+      const src = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser(); analyser.fftSize = 1024;
+      src.connect(analyser);
+      data = new Uint8Array(analyser.fftSize);
+    } catch (e) {}
+    _avTest = { stream, ctx, raf: 0 };
+    const btn = q('#ap-av-mictest'); if (btn) btn.textContent = _ot('testStop');
+    _avPopulate(q);                       // les libellés arrivent avec la permission
+    const meter = q('#ap-av-meter i');
+    const loop = () => {
+      if (!_avTest) return;
+      let level = 0;
+      if (analyser && data) {
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) { const d = (data[i] - 128) / 128; sum += d * d; }
+        level = Math.min(1, Math.sqrt(sum / data.length) * 3.4);
+      }
+      if (meter) meter.style.width = Math.round(level * 100) + '%';
+      _avTest.raf = requestAnimationFrame(loop);
+    };
+    _avTest.raf = requestAnimationFrame(loop);
+  });
+
+  // ── Test de sortie : bip bref (660 Hz) routé vers le périphérique choisi
+  q('#ap-av-outtest')?.addEventListener('click', async () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+      const dest = ctx.createMediaStreamDestination();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.value = 660; g.gain.value = 0.08;
+      o.connect(g); g.connect(dest);
+      const a = new Audio(); a.srcObject = dest.stream;
+      const outId = q('#ap-av-out')?.value;
+      if (outId && a.setSinkId) { try { await a.setSinkId(outId); } catch (e) {} }
+      const pr = a.play(); if (pr && pr.catch) pr.catch(() => {});
+      o.start();
+      setTimeout(() => { try { o.stop(); ctx.close(); } catch (e) {} }, 450);
+    } catch (e) {}
+  });
+
+  // ── Aperçu caméra (start/stop)
+  q('#ap-av-camtest')?.addEventListener('click', async () => {
+    const v = q('#ap-av-campreview'); if (!v) return;
+    if (_avCam) { _avStopCam(); return; }
+    const camId = q('#ap-av-cam')?.value;
+    const video = camId ? { deviceId: { exact: camId } } : true;
+    try { _avCam = await navigator.mediaDevices.getUserMedia({ video }); } catch (e) { return; }
+    v.srcObject = _avCam; v.hidden = false;
+    const btn = q('#ap-av-camtest'); if (btn) btn.textContent = _ot('testStop');
+    _avPopulate(q);
+  });
+}
+
+/* ══════════════════════════════════════════
+   CHAT — ÉMOJIS · STICKERS · RÉACTIONS
+   ──────────────────────────────────────────
+   Émojis : picker natif (zéro dépendance), insertion au curseur.
+   Stickers : pack maison GLG = les key arts des 8 œuvres (aucun upload,
+   pièce jointe {kind:'sticker'} pointant sur l'asset du site).
+   Réactions : toggle par joueur (RPC chat_react, optimiste + realtime),
+   palette rapide sur chaque message. GIF : bouton dédié (fichier .gif —
+   un picker Tenor pourra se brancher ici avec une clé API).
+══════════════════════════════════════════ */
+const _EMOJI_SET = [
+  ['😀','😄','😂','🤣','😊','😉','😍','🥰','😘','😎','🤩','🥳','😏','😅','🙃','😇'],
+  ['😢','😭','😤','😡','🤯','😱','😨','😴','🥱','🤔','🤨','😬','🙄','😮','🤐','🤢'],
+  ['👍','👎','👏','🙌','🤝','💪','🙏','✌️','🤞','👌','🤙','👋','✍️','🫡','🫶','❤️'],
+  ['💥','🔥','⭐','✨','🎈','🎉','🎊','💯','⚡','💀','👻','🎃','🤖','👾','🕹️','🎮'],
+  ['🏆','🥇','🎯','🎲','🃏','🎬','🎧','🎵','🍿','🌙','☀️','🌈','🍀','🎁','💎','🚀'],
+];
+let _chatPickOpen = null;   // 'emoji' | 'stick' | null
+
+function _chatPickClose() {
+  document.getElementById('glg-chatpick')?.remove();
+  document.getElementById('glg-rxpick')?.remove();
+  _chatPickOpen = null;
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#glg-chatpick') && !e.target.closest('#glg-rxpick')) _chatPickClose();
+});
+
+function _chatPickShell(kind) {
+  _chatPickClose();
+  _chatPickOpen = kind;
+  const host = document.createElement('div');
+  host.id = 'glg-chatpick';
+  const compose = document.querySelector('.chat-compose');
+  (compose ? compose.parentElement : document.body).appendChild(host);
+  return host;
+}
+
+/* ── Picker émojis : insertion au curseur du composer ── */
+function _chatEmojiToggle() {
+  if (_chatPickOpen === 'emoji') { _chatPickClose(); return; }
+  const host = _chatPickShell('emoji');
+  host.innerHTML = `
+    <div class="chatpick-head">${_chT('emojiT')}</div>
+    <div class="chatpick-grid">
+      ${_EMOJI_SET.map(row => row.map(e => `<button class="chatpick-emo" data-emo="${e}">${e}</button>`).join('')).join('')}
+    </div>`;
+  host.querySelectorAll('.chatpick-emo').forEach(b => b.addEventListener('click', () => {
+    const inp = $('chat-input'); if (!inp) return;
+    const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? inp.value.length;
+    inp.value = inp.value.slice(0, s) + b.dataset.emo + inp.value.slice(en);
+    const pos = s + b.dataset.emo.length;
+    inp.focus(); inp.setSelectionRange(pos, pos);
+    _chatTypingPing();
+  }));
+}
+
+/* ── Stickers maison : key arts des œuvres — envoi direct ── */
+function _chatStickToggle() {
+  if (_chatPickOpen === 'stick') { _chatPickClose(); return; }
+  const host = _chatPickShell('stick');
+  const works = (typeof ALL_WORKS !== 'undefined' ? filterByAge(ALL_WORKS) : []);
+  host.innerHTML = `
+    <div class="chatpick-head">${_chT('stickerT')} · GEEKLEARN GAMES</div>
+    <div class="chatpick-sticks">
+      ${works.map(w => `
+      <button class="chatpick-stick" data-sid="${w.id}" title="${escHtml(w.title)}" aria-label="${escHtml(w.title)}">
+        <img src="${av(w.cover)}" alt="" loading="lazy">
+      </button>`).join('')}
+    </div>`;
+  host.querySelectorAll('.chatpick-stick').forEach(b => b.addEventListener('click', () => {
+    const w = ALL_WORKS.find(x => x.id === b.dataset.sid); if (!w) return;
+    _chatPickClose();
+    _chatSendSticker(w);
+  }));
+}
+async function _chatSendSticker(w) {
+  if (!_chat.current) return;
+  let url = av(w.cover);
+  try { url = new URL(url, location.href).href; } catch (e) {}   // absolu (site & launcher)
+  const r = await GLG_AUTH.chatSend(_chat.current, null, { kind: 'sticker', url, name: w.title });
+  if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
+    _chat.rows.push(r.message); _chatRenderMessages(true);
+  }
+  _chatRefreshChannels();
+}
+
+/* ── Réactions : palette rapide ancrée au message ── */
+const _CHAT_QUICK_RX = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎮'];
+function _chatReactOpen(mid, ev) {
+  ev && ev.stopPropagation();
+  _chatPickClose();
+  const pop = document.createElement('div');
+  pop.id = 'glg-rxpick';
+  pop.innerHTML = _CHAT_QUICK_RX.map(e => `<button class="chatpick-emo" data-emo="${e}">${e}</button>`).join('');
+  document.body.appendChild(pop);
+  const x = Math.min(Math.max(10, (ev?.clientX || 200) - pop.offsetWidth / 2), window.innerWidth - pop.offsetWidth - 10);
+  const y = Math.max(10, (ev?.clientY || 200) - pop.offsetHeight - 12);
+  pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  pop.querySelectorAll('.chatpick-emo').forEach(b => b.addEventListener('click', () => {
+    _chatPickClose();
+    _chatReact(mid, b.dataset.emo);
+  }));
+}
+async function _chatReact(mid, emo) {
+  // Optimiste : maj locale immédiate, le realtime UPDATE fera foi
+  const m = _chat.rows.find(x => x.id === mid);
+  if (m) {
+    const r = Object.assign({}, m.reactions || {});
+    const arr = (Array.isArray(r[emo]) ? r[emo] : []).slice();
+    const i = arr.indexOf(_chatMe);
+    if (i >= 0) arr.splice(i, 1); else arr.push(_chatMe);
+    if (arr.length) r[emo] = arr; else delete r[emo];
+    m.reactions = r;
+    _chatRenderMessages();
+  }
+  try { await GLG_AUTH.chatReact(mid, emo); } catch (e) {}
 }

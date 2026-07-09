@@ -1019,6 +1019,38 @@ create policy "chatmedia_delete_own" on storage.objects
     bucket_id = 'chat-media' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+-- ── Réactions émoji (toggle par joueur, façon Discord) ───────────────────
+--  reactions = { "👍": [uid, uid…], … } — modifiées UNIQUEMENT via la RPC
+--  (la policy UPDATE n'autorise que l'expéditeur ; la RPC security definer
+--  vérifie l'accès au canal). 12 émojis distincts max, 40 votants par émoji.
+alter table public.chat_messages add column if not exists reactions jsonb not null default '{}'::jsonb;
+create or replace function public.chat_react(mid bigint, emo text)
+returns text language plpgsql security definer set search_path = public as $$
+declare m record; arr jsonb; uid text := auth.uid()::text;
+begin
+  if auth.uid() is null then return 'notAuth'; end if;
+  if emo is null or char_length(emo) < 1 or char_length(emo) > 16 then return 'badEmoji'; end if;
+  select * into m from public.chat_messages where id = mid;
+  if not found or not public.chat_can_access(m.channel, auth.uid()) then return 'forbidden'; end if;
+  arr := coalesce(m.reactions -> emo, '[]'::jsonb);
+  if arr ? uid then
+    select coalesce(jsonb_agg(x), '[]'::jsonb) into arr
+      from jsonb_array_elements_text(arr) t(x) where x <> uid;
+  else
+    if not (m.reactions ? emo) and (select count(*) from jsonb_object_keys(m.reactions)) >= 12 then return 'full'; end if;
+    if jsonb_array_length(arr) >= 40 then return 'full'; end if;
+    arr := arr || to_jsonb(uid);
+  end if;
+  if jsonb_array_length(arr) = 0 then
+    update public.chat_messages set reactions = m.reactions - emo where id = mid;
+  else
+    update public.chat_messages set reactions = jsonb_set(m.reactions, array[emo], arr) where id = mid;
+  end if;
+  return 'ok';
+end; $$;
+revoke all on function public.chat_react(bigint, text) from public;
+grant execute on function public.chat_react(bigint, text) to authenticated;
+
 -- ── Temps réel : messages live (RLS s'applique aux événements) ───────────
 do $$ begin
   alter publication supabase_realtime add table public.chat_messages;

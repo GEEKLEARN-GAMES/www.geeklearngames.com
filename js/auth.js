@@ -740,6 +740,12 @@
     const { data } = _client.storage.from('chat-media').getPublicUrl(path);
     return { ok: true, attachment: { kind, url: data?.publicUrl || null, name: String(file.name || '').slice(0, 120), size: file.size, mime } };
   }
+  async function chatReact(mid, emoji) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('chat_react', { mid, emo: String(emoji || '').slice(0, 16) });
+    if (error) return { ok: false, code: 'network', error };
+    return data === 'ok' ? { ok: true } : { ok: false, code: data };
+  }
   async function chatMarkRead(channel) {
     if (!_ready) return { ok: false, code: 'notConfigured' };
     const { error } = await _client.rpc('chat_mark_read', { ch: channel });
@@ -802,7 +808,7 @@
     mfaFactors, mfaEnroll, mfaVerifyEnroll, mfaUnenroll, mfaAal, mfaChallengeVerify,
     listScreenshots, uploadScreenshot, deleteScreenshot,
     chatDmChannel, chatChannels, chatMessages, chatSend, chatEdit, chatDelete,
-    chatUpload, chatMarkRead, chatGroupCreate, chatGroupAdd, chatGroupLeave,
+    chatUpload, chatMarkRead, chatReact, chatGroupCreate, chatGroupAdd, chatGroupLeave,
     chatGroupMembers, chatSubscribe,
     onChange,
   };
