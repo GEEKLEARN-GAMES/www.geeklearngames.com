@@ -4264,3 +4264,95 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 .lib-shell--zen:has(.lib-rail:hover) .lib-item-fav.on{ opacity:1 !important; }
 /* Lien favori du héro */
 .lib-link-fav.on{ color:#fff; border-color:rgba(255,255,255,.6); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §77 · MOBILE / TABLETTE PARFAITS — corrections de l'audit multi-agents
+   (21 constats vérifiés). Tout en OVERRIDE depuis cette couche finale :
+   main.css/glg-premium.css restent intacts (cascade à spécificité égale).
+════════════════════════════════════════════════════════════════════════ */
+/* ── 1-2-11 · iOS Safari : 100vh = « grand viewport » (barre d'URL repliée)
+   → les CTA ancrés en bas des héros passaient SOUS la barre d'outils au
+   chargement, et les pages courtes gagnaient un scroll fantôme.
+   100svh = petit viewport garanti visible (fallback : le 100vh de main.css
+   reste appliqué là où svh n'existe pas — déclaration invalide ignorée). */
+.hero{ height:100svh; }
+.dp-hero{ height:100svh; }
+.page{ min-height:100svh; }
+.shop-wip{ min-height:100svh; }
+/* ── 5 · lang-gate ≤480px : -webkit-fill-available écrasait le 100dvh
+   voulu (ordre inversé dans main.css) — on ré-affirme dvh en couche finale */
+@media (max-width:480px){
+  #lang-gate{ min-height:100dvh; }
+}
+/* ── 3-16 · SAFE-AREAS (encoche / Dynamic Island / home bar — iPhone &
+   Android edge-to-edge, viewport-fit=cover est posé). --nav-h absorbe
+   l'inset haut : TOUS les dépendants (nav-mobile, dp-sticky, chat-shell,
+   marges de pages) suivent automatiquement. env()=0 ailleurs → no-op. */
+:root{ --nav-h:calc(80px + env(safe-area-inset-top, 0px)); }
+@media (max-width:900px){ :root{ --nav-h:calc(68px + env(safe-area-inset-top, 0px)); } }
+#nav{
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-left:max(clamp(16px,5vw,72px), env(safe-area-inset-left));
+  padding-right:max(clamp(16px,5vw,72px), env(safe-area-inset-right));
+}
+/* ── 6-19 · menu mobile plein écran : dernières rangées hors de la zone
+   du geste home + insets latéraux en paysage */
+.nav-mobile{
+  padding-bottom:max(36px, env(safe-area-inset-bottom, 36px));
+  padding-left:max(clamp(16px,5vw,72px), env(safe-area-inset-left));
+  padding-right:max(clamp(16px,5vw,72px), env(safe-area-inset-right));
+}
+/* ── 17-18 · FAB chat + composer chat au-dessus de la home bar iPhone */
+.glg-chatfab{
+  right:calc(22px + env(safe-area-inset-right, 0px));
+  bottom:calc(22px + env(safe-area-inset-bottom, 0px));
+}
+[dir="rtl"] .glg-chatfab{ right:auto; left:calc(22px + env(safe-area-inset-left, 0px)); }
+.chat-compose{ padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px)); }
+#glg-chatpick{ bottom:calc(74px + env(safe-area-inset-bottom, 0px)); }
+/* ── 4 · iOS zoome au focus de tout champ <16px : sur écran tactile, tous
+   les champs de saisie passent à 16px (le zoom involontaire est pire que
+   la retouche typographique) */
+@media (hover:none) and (pointer:coarse){
+  .form-input, .form-textarea, .form-select,
+  .auth-field input, .auth-field select, .auth-field textarea, .auth-input,
+  #search-input, #chat-input, .chat-edit-zone textarea,
+  .lib-rev-text, .set-av-select, #chat-gname{
+    font-size:16px !important;
+  }
+}
+/* ── 7 · trailer en téléphone paysage : la vidéo 16/9 débordait et la
+   croix (top:-42px) sortait de l'écran */
+.trailer-wrap{ width:min(100%, calc((100dvh - 88px) * 16 / 9)); max-width:880px; }
+@media (max-height:520px){
+  .trailer-close{ top:8px; right:8px; z-index:5; }
+}
+/* ── 9 · résultats de recherche derrière le clavier virtuel */
+#search-results{ max-height:min(55dvh, calc(100dvh - 300px)); }
+/* ── 10 · modale d'achat coupée en paysage : rendue défilable */
+.modal-bg{ overflow-y:auto; }
+.modal-bg .modal-box{ margin:auto; }
+/* ── 8-12-13-14 · TACTILE : cibles ≥ 40px et contrôles hover-only rendus
+   accessibles (un doigt ne « survole » pas) */
+@media (hover:none) and (pointer:coarse){
+  /* croix du modal de recherche : zone de tap étendue (glyphe inchangé) */
+  .search-close{ position:relative; }
+  .search-close::after{ content:''; position:absolute; inset:-12px; }
+  /* drapeau de langue du nav : bordure transparente = +hit-box, visuel intact */
+  #nav-lang-btn{ width:44px; height:36px; border:8px solid transparent; background-clip:padding-box; }
+  /* gate : le hover « collant » post-tap zoomait le drapeau et affichait ENTER */
+  .gate-lang:hover .gate-flag-img{ transform:none; }
+  .gate-lang:hover .gate-lang-overlay{ opacity:1; }
+  .gate-lang:hover .gate-lang-go{ opacity:0; }
+  /* chat : outils de message (réagir/éditer/supprimer) TOUJOURS visibles */
+  .chat-bubble .chat-msg-tools{ display:inline-flex; }
+  .chat-tool{ width:28px; height:28px; font-size:.72rem; }
+  .chat-vc-x{ width:30px; height:30px; }
+  .chat-rail-add{ width:28px; height:28px; }
+  /* vidéo : bouton agrandir toujours visible */
+  .chat-att--vid .chat-att-expand{ opacity:1; }
+  /* bibliothèque : étoile favori visible sans survol */
+  .lib-item-fav{ opacity:.55; }
+  /* profil : crayons d'édition avatar/bannière visibles */
+  .pp-avatar .pp-avatar-edit{ opacity:1; }
+}

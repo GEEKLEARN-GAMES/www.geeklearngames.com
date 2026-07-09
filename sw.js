@@ -10,10 +10,27 @@
      • cross-origin (Supabase, API de change) → JAMAIS interceptés.
    Discipline : bumper CACHE à chaque déploiement (PROGRESS.md).
 ═══════════════════════════════════════════════════════════ */
-const CACHE = 'glg-v11';
+const CACHE = 'glg-v12';
+
+/* Précache AUTO-ENTRETENU : on télécharge l'index, on en extrait les
+   assets versionnés (css/js/fonts ?v=) et on les met en cache À L'INSTALL.
+   Sans ça, la 1re visite ne cache que l'index (le SW ne contrôle pas
+   encore la page quand CSS/JS se chargent) → une PWA installée après une
+   seule visite s'ouvrait CASSÉE hors ligne. Zéro liste à maintenir :
+   la liste EST l'index du déploiement courant. */
+async function precacheCore(c) {
+  const res = await fetch('./', { cache: 'no-cache' });
+  if (!res.ok) throw new Error('index ' + res.status);
+  const html = await res.text();
+  await c.put('./', new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }));
+  const urls = [...html.matchAll(/(?:href|src)="((?:css|js|assets)\/[^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((u) => !u.includes('/splash/'));           // splash iOS : gérés par l'OS
+  await Promise.allSettled(urls.map((u) => c.add(u)));
+}
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./'])).catch(() => {}));
+  e.waitUntil(caches.open(CACHE).then((c) => precacheCore(c)).catch(() => {}));
 });
 
 self.addEventListener('activate', (e) => {

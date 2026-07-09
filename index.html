@@ -5,11 +5,24 @@
   <link rel="shortcut icon" href="assets/icons/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="GLG" />
+  <!-- PWA « quasi-launcher » : plein écran + barre de statut fondue au noir -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- Splash iOS (iOS ignore background_color du manifest → flash blanc sinon) -->
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-1620x2160.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="assets/icons/splash/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
   <link rel="manifest" href="site.webmanifest" />
   <meta charset="UTF-8">
   <!-- Caching: assets are cache-busted via ?v=N below, so the browser is free to
        cache normally (faster repeat visits). No no-cache meta — it fought the ?v= system. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#000000">
   <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
@@ -111,7 +124,7 @@
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=63">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=64">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
