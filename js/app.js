@@ -840,10 +840,12 @@ function applyTranslations() {
   if (sinp) sinp.placeholder = t('searchHint') || 'Type a title...';
   // Barre de titre du launcher frameless : aria-labels dans la langue choisie
   if (typeof _refreshTitlebarLabels === 'function') _refreshTitlebarLabels();
-  // Messagerie : libellés du bouton header + page reconstruite dans la langue
+  // Messagerie : libellés du bouton header + FAB + page reconstruite dans la langue
   const chatBtn = $('nav-chat-btn');
   if (chatBtn) { chatBtn.title = _chT('navLabel'); chatBtn.setAttribute('aria-label', _chT('navLabel')); }
   setText('nml-chat', _chT('navLabel'));
+  const fab = $('glg-chatfab');
+  if (fab) { fab.title = _chT('navLabel'); fab.setAttribute('aria-label', _chT('navLabel')); }
   if ($('chat-root')?.childElementCount) buildChatPage();
   applyStudioThemes();
 }
@@ -3783,7 +3785,7 @@ function _buildAccountMenu() {
   const itemsHTML = `
     <button class="acct-menu-item" data-act="profile" role="menuitem">${_at('profileItem')}</button>
     ${IS_TAURI ? `<button class="acct-menu-item" data-act="library" role="menuitem">${_lbt('navLabel')}</button>` : ''}
-    <button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>
+    ${IS_TAURI ? `<button class="acct-menu-item" data-act="options" role="menuitem">${_at('optionsItem')}</button>` : ''}
     <button class="acct-menu-item acct-menu-item--danger" data-act="logout" role="menuitem">${_at('logout')}</button>`;
   const existing = $('nav-account-menu');
   if (existing) { existing.innerHTML = itemsHTML; return; } // listeners délégués conservés
@@ -4114,6 +4116,14 @@ const _mt = k => (_MFA_T[k] && (_MFA_T[k][LANG] || _MFA_T[k].en)) || '';
 
 const _OPT_T = {
   settings:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
+  descProfile:{fr:'Ton identité publique — pseudo, genre, âge, bio et bannière.',en:'Your public identity — username, gender, age, bio and banner.',es:'Tu identidad pública — usuario, género, edad, bio y portada.',de:'Deine öffentliche Identität — Name, Geschlecht, Alter, Bio und Banner.',it:'La tua identità pubblica — nome, genere, età, bio e banner.',ar:'هويتك العامة — الاسم والجنس والعمر والنبذة والغلاف.',zh:'你的公开身份——用户名、性别、年龄、简介与横幅。',ja:'あなたの公開プロフィール — 名前・性別・年齢・自己紹介・バナー。',ru:'Ваша публичная личность — имя, пол, возраст, био и баннер.',pl:'Twoja publiczna tożsamość — nazwa, płeć, wiek, bio i baner.'},
+  descPerso:{fr:'L’apparence et le ressenti du launcher — couleur d’accent, animations, sons.',en:'How the launcher looks and feels — accent color, motion, sounds.',es:'La apariencia del launcher — color de acento, animaciones, sonidos.',de:'Aussehen und Verhalten des Launchers — Akzentfarbe, Animationen, Sounds.',it:'Aspetto e feeling del launcher — colore d’accento, animazioni, suoni.',ar:'مظهر المشغّل وإحساسه — لون التمييز والحركة والأصوات.',zh:'启动器的外观与手感——强调色、动效、音效。',ja:'ランチャーの見た目と手触り — アクセントカラー・アニメーション・サウンド。',ru:'Внешний вид лаунчера — акцентный цвет, анимации, звуки.',pl:'Wygląd i odczucia launchera — kolor akcentu, animacje, dźwięki.'},
+  descNotif:{fr:'Choisis ce qui mérite de te prévenir — le reste se tait.',en:'Choose what deserves to notify you — the rest stays quiet.',es:'Elige qué merece avisarte — el resto guarda silencio.',de:'Wähle, was dich benachrichtigen darf — der Rest bleibt still.',it:'Scegli cosa merita di avvisarti — il resto tace.',ar:'اختر ما يستحق تنبيهك — ويصمت الباقي.',zh:'选择值得提醒你的内容——其余保持安静。',ja:'通知する価値のあるものだけを選ぼう — あとは静かに。',ru:'Выберите, что достойно уведомления — остальное молчит.',pl:'Wybierz, co zasługuje na powiadomienie — reszta milczy.'},
+  descPrivacy:{fr:'Ce que les autres joueurs voient de toi. Toi seul décides.',en:'What other players see of you. You alone decide.',es:'Lo que otros jugadores ven de ti. Solo tú decides.',de:'Was andere Spieler von dir sehen. Du allein entscheidest.',it:'Ciò che gli altri giocatori vedono di te. Decidi solo tu.',ar:'ما يراه اللاعبون الآخرون عنك. أنت وحدك من يقرر.',zh:'其他玩家能看到你的哪些内容，由你决定。',ja:'他のプレイヤーに何を見せるか。決めるのはあなただけ。',ru:'Что видят о вас другие игроки. Решаете только вы.',pl:'Co widzą o tobie inni gracze. Tylko ty decydujesz.'},
+  descAccount:{fr:'Sécurité et accès — mot de passe, double authentification, langue, session.',en:'Security and access — password, two-factor, language, session.',es:'Seguridad y acceso — contraseña, doble factor, idioma, sesión.',de:'Sicherheit und Zugang — Passwort, 2FA, Sprache, Sitzung.',it:'Sicurezza e accesso — password, 2FA, lingua, sessione.',ar:'الأمان والوصول — كلمة المرور والمصادقة الثنائية واللغة والجلسة.',zh:'安全与访问——密码、两步验证、语言、会话。',ja:'セキュリティとアクセス — パスワード・2FA・言語・セッション。',ru:'Безопасность и доступ — пароль, 2FA, язык, сессия.',pl:'Bezpieczeństwo i dostęp — hasło, 2FA, język, sesja.'},
+  descUpdates:{fr:'La version du launcher, les mises à jour signées et le journal des nouveautés.',en:'Launcher version, signed updates and the changelog.',es:'La versión del launcher, actualizaciones firmadas y novedades.',de:'Launcher-Version, signierte Updates und das Änderungsprotokoll.',it:'Versione del launcher, aggiornamenti firmati e novità.',ar:'إصدار المشغّل والتحديثات الموقّعة وسجل الجديد.',zh:'启动器版本、签名更新与更新日志。',ja:'ランチャーのバージョン、署名付きアップデート、更新履歴。',ru:'Версия лаунчера, подписанные обновления и журнал изменений.',pl:'Wersja launchera, podpisane aktualizacje i dziennik zmian.'},
+  optxTitle:{fr:'LES OPTIONS VIVENT DANS LE LAUNCHER',en:'SETTINGS LIVE IN THE LAUNCHER',es:'LOS AJUSTES VIVEN EN EL LAUNCHER',de:'DIE OPTIONEN LEBEN IM LAUNCHER',it:'LE OPZIONI VIVONO NEL LAUNCHER',ar:'الإعدادات تعيش في المشغّل',zh:'设置安家于启动器',ja:'設定はランチャーの中に',ru:'НАСТРОЙКИ ЖИВУТ В ЛАУНЧЕРЕ',pl:'OPCJE ŻYJĄ W LAUNCHERZE'},
+  optxSub:{fr:'Profil, personnalisation, notifications, confidentialité, sécurité (2FA) et mises à jour — le centre de contrôle complet est réservé à l’application de bureau.',en:'Profile, personalization, notifications, privacy, security (2FA) and updates — the full control center is exclusive to the desktop app.',es:'Perfil, personalización, notificaciones, privacidad, seguridad (2FA) y actualizaciones — el centro de control completo es exclusivo de la aplicación de escritorio.',de:'Profil, Personalisierung, Benachrichtigungen, Privatsphäre, Sicherheit (2FA) und Updates — das komplette Kontrollzentrum gibt es nur in der Desktop-App.',it:'Profilo, personalizzazione, notifiche, privacy, sicurezza (2FA) e aggiornamenti — il centro di controllo completo è esclusivo dell’app desktop.',ar:'الملف والتخصيص والإشعارات والخصوصية والأمان (2FA) والتحديثات — مركز التحكم الكامل حصري لتطبيق سطح المكتب.',zh:'个人资料、个性化、通知、隐私、安全（两步验证）与更新——完整的控制中心为桌面应用独享。',ja:'プロフィール、カスタマイズ、通知、プライバシー、セキュリティ（2FA）、アップデート — 完全なコントロールセンターはデスクトップアプリ限定。',ru:'Профиль, персонализация, уведомления, приватность, безопасность (2FA) и обновления — полный центр управления только в настольном приложении.',pl:'Profil, personalizacja, powiadomienia, prywatność, bezpieczeństwo (2FA) i aktualizacje — pełne centrum sterowania wyłącznie w aplikacji desktopowej.'},
   sfx:{fr:'Sons d’interface',en:'Interface sounds',es:'Sonidos de interfaz',de:'Interface-Sounds',it:'Suoni dell’interfaccia',ar:'أصوات الواجهة',zh:'界面音效',ja:'インターフェース音',ru:'Звуки интерфейса',pl:'Dźwięki interfejsu'},
   sfxD:{fr:'Retour sonore discret sur les boutons et menus (façon launcher).',en:'Subtle audio feedback on buttons and menus (launcher-style).',es:'Respuesta sonora sutil en botones y menús.',de:'Dezentes Klangfeedback auf Buttons und Menüs.',it:'Feedback sonoro discreto su pulsanti e menu.',ar:'ارتجاع صوتي خفيف للأزرار والقوائم.',zh:'按钮与菜单的轻微音效反馈。',ja:'ボタンやメニューの控えめな音のフィードバック。',ru:'Деликатный звуковой отклик кнопок и меню.',pl:'Subtelny dźwiękowy feedback przycisków i menu.'},
   privShowRecent:{fr:'Afficher mon activité de jeu',en:'Show my game activity',es:'Mostrar mi actividad de juego',de:'Meine Spielaktivität anzeigen',it:'Mostra la mia attività di gioco',ar:'إظهار نشاطي في اللعب',zh:'显示我的游戏动态',ja:'ゲームアクティビティを表示',ru:'Показывать мою игровую активность',pl:'Pokazuj moją aktywność w grach'},
@@ -4231,12 +4241,15 @@ function _settingsTabs(){
        + tab('account', _ot('tabAccount'))
        + tab('updates', _ot('tabUpdates'));
 }
-/* Panneaux des paramètres (partagés modale + page dédiée). */
+/* Panneaux des paramètres (partagés modale + page dédiée).
+   Chaque panneau : en-tête (titre + description) puis contenus en CARTES. */
 function _settingsPanels(p, u, pr){
   const uname = p.username || u.email?.split('@')[0] || '';
+  const head = (t, d) => `<div class="set-phead"><h2>${_ot(t)}</h2><p>${_ot(d)}</p></div>`;
   return `
         <div class="set-panel active" data-panel="profile">
-          <form id="auth-profile" novalidate>
+          ${head('tabProfile', 'descProfile')}
+          <form id="auth-profile" class="set-card" novalidate>
             <label class="auth-field"><span>${_at('username')}</span>
               <input type="text" id="ap-user" value="${escHtml(uname)}" maxlength="20"><span class="auth-hint" id="ap-user-hint"></span></label>
             <div class="auth-row">
@@ -4257,6 +4270,8 @@ function _settingsPanels(p, u, pr){
           </form>
         </div>
         <div class="set-panel" data-panel="perso" hidden>
+          ${head('tabPerso', 'descPerso')}
+          <div class="set-card">
           <div class="set-group-label">${_ot('accent')}</div>
           <div class="set-accents" id="ap-accents">
             <button type="button" class="set-accent set-accent--none ${!pr.accent?'on':''}" data-accent="" title="${_ot('accentNone')}">∅</button>
@@ -4266,47 +4281,68 @@ function _settingsPanels(p, u, pr){
             ${_toggleHTML('ap-rmotion', _ot('reducedMotion'), _ot('reducedMotionD'), pr.reducedMotion)}
             ${_toggleHTML('ap-sfx', _ot('sfx'), _ot('sfxD'), pr.sfx)}
           </div>
+          </div>
         </div>
         <div class="set-panel" data-panel="notif" hidden>
+          ${head('tabNotif', 'descNotif')}
+          <div class="set-card">
           <div class="set-toggle-list">
             ${_toggleHTML('ap-n-freq', _ot('notifFriendReq'), '', pr.notif.friendReq)}
             ${_toggleHTML('ap-n-facc', _ot('notifFriendAcc'), '', pr.notif.friendAcc)}
             ${_toggleHTML('ap-n-rel',  _ot('notifRelease'),  '', pr.notif.release)}
           </div>
+          </div>
         </div>
         <div class="set-panel" data-panel="privacy" hidden>
+          ${head('tabPrivacy', 'descPrivacy')}
+          <div class="set-card">
           <div class="set-toggle-list">
             ${_toggleHTML('ap-p-tro',  _ot('privShowTrophies'), '', pr.privacy.showTrophies)}
             ${_toggleHTML('ap-p-wish', _ot('privShowWishlist'), '', pr.privacy.showWishlist)}
             ${_toggleHTML('ap-p-onl',  _ot('privShowOnline'),   '', pr.privacy.showOnline)}
             ${_toggleHTML('ap-p-rec',  _ot('privShowRecent'),   _ot('privShowRecentD'), pr.privacy.showRecent)}
           </div>
+          </div>
         </div>
         <div class="set-panel" data-panel="account" hidden>
+          ${head('tabAccount', 'descAccount')}
+          <div class="set-card">
           <label class="auth-field"><span>${_at('email')}</span><input type="email" value="${u.email||''}" disabled></label>
+          </div>
+          <div class="set-card">
           <div class="set-group-label">${_ot('changePw')}</div>
           <label class="auth-field"><span>${_ot('newPw')}</span><input type="password" id="ap-pw1" autocomplete="new-password"></label>
           <label class="auth-field"><span>${_ot('confirmPw')}</span><input type="password" id="ap-pw2" autocomplete="new-password"></label>
           <p class="auth-err" id="ap-pw-err" hidden></p>
           <button type="button" class="btn btn-outline set-w" id="ap-pw-save">${_ot('updatePw')}</button>
+          </div>
+          <div class="set-card">
           <div class="set-group-label">${_mt('title')}</div>
           <div class="set-mfa" id="ap-mfa"><p class="set-update-status">…</p></div>
+          </div>
+          <div class="set-card">
           <div class="set-group-label">${_ot('language')}</div>
           <button type="button" class="set-link-btn" id="ap-lang-btn">🌐 ${_ot('changeLang')}</button>
           <div class="auth-profile-actions">
             <button type="button" class="auth-link" id="ap-logout">${_at('logout')}</button>
             <button type="button" class="auth-link auth-link--danger" id="ap-delete">${_at('del')}</button>
           </div>
+          </div>
         </div>
         <div class="set-panel" data-panel="updates" hidden>
+          ${head('tabUpdates', 'descUpdates')}
+          <div class="set-card">
           <div class="set-update-row">
             <div><div class="set-group-label" style="margin:0 0 5px">${_ot('appVersion')}</div><div class="set-version">GEEKLEARN GAMES — v${GLG_VERSION}</div></div>
             <button type="button" class="btn btn-outline" id="ap-update-check">${_ot('checkUpdates')}</button>
           </div>
           <p class="set-update-status" id="ap-update-status">${_ot('upToDate')}</p>
           <p class="set-update-note">${_ot('launcherNote')}</p>
-          <div class="set-group-label" style="margin-top:26px">${_ot('whatsNew')}</div>
+          </div>
+          <div class="set-card">
+          <div class="set-group-label">${_ot('whatsNew')}</div>
           <div class="set-changelog">${_changelogHTML()}</div>
+          </div>
         </div>`;
 }
 
@@ -4315,6 +4351,41 @@ function _settingsPanels(p, u, pr){
    ses mises à jour (onglet "Mises à jour"). */
 async function buildSettingsPage(){
   const host = $('page-settings'); if(!host) return;
+
+  /* ── SITE WEB : les Options sont une EXCLUSIVITÉ du launcher ──
+     (même geste que la bibliothèque : invitation à installer l'app). */
+  if (!IS_TAURI) {
+    const os = _dlOS();
+    const P = LAUNCHER_DL.platforms;
+    const priKey = (os === 'mac' || os === 'linux') && P[os] && P[os].length ? os : 'win';
+    const pri = P[priKey][0];
+    host.innerHTML = `
+    <section class="libx glg-pattern">
+      <div class="glg-pattern-bg glg-pat-subtle" style="--glg-speed:80s"></div>
+      <div class="libx-inner">
+        <div class="libx-copy reveal">
+          <p class="section-eye">${_lxt('eyebrow')}</p>
+          <h1 class="libx-title">${_ot('optxTitle')}</h1>
+          <p class="libx-sub">${_ot('optxSub')}</p>
+          <div class="libx-chips">
+            <span class="libx-chip">${_ot('tabProfile')}</span>
+            <span class="libx-chip">${_ot('tabPrivacy')}</span>
+            <span class="libx-chip">${_mt('title')}</span>
+            <span class="libx-chip">${_ot('tabUpdates')}</span>
+          </div>
+          <div class="libx-actions">
+            <a class="btn btn-primary btn-lg" href="${pri.u}" ${pri.u.indexOf('http') !== 0 ? 'download' : ''}>${_lxt('cta')} — ${priKey === 'mac' ? 'macOS' : priKey === 'linux' ? 'Linux' : 'Windows'}</a>
+            <a class="btn btn-outline btn-lg" href="${LAUNCHER_DL.all}" target="_blank" rel="noopener">${_lnt('allVer')}</a>
+          </div>
+          <p class="libx-hint">${_lxt('hint')}</p>
+        </div>
+      </div>
+    </section>${footerHTML()}`;
+    setTimeout(initReveal, 60);
+    initAnimIdleObserver();
+    return;
+  }
+
   const configured = !!window.GLG_AUTH?.isConfigured?.();
   const user = configured ? await GLG_AUTH.getUser() : null;
   if (!user){
@@ -4951,8 +5022,9 @@ async function refreshAccountUI() {
   ['nl-library', 'nml-library'].forEach(id => $(id)?.classList.toggle('is-auth', !!user && IS_TAURI));
   document.body.classList.toggle('glg-authed', !!user);
 
-  /* ── Messagerie (GLG Chat) : bouton header + abonnement temps réel ── */
-  ['nav-chat-btn', 'nml-chat'].forEach(id => $(id)?.classList.toggle('is-auth', !!user));
+  /* ── Messagerie (GLG Chat) : bouton header (web) / FAB flottant (launcher)
+     + abonnement temps réel ── */
+  ['nav-chat-btn', 'nml-chat'].forEach(id => $(id)?.classList.toggle('is-auth', !!user && !IS_TAURI));
   if (user) { _chatMe = user.id || null; _chatEnsureRealtime(); }
   else { _chatMe = null; _chatTeardownRealtime(); }
 
@@ -7001,8 +7073,7 @@ function _initTauriTitlebar() {
     bar.innerHTML = `
       <div class="tb-drag" data-tauri-drag-region></div>
       <span class="tb-title" aria-hidden="true">
-        <img src="assets/img/brand/glg-mark.png" alt="" onerror="this.style.display='none'">
-        <span>GEEKLEARN GAMES</span>
+        <img src="assets/img/brand/glg-mark.png" alt="GEEKLEARN GAMES" onerror="this.outerHTML='<span>GEEKLEARN GAMES</span>'">
       </span>
       <div class="tb-controls">
         <button class="tb-btn" id="tb-min">
@@ -7119,6 +7190,9 @@ const _CHAT_T = {
   mute:      { fr:'Couper le micro', en:'Mute microphone', es:'Silenciar micrófono', de:'Mikrofon stummschalten', it:'Disattiva microfono', ar:'كتم الميكروفون', zh:'静音麦克风', ja:'マイクをミュート', ru:'Выключить микрофон', pl:'Wycisz mikrofon' },
   unmute:    { fr:'Réactiver le micro', en:'Unmute microphone', es:'Activar micrófono', de:'Mikrofon aktivieren', it:'Riattiva microfono', ar:'إلغاء كتم الميكروفون', zh:'取消静音', ja:'ミュート解除', ru:'Включить микрофон', pl:'Włącz mikrofon' },
   busy:      { fr:'Occupé — déjà en communication.', en:'Busy — already in a call.', es:'Ocupado — ya está en una llamada.', de:'Besetzt — bereits im Gespräch.', it:'Occupato — già in chiamata.', ar:'مشغول — في مكالمة بالفعل.', zh:'忙线中——正在通话。', ja:'通話中のため応答できません。', ru:'Занято — уже в разговоре.', pl:'Zajęte — trwa już rozmowa.' },
+  confirm:   { fr:'Valider', en:'Confirm', es:'Validar', de:'Bestätigen', it:'Conferma', ar:'تأكيد', zh:'确认', ja:'確定', ru:'Готово', pl:'Zatwierdź' },
+  playA:     { fr:'Écouter', en:'Play', es:'Reproducir', de:'Abspielen', it:'Riproduci', ar:'تشغيل', zh:'播放', ja:'再生', ru:'Слушать', pl:'Odtwórz' },
+  pauseA:    { fr:'Pause', en:'Pause', es:'Pausa', de:'Pause', it:'Pausa', ar:'إيقاف مؤقت', zh:'暂停', ja:'一時停止', ru:'Пауза', pl:'Pauza' },
 };
 const _chT = k => (_CHAT_T[k] && (_CHAT_T[k][LANG] || _CHAT_T[k].en)) || '';
 
@@ -7127,12 +7201,39 @@ let _chat = { channels: [], current: null, rows: [], typingCh: null, media: null
 let _chatRtUnsub = null;
 let _chatRefreshT = null;
 
-/* Badge du header (somme des non-lus) — mis à jour par la liste + le live */
+/* Badge non-lus — header (web) + FAB flottant (launcher), liste + live */
 function _refreshChatBadge(n) {
-  const b = $('nav-chat-dot'); if (!b) return;
   const count = (n != null) ? n : _chat.channels.reduce((s, c) => s + (c.unread || 0), 0);
-  b.classList.toggle('on', count > 0);
+  const b = $('nav-chat-dot');
+  if (b) b.classList.toggle('on', count > 0);
+  const f = $('glg-chatfab-dot');
+  if (f) { f.textContent = count > 99 ? '99+' : (count || ''); f.classList.toggle('on', count > 0); }
 }
+
+/* ── BOUTON CHAT FLOTTANT (launcher) : bas-droite, TOUTES les sections —
+   suit l'écran, badge non-lus, se masque sur la page chat elle-même.
+   Sur le web, le chat reste dans le header (pas de FAB). ── */
+function _initChatFab() {
+  if (!IS_TAURI || document.getElementById('glg-chatfab')) return;
+  const fab = document.createElement('button');
+  fab.id = 'glg-chatfab';
+  fab.className = 'glg-chatfab';
+  fab.title = _chT('navLabel');
+  fab.setAttribute('aria-label', _chT('navLabel'));
+  fab.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3.4c-4.9 0-8.6 3.1-8.6 7.2 0 2.1 1 4 2.7 5.3l-1.3 3.5 4.3-2a10 10 0 0 0 2.9.4c4.9 0 8.6-3.1 8.6-7.2S16.9 3.4 12 3.4z" fill="currentColor"/>
+    </svg>
+    <span class="glg-chatfab-dot" id="glg-chatfab-dot" aria-hidden="true"></span>`;
+  fab.addEventListener('click', () => showPage('chat'));
+  document.body.appendChild(fab);
+  // Masqué quand on est DÉJÀ sur la page chat (classe posée à chaque navigation)
+  document.addEventListener('glg:page-changed', e => {
+    document.body.classList.toggle('glg-on-chat', e.detail && e.detail.name === 'chat');
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initChatFab);
+else _initChatFab();
 
 /* Abonnement temps réel GLOBAL, démarré à la connexion (badge vivant même
    hors de la page chat). RLS filtre côté serveur : chacun ne reçoit que
@@ -7297,6 +7398,7 @@ async function _chatOpen(channel) {
     </div>
     <div class="chat-msgs" id="chat-msgs"><p class="lib-sec-note" style="padding:20px">···</p></div>
     <div class="chat-typing" id="chat-typing" aria-live="polite"></div>
+    <div class="chat-pending" id="chat-pending" hidden></div>
     <div class="chat-compose">
       <button class="chat-ic-btn" id="chat-attach" title="${_chT('attach')}" aria-label="${_chT('attach')}">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14 7.5 8.7 12.8a3.4 3.4 0 0 1-4.8-4.8L9.2 2.7a2.3 2.3 0 0 1 3.2 3.2L7.2 11a1.1 1.1 0 0 1-1.6-1.6l4.8-4.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
@@ -7309,12 +7411,6 @@ async function _chatOpen(channel) {
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.8 8 14 2 11 14 7.6 9.6 1.8 8zM7.6 9.6 14 2" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
       </button>
       <input type="file" id="chat-file" hidden accept="image/*,video/*,audio/*">
-    </div>
-    <div class="chat-recbar" id="chat-recbar" hidden>
-      <span class="chat-rec-dot" aria-hidden="true"></span>
-      <span id="chat-rec-time">0:00</span>
-      <button class="lib-sec-btn" id="chat-rec-send">${_chT('recStop')}</button>
-      <button class="lib-sec-btn" id="chat-rec-cancel">${_chT('recCancel')}</button>
     </div>`;
   // Composer : Entrée = envoyer (Maj+Entrée = retour ligne) + auto-hauteur + typing
   const inp = $('chat-input');
@@ -7329,8 +7425,7 @@ async function _chatOpen(channel) {
   $('chat-attach').addEventListener('click', () => $('chat-file').click());
   $('chat-file').addEventListener('change', _chatAttachPicked);
   $('chat-mic').addEventListener('click', _chatMicStart);
-  $('chat-rec-send').addEventListener('click', () => _chatMicStop(true));
-  $('chat-rec-cancel').addEventListener('click', () => _chatMicStop(false));
+  _chatRenderPending();          // restaure le chip vocal en attente (si présent)
   _chatTypingSetup(channel);
 
   const r = await GLG_AUTH.chatMessages(channel);
@@ -7439,9 +7534,23 @@ async function _chatLoadMore() {
 async function _chatSendCurrent() {
   const inp = $('chat-input'); if (!inp || !_chat.current) return;
   const txt = inp.value.trim();
-  if (!txt) return;
+  const voice = _chatVoice;
+  if (!txt && !voice) return;
   inp.value = ''; inp.style.height = 'auto';
-  const r = await GLG_AUTH.chatSend(_chat.current, txt, null);
+  // Note vocale en attente (chip façon Instagram) : uploadée à L'ENVOI —
+  // le même message porte la voix ET l'éventuel texte tapé avec.
+  let attachment = null;
+  if (voice) {
+    _chatNote('⬆ …');
+    const file = new File([voice.blob], 'note-vocale-' + Date.now() + '.webm', { type: voice.blob.type || 'audio/webm' });
+    const up = await GLG_AUTH.chatUpload(file);
+    _chatNote('');
+    if (!up.ok) { _chatNote(up.code === 'size' ? _chT('tooBig') : '✕'); if (txt) inp.value = txt; return; }
+    attachment = up.attachment;
+    try { URL.revokeObjectURL(voice.url); } catch (e) {}
+    _chatVoice = null; _chatRenderPending();
+  }
+  const r = await GLG_AUTH.chatSend(_chat.current, txt || null, attachment);
   if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
     _chat.rows.push(r.message); _chatRenderMessages(true);
   }
@@ -7464,48 +7573,151 @@ async function _chatAttachPicked() {
 }
 function _chatNote(t) { const el = $('chat-typing'); if (el) { el.textContent = t || ''; el.classList.toggle('on', !!t); } }
 
-/* ── Note vocale (MediaRecorder → webm/opus → pièce jointe audio) ── */
-let _chatRec = null, _chatRecChunks = [], _chatRecT0 = 0;
-async function _chatMicStart() {
-  if (_chatRec || !_chat.current) return;
-  let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch (e) { _chatNote(_chT('recDenied')); return; }
-  _chatRecChunks = [];
-  try { _chatRec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); }
-  catch (e) { _chatRec = new MediaRecorder(stream); }
-  _chatRec.ondataavailable = ev => { if (ev.data && ev.data.size) _chatRecChunks.push(ev.data); };
-  _chatRec.start(250);
-  _chatRecT0 = Date.now();
-  const bar = $('chat-recbar'); if (bar) bar.hidden = false;
-  _chat.recTimer = setInterval(() => {
-    const s = Math.floor((Date.now() - _chatRecT0) / 1000);
-    const el = $('chat-rec-time'); if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-    if (s >= 120) _chatMicStop(true);                    // 2 min max
-  }, 500);
+/* ── NOTE VOCALE v2 (façon Instagram) ────────────────────────────────────
+   Micro → POP-UP CENTRÉE avec visualiseur audio réactif (AnalyserNode :
+   les barres suivent l'intensité RÉELLE de la voix). « Valider » →
+   CHIP vocal dans le composer (lecture/pause, mini-forme d'onde issue de
+   l'enregistrement, durée, retrait) — l'envoi se fait par le bouton ➤ ou
+   Entrée, éventuellement accompagné d'un texte (même message). ── */
+let _chatVoice = null;      // { blob, url, dur, peaks[] } — chip en attente
+let _chatRecSess = null;    // session d'enregistrement en cours
+
+function _chatRecModalOpen() {
+  document.getElementById('glg-recmodal')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'glg-recmodal';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', _chT('record'));
+  ov.innerHTML = `
+    <div class="rm-card">
+      <div class="rm-head">
+        <span class="rm-mic" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="rm-title">${_chT('record')}</span>
+        <span class="rm-time" id="rm-time">0:00</span>
+      </div>
+      <div class="rm-viz" id="rm-viz" aria-hidden="true">${'<i></i>'.repeat(28)}</div>
+      <div class="rm-actions">
+        <button class="auth-link" id="rm-cancel">${_chT('recCancel')}</button>
+        <button class="btn btn-primary" id="rm-ok">${_chT('confirm')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#rm-cancel').addEventListener('click', () => _chatMicFinish(false));
+  ov.querySelector('#rm-ok').addEventListener('click', () => _chatMicFinish(true));
+  setTimeout(() => ov.classList.add('open'), 20);
 }
-function _chatMicStop(send) {
-  if (!_chatRec) return;
-  clearInterval(_chat.recTimer);
-  const rec = _chatRec; _chatRec = null;
-  rec.onstop = async () => {
-    try { rec.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
-    const bar = $('chat-recbar'); if (bar) bar.hidden = true;
-    if (!send || !_chatRecChunks.length) return;
-    const blob = new Blob(_chatRecChunks, { type: rec.mimeType || 'audio/webm' });
-    const file = new File([blob], 'note-vocale-' + Date.now() + '.webm', { type: blob.type });
-    _chatNote('⬆ …');
-    const up = await GLG_AUTH.chatUpload(file);
-    _chatNote('');
-    if (up.ok) {
-      const r = await GLG_AUTH.chatSend(_chat.current, null, up.attachment);
-      if (r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
-        _chat.rows.push(r.message); _chatRenderMessages(true);
-      }
-      _chatRefreshChannels();
+
+async function _chatMicStart() {
+  if (_chatRecSess || !_chat.current) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  catch (e) { _chatNote(_chT('recDenied')); return; }
+  let rec;
+  try { rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' }); }
+  catch (e) { rec = new MediaRecorder(stream); }
+  const chunks = [];
+  rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+  // Analyse temps réel de l'intensité vocale (échec ≠ bloquant : les barres
+  // retombent sur une animation neutre si l'AudioContext est indisponible)
+  let ctx = null, analyser = null;
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.72;
+    src.connect(analyser);
+  } catch (e) {}
+  _chatRecSess = { rec, stream, ctx, analyser, chunks, t0: Date.now(), peaks: [], raf: 0, timer: 0 };
+  rec.start(250);
+  _chatRecModalOpen();
+
+  const data = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+  const bars = [...document.querySelectorAll('#rm-viz i')];
+  const loop = () => {
+    if (!_chatRecSess) return;
+    let level = 0.12;
+    if (analyser && data) {
+      analyser.getByteFrequencyData(data);
+      let sum = 0; const n = Math.min(48, data.length);   // bande voix (graves/médiums)
+      for (let i = 0; i < n; i++) sum += data[i];
+      level = sum / (n * 255);
     }
+    const t = Date.now() / 1000;
+    bars.forEach((b, i) => {
+      const c = Math.abs(i - (bars.length - 1) / 2) / (bars.length / 2);   // symétrie centrale
+      const h = 6 + level * 52 * (1 - c * 0.72) * (0.78 + 0.22 * Math.sin(t * 7 + i * 1.3));
+      b.style.height = Math.max(4, Math.round(h)) + 'px';
+    });
+    _chatRecSess.peaks.push(level);          // mémorisé → mini-forme d'onde du chip
+    _chatRecSess.raf = requestAnimationFrame(loop);
   };
-  rec.stop();
+  _chatRecSess.raf = requestAnimationFrame(loop);
+  _chatRecSess.timer = setInterval(() => {
+    if (!_chatRecSess) return;
+    const s = Math.floor((Date.now() - _chatRecSess.t0) / 1000);
+    const el = $('rm-time'); if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    if (s >= 120) _chatMicFinish(true);      // 2 min max
+  }, 400);
+}
+
+function _chatMicFinish(keep) {
+  const s = _chatRecSess; if (!s) return;
+  _chatRecSess = null;
+  cancelAnimationFrame(s.raf); clearInterval(s.timer);
+  s.rec.onstop = () => {
+    try { s.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    try { s.ctx && s.ctx.close(); } catch (e) {}
+    document.getElementById('glg-recmodal')?.remove();
+    if (!keep || !s.chunks.length) return;
+    const blob = new Blob(s.chunks, { type: s.rec.mimeType || 'audio/webm' });
+    const dur = Math.max(1, Math.round((Date.now() - s.t0) / 1000));
+    // Ré-échantillonne les pics (~60/s) en 36 barres statiques normalisées
+    const N = 36, out = [];
+    const step = Math.max(1, Math.floor(s.peaks.length / N));
+    for (let i = 0; i < N; i++) {
+      const seg = s.peaks.slice(i * step, (i + 1) * step);
+      out.push(seg.length ? seg.reduce((a, b) => a + b, 0) / seg.length : 0);
+    }
+    const mx = Math.max(0.08, ...out);
+    if (_chatVoice) { try { URL.revokeObjectURL(_chatVoice.url); } catch (e) {} }
+    _chatVoice = { blob, url: URL.createObjectURL(blob), dur, peaks: out.map(v => v / mx) };
+    _chatRenderPending();
+    $('chat-input')?.focus();
+  };
+  s.rec.stop();
+}
+
+/* Chip vocal en attente dans le composer (lecture, forme d'onde, retrait). */
+function _chatRenderPending() {
+  const host = $('chat-pending'); if (!host) return;
+  if (!_chatVoice) { host.innerHTML = ''; host.hidden = true; return; }
+  const dur = Math.floor(_chatVoice.dur / 60) + ':' + String(_chatVoice.dur % 60).padStart(2, '0');
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="chat-vc">
+      <button class="chat-vc-play" id="chat-vc-play" title="${_chT('playA')}" aria-label="${_chT('playA')}">
+        <svg class="vc-i-play" width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 1.5l8 4.5-8 4.5v-9z" fill="currentColor"/></svg>
+        <svg class="vc-i-pause" width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 1.5v9M9 1.5v9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+      <span class="chat-vc-wave" aria-hidden="true">${_chatVoice.peaks.map(p => `<i style="height:${Math.max(14, Math.round(p * 100))}%"></i>`).join('')}</span>
+      <span class="chat-vc-dur">${dur}</span>
+      <button class="chat-vc-x" aria-label="${_ft('remove')}" title="${_ft('remove')}">${_XSVG}</button>
+      <audio id="chat-vc-audio" src="${_chatVoice.url}"></audio>
+    </div>`;
+  const audio = $('chat-vc-audio'), play = $('chat-vc-play');
+  play.addEventListener('click', () => { if (audio.paused) audio.play(); else audio.pause(); });
+  const setP = on => { play.classList.toggle('on', on); play.title = on ? _chT('pauseA') : _chT('playA'); play.setAttribute('aria-label', play.title); };
+  audio.addEventListener('play', () => setP(true));
+  audio.addEventListener('pause', () => setP(false));
+  audio.addEventListener('ended', () => setP(false));
+  host.querySelector('.chat-vc-x').addEventListener('click', () => {
+    try { URL.revokeObjectURL(_chatVoice.url); } catch (e) {}
+    _chatVoice = null; _chatRenderPending();
+  });
 }
 
 /* ── Édition / suppression de SES messages ── */

@@ -3616,8 +3616,9 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
   text-transform:uppercase; color:rgba(255,255,255,.55);
   pointer-events:none; /* drag et clics passent à travers */
 }
-/* glg-mark.png est un wordmark ~3:1 — hauteur fixe, largeur AUTO (zéro étirement) */
-.tb-title img{ height:11px; width:auto; opacity:.9; }
+/* Wordmark GLG SEUL (le header porte déjà le nom complet — pas de doublon).
+   ~3:1 : hauteur fixe, largeur AUTO (zéro étirement). */
+.tb-title img{ height:13px; width:auto; opacity:.92; }
 .tb-controls{ display:flex; }
 .tb-btn{
   width:46px; border:none; background:transparent; color:rgba(255,255,255,.6);
@@ -3992,3 +3993,137 @@ html.glg-frameless .mv-close{ top:calc(18px + var(--glg-tb,32px)); }
 .cb-btn--mute{ background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); }
 .cb-btn--mute.off{ background:#e81123; border-color:#e81123; }
 @media (max-width:640px){ #glg-callbar{ left:12px; right:12px; } .cb-card{ min-width:0; } }
+
+/* ════════════════════════════════════════════════════════════════════════
+   §75 · UX LAUNCHER v2 — fix double scrollbar, note vocale v2 (pop-up
+   visualiseur + chip façon Instagram), bouton chat flottant (FAB),
+   Options en cartes (en-têtes de panneaux + rythme irréprochable).
+════════════════════════════════════════════════════════════════════════ */
+/* ── FIX DOUBLE SCROLLBAR ────────────────────────────────────────────────
+   html ET body étaient overflow-x:hidden → body devenait un conteneur de
+   défilement INDÉPENDANT ; à chaque reconstruction de page (Bibliothèque/
+   Boutique/À propos), il débordait une fraction de seconde → une 2e barre
+   apparaissait à gauche de la vraie. `clip` clippe SANS créer de scroller
+   (une seule barre possible : celle de html), `scrollbar-gutter:stable`
+   évite tout saut de mise en page quand elle apparaît/disparaît. */
+html{ scrollbar-gutter:stable; }
+body{ overflow-x:clip; overflow-y:visible; }
+
+/* ── NOTE VOCALE v2 : pop-up centrée + visualiseur réactif ── */
+#glg-recmodal{
+  position:fixed; inset:0; z-index:180000;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(0,0,0,.82);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  opacity:0; transition:opacity .25s ease;
+}
+#glg-recmodal.open{ opacity:1; }
+.rm-card{
+  width:min(430px,94vw); padding:22px 24px 20px;
+  background:linear-gradient(180deg,#141417,#0c0c0e);
+  border:1px solid rgba(255,255,255,.14); border-radius:14px;
+  box-shadow:0 40px 100px -24px #000;
+  transform:translateY(8px) scale(.98); transition:transform .3s cubic-bezier(.22,1,.36,1);
+}
+#glg-recmodal.open .rm-card{ transform:none; }
+.rm-head{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.rm-mic{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:rgba(232,17,35,.14); border:1px solid rgba(232,17,35,.55); color:#ff8a93;
+  animation:ppPulse 1.6s ease-in-out infinite;
+}
+.rm-title{
+  flex:1; font-family:var(--f-mono,monospace); font-size:.6rem; letter-spacing:.22em;
+  text-transform:uppercase; color:rgba(255,255,255,.75);
+}
+.rm-time{
+  font-family:var(--f-mono,monospace); font-size:.72rem; letter-spacing:.12em;
+  color:#fff; font-variant-numeric:tabular-nums;
+}
+.rm-viz{
+  display:flex; align-items:center; justify-content:center; gap:4px;
+  height:72px; margin-bottom:18px;
+  border:1px solid rgba(255,255,255,.08); border-radius:10px;
+  background:rgba(255,255,255,.02); overflow:hidden;
+}
+.rm-viz i{
+  width:4px; height:4px; border-radius:2px; background:#fff;
+  transition:height .09s ease; will-change:height;
+}
+.rm-actions{ display:flex; align-items:center; justify-content:flex-end; gap:18px; }
+/* ── Chip vocal en attente (composer, façon Instagram) ── */
+.chat-pending{ padding:8px 14px 0; background:#0a0a0b; border-top:1px solid rgba(255,255,255,.07); }
+.chat-pending[hidden]{ display:none; }
+.chat-vc{
+  display:flex; align-items:center; gap:11px;
+  padding:8px 12px; border-radius:22px;
+  background:#17171b; border:1px solid rgba(255,255,255,.14);
+  max-width:420px;
+}
+.chat-vc-play{
+  width:30px; height:30px; border-radius:50%; flex-shrink:0; cursor:pointer;
+  border:none; background:#fff; color:#0a0a0b;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:transform .18s;
+}
+.chat-vc-play:hover{ transform:scale(1.06); }
+.chat-vc-play .vc-i-pause{ display:none; }
+.chat-vc-play.on .vc-i-play{ display:none; }
+.chat-vc-play.on .vc-i-pause{ display:block; }
+.chat-vc-wave{ flex:1; display:flex; align-items:center; gap:2px; height:30px; min-width:120px; }
+.chat-vc-wave i{
+  flex:1; min-height:3px; border-radius:2px; background:rgba(255,255,255,.55);
+}
+.chat-vc-dur{
+  font-family:var(--f-mono,monospace); font-size:.58rem; letter-spacing:.1em;
+  color:rgba(255,255,255,.6); font-variant-numeric:tabular-nums;
+}
+.chat-vc-x{
+  width:24px; height:24px; border-radius:50%; flex-shrink:0; cursor:pointer;
+  border:1px solid rgba(255,255,255,.18); background:none; color:rgba(255,255,255,.6);
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:background .2s, color .2s;
+}
+.chat-vc-x:hover{ background:rgba(232,17,35,.18); border-color:rgba(232,17,35,.5); color:#ff8a93; }
+.chat-vc audio{ display:none; }
+
+/* ── BOUTON CHAT FLOTTANT (launcher, toutes sections) ── */
+.glg-chatfab{
+  position:fixed; right:22px; bottom:22px; z-index:95000;
+  width:58px; height:58px; border-radius:17px; border:none; cursor:pointer;
+  display:none; align-items:center; justify-content:center;
+  background:#fff; color:#0a0a0b;
+  box-shadow:0 18px 48px -10px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.08);
+  transition:transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s;
+}
+body.glg-authed .glg-chatfab{ display:flex; }
+body.glg-on-chat .glg-chatfab{ display:none !important; }
+.glg-chatfab:hover{ transform:translateY(-3px) scale(1.03); box-shadow:0 26px 60px -12px #000, 0 0 0 1px rgba(255,255,255,.14); }
+.glg-chatfab:active{ transform:translateY(-1px) scale(.98); }
+.glg-chatfab-dot{
+  position:absolute; top:-5px; right:-5px; min-width:20px; height:20px;
+  padding:0 5px; border-radius:10px; display:none; align-items:center; justify-content:center;
+  background:#e81123; color:#fff; font-size:.6rem; font-weight:800;
+  border:2px solid #0a0a0b;
+}
+.glg-chatfab-dot.on{ display:inline-flex; }
+[dir="rtl"] .glg-chatfab{ right:auto; left:22px; }
+[dir="rtl"] .glg-chatfab-dot{ right:auto; left:-5px; }
+
+/* ── OPTIONS v3 : en-têtes de panneaux + contenus en CARTES ── */
+.set-phead{ margin:0 0 18px; }
+.set-phead h2{
+  margin:0 0 6px; font-family:var(--f-disp,sans-serif);
+  font-size:clamp(1.15rem,2.2vw,1.55rem); letter-spacing:.05em;
+  text-transform:uppercase; color:#fff;
+}
+.set-phead p{ margin:0; font-size:.78rem; line-height:1.6; color:rgba(255,255,255,.5); max-width:60ch; }
+.set-card{
+  border:1px solid rgba(255,255,255,.09); border-radius:10px;
+  background:linear-gradient(180deg,#0e0e10,#0a0a0b);
+  padding:18px 20px; margin-bottom:14px;
+}
+.set-card .set-group-label:first-child{ margin-top:0; }
+.set-card .auth-field{ margin-bottom:12px; }
+.set-card .auth-submit{ margin-top:6px; }
