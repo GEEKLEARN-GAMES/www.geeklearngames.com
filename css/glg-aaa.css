@@ -4605,3 +4605,50 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 #glg-gcallbar .cb-id small{ display:block; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 [dir="rtl"] #glg-gcallbar{ right:auto; left:16px; }
 @media (max-width:640px){ #glg-gcallbar{ left:12px; right:12px; } #glg-gcallbar .cb-card{ min-width:0; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   §80 · STUDIO D'AMBIANCE (Options → Launcher) — 16 préréglages en
+   nuanciers dégradés, couleurs LIBRES (pickers natifs), duo + sens du
+   dégradé, intensité au curseur. Plus poussé que Discord, zéro risque :
+   tout passe par le voile #glg-ambiance (§79).
+═══════════════════════════════════════════════════════════════ */
+.set-amb2-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+.set-amb2{
+  width:38px; height:38px; border-radius:50%; cursor:pointer; padding:0;
+  border:2px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.35);
+  transition:transform .18s, box-shadow .18s, border-color .18s;
+}
+.set-amb2:hover{ transform:scale(1.12); border-color:rgba(255,255,255,.45); }
+.set-amb2.on{ border-color:#0a0a0b; box-shadow:0 0 0 2px var(--user-accent,#fff), inset 0 0 10px rgba(0,0,0,.35); }
+
+.set-amb-custom{ display:flex; gap:14px; flex-wrap:wrap; }
+.set-amb-color{
+  display:inline-flex; align-items:center; gap:10px; cursor:pointer;
+  padding:8px 14px 8px 8px; border-radius:10px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.75); font-size:.78rem;
+  transition:border-color .2s, opacity .2s;
+}
+.set-amb-color:hover{ border-color:rgba(255,255,255,.3); }
+.set-amb-color[data-off]{ opacity:.38; }
+.set-amb-color input[type="color"]{
+  -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; padding:0; border:none; border-radius:8px;
+  background:none; cursor:pointer;
+}
+.set-amb-color input[type="color"]::-webkit-color-swatch-wrapper{ padding:0; }
+.set-amb-color input[type="color"]::-webkit-color-swatch{ border:1px solid rgba(255,255,255,.25); border-radius:8px; }
+
+.set-range{
+  -webkit-appearance:none; appearance:none;
+  width:min(340px,100%); height:4px; border-radius:2px;
+  background:rgba(255,255,255,.14); accent-color:var(--user-accent,#fff);
+  cursor:pointer; margin-top:4px;
+}
+.set-range::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:16px; height:16px; border-radius:50%;
+  background:var(--user-accent,#fff); border:2px solid #0a0a0b;
+  box-shadow:0 0 0 1px rgba(255,255,255,.35);
+}

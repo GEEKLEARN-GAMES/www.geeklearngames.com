@@ -4365,6 +4365,16 @@ const _OPT_T = {
   notifSystem:{fr:'Notifications système',en:'System notifications',es:'Notificaciones del sistema',de:'Systembenachrichtigungen',it:'Notifiche di sistema',ar:'إشعارات النظام',zh:'系统通知',ja:'システム通知',ru:'Системные уведомления',pl:'Powiadomienia systemowe'},
   notifSystemD:{fr:'Toasts Windows quand le launcher est en arrière-plan (messages, appels, amis, installations).',en:'Windows toasts while the launcher is in the background (messages, calls, friends, installs).',es:'Avisos de Windows con el launcher en segundo plano (mensajes, llamadas, amigos, instalaciones).',de:'Windows-Toasts, wenn der Launcher im Hintergrund läuft (Nachrichten, Anrufe, Freunde, Installationen).',it:'Toast di Windows quando il launcher è in background (messaggi, chiamate, amici, installazioni).',ar:'إشعارات ويندوز عندما يكون المشغّل في الخلفية (رسائل ومكالمات وأصدقاء وتثبيتات).',zh:'启动器在后台时显示 Windows 通知（消息、通话、好友、安装）。',ja:'ランチャーがバックグラウンドのときにWindows通知を表示（メッセージ・通話・フレンド・インストール）。',ru:'Уведомления Windows, когда лаунчер в фоне (сообщения, звонки, друзья, установки).',pl:'Powiadomienia Windows, gdy launcher działa w tle (wiadomości, połączenia, znajomi, instalacje).'},
   notifChatMsg:{fr:'Nouveaux messages du chat',en:'New chat messages',es:'Nuevos mensajes del chat',de:'Neue Chat-Nachrichten',it:'Nuovi messaggi della chat',ar:'رسائل دردشة جديدة',zh:'新的聊天消息',ja:'新しいチャットメッセージ',ru:'Новые сообщения чата',pl:'Nowe wiadomości czatu'},
+  ambCustom:{fr:'Couleurs personnalisées',en:'Custom colors',es:'Colores personalizados',de:'Eigene Farben',it:'Colori personalizzati',ar:'ألوان مخصصة',zh:'自定义颜色',ja:'カスタムカラー',ru:'Свои цвета',pl:'Własne kolory'},
+  ambC1:{fr:'Couleur 1',en:'Color 1',es:'Color 1',de:'Farbe 1',it:'Colore 1',ar:'اللون 1',zh:'颜色 1',ja:'カラー1',ru:'Цвет 1',pl:'Kolor 1'},
+  ambC2:{fr:'Couleur 2',en:'Color 2',es:'Color 2',de:'Farbe 2',it:'Colore 2',ar:'اللون 2',zh:'颜色 2',ja:'カラー2',ru:'Цвет 2',pl:'Kolor 2'},
+  ambGrad:{fr:'Dégradé (deux couleurs)',en:'Gradient (two colors)',es:'Degradado (dos colores)',de:'Verlauf (zwei Farben)',it:'Sfumatura (due colori)',ar:'تدرّج (لونان)',zh:'渐变（双色）',ja:'グラデーション（2色）',ru:'Градиент (два цвета)',pl:'Gradient (dwa kolory)'},
+  ambDir:{fr:'Direction du dégradé',en:'Gradient direction',es:'Dirección del degradado',de:'Verlaufsrichtung',it:'Direzione della sfumatura',ar:'اتجاه التدرّج',zh:'渐变方向',ja:'グラデーションの向き',ru:'Направление градиента',pl:'Kierunek gradientu'},
+  ambForce:{fr:'Intensité',en:'Intensity',es:'Intensidad',de:'Intensität',it:'Intensità',ar:'الشدة',zh:'强度',ja:'強さ',ru:'Интенсивность',pl:'Intensywność'},
+  dirV:{fr:'Vertical',en:'Vertical',es:'Vertical',de:'Vertikal',it:'Verticale',ar:'عمودي',zh:'垂直',ja:'縦',ru:'Вертикально',pl:'Pionowo'},
+  dirH:{fr:'Horizontal',en:'Horizontal',es:'Horizontal',de:'Horizontal',it:'Orizzontale',ar:'أفقي',zh:'水平',ja:'横',ru:'Горизонтально',pl:'Poziomo'},
+  dirD:{fr:'Diagonal',en:'Diagonal',es:'Diagonal',de:'Diagonal',it:'Diagonale',ar:'قطري',zh:'对角',ja:'斜め',ru:'По диагонали',pl:'Po przekątnej'},
+  dirR:{fr:'Radial',en:'Radial',es:'Radial',de:'Radial',it:'Radiale',ar:'شعاعي',zh:'径向',ja:'放射状',ru:'Радиально',pl:'Promieniście'},
   privShowFavs:{fr:'Afficher mes jeux favoris',en:'Show my favorite games',es:'Mostrar mis juegos favoritos',de:'Meine Lieblingsspiele zeigen',it:'Mostra i miei giochi preferiti',ar:'إظهار ألعابي المفضلة',zh:'展示我的收藏游戏',ja:'お気に入りのゲームを表示',ru:'Показывать любимые игры',pl:'Pokazuj ulubione gry'},
   privShowFavsD:{fr:'Ta vitrine « Favoris » apparaît sur ton profil public.',en:'Your “Favorites” showcase appears on your public profile.',es:'Tu vitrina de «Favoritos» aparece en tu perfil público.',de:'Deine „Favoriten“-Vitrine erscheint auf deinem öffentlichen Profil.',it:'La tua vetrina «Preferiti» appare sul tuo profilo pubblico.',ar:'تظهر واجهة «المفضلة» في ملفك العام.',zh:'你的“收藏”橱窗会显示在公开个人资料上。',ja:'「お気に入り」ショーケースが公開プロフィールに表示されます。',ru:'Витрина «Избранное» видна в вашем публичном профиле.',pl:'Twoja gablota „Ulubione” pojawia się na profilu publicznym.'},
   settingsSub:{fr:'Gère ton compte, ton apparence, ta confidentialité et les mises à jour.',en:'Manage your account, appearance, privacy and updates.',es:'Gestiona tu cuenta, apariencia, privacidad y actualizaciones.',de:'Verwalte Konto, Aussehen, Datenschutz und Updates.',it:'Gestisci account, aspetto, privacy e aggiornamenti.',ar:'أدر حسابك ومظهرك وخصوصيتك والتحديثات.',zh:'管理账户、外观、隐私与更新。',ja:'アカウント・外観・プライバシー・更新を管理。',ru:'Управление аккаунтом, оформлением, приватностью и обновлениями.',pl:'Zarządzaj kontem, wyglądem, prywatnością i aktualizacjami.'},
@@ -4380,7 +4390,7 @@ function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
 
 let _userPrefs = null;
-function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true,system:true,chatMsg:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true,showFavs:true}, favs:[], installed:[], gifs:[], av:{micId:null,outId:null,camId:null}, launcher:{theme:'noir',density:'confort',zoom:100,start:'home',brand:'logo'} }; }
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true,system:true,chatMsg:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true,showFavs:true}, favs:[], installed:[], gifs:[], av:{micId:null,outId:null,camId:null}, launcher:{amb:{on:false,c1:'#4060d6',c2:null,dir:'v',force:8},density:'confort',zoom:100,start:'home',brand:'logo'} }; }
 function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
   accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
   reducedMotion:!!p.reducedMotion,
@@ -4395,13 +4405,25 @@ function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}
   av:{ micId:(p.av&&typeof p.av.micId==='string')?p.av.micId:null,                   // périphériques voix/vidéo
        outId:(p.av&&typeof p.av.outId==='string')?p.av.outId:null,
        camId:(p.av&&typeof p.av.camId==='string')?p.av.camId:null },
-  launcher:(l=>({                                                                    // personnalisation du LAUNCHER
-    theme:['noir','carbone','minuit','braise'].includes(l.theme)?l.theme:'noir',
-    density:l.density==='compact'?'compact':'confort',
-    zoom:[90,100,110].includes(+l.zoom)?+l.zoom:100,
-    start:['home','library','chat'].includes(l.start)?l.start:'home',
-    brand:l.brand==='logo-name'?'logo-name':'logo',
-  }))((p.launcher&&typeof p.launcher==='object')?p.launcher:{}) }; }
+  launcher:(l=>{                                                                     // personnalisation du LAUNCHER
+    const hex = v => (typeof v==='string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v.toLowerCase() : null;
+    // héritage : les 4 anciens thèmes fixes deviennent des ambiances équivalentes
+    const legacy = { carbone:{on:true,c1:'#9ea3b1',c2:'#787e8c',dir:'v',force:7},
+                     minuit:{on:true,c1:'#4060d6',c2:'#182660',dir:'v',force:9},
+                     braise:{on:true,c1:'#d6662c',c2:'#782a10',dir:'v',force:7} };
+    const a0 = (l.amb && typeof l.amb==='object') ? l.amb : (legacy[l.theme] || { on:false });
+    return {
+      amb:{ on:!!a0.on && !!hex(a0.c1),
+            c1:hex(a0.c1) || '#4060d6',
+            c2:hex(a0.c2),                                     // null = couleur unie
+            dir:['v','h','d','r'].includes(a0.dir) ? a0.dir : 'v',
+            force:Math.min(32, Math.max(4, parseInt(a0.force, 10) || 8)) },
+      density:l.density==='compact'?'compact':'confort',
+      zoom:[90,100,110].includes(+l.zoom)?+l.zoom:100,
+      start:['home','library','chat'].includes(l.start)?l.start:'home',
+      brand:l.brand==='logo-name'?'logo-name':'logo',
+    };
+  })((p.launcher&&typeof p.launcher==='object')?p.launcher:{}) }; }
 function _applyPrefs(p){
   _userPrefs = _normPrefs(p);
   document.documentElement.classList.toggle('glg-reduce-motion', _userPrefs.reducedMotion);
@@ -4416,13 +4438,29 @@ function _applyPrefs(p){
    zoom natif WebView (API Tauri — dispo à partir du launcher 1.0.4),
    marque de la barre de titre. Miroir localStorage pour un boot SANS
    flash (thème + page de démarrage appliqués avant le profil réseau). */
+/* Fond CSS d'une ambiance (couleur unie ou dégradé v/h/d/radial). */
+function _glgAmbCss(amb){
+  if (!amb || !amb.on || !amb.c1) return null;
+  if (!amb.c2) return amb.c1;
+  if (amb.dir === 'r') return `radial-gradient(circle at 28% 18%, ${amb.c1}, ${amb.c2})`;
+  const ang = amb.dir === 'h' ? '90deg' : amb.dir === 'd' ? '135deg' : '180deg';
+  return `linear-gradient(${ang}, ${amb.c1}, ${amb.c2})`;
+}
+/* Applique une ambiance au voile plein écran (blend screen, force = opacité). */
+function _glgAmbApply(amb){
+  _glgEnsureAmbiance();
+  const el = document.getElementById('glg-ambiance'); if (!el) return;
+  const bg = _glgAmbCss(amb);
+  if (!bg) { el.style.opacity = '0'; return; }
+  el.style.background = bg;
+  el.style.opacity = String((amb.force || 8) / 100);
+}
 function _applyLauncherPrefs(){
   if (!IS_TAURI || !_userPrefs || !_userPrefs.launcher) return;
   const L = _userPrefs.launcher, de = document.documentElement;
   ['glg-th-carbone','glg-th-minuit','glg-th-braise'].forEach(c => de.classList.remove(c));
-  if (L.theme !== 'noir') de.classList.add('glg-th-' + L.theme);
   de.classList.toggle('glg-compact', L.density === 'compact');
-  _glgEnsureAmbiance();
+  _glgAmbApply(L.amb);
   try {
     const wv = window.__TAURI__ && window.__TAURI__.webview;
     const cur = wv && wv.getCurrentWebview && wv.getCurrentWebview();
@@ -4483,6 +4521,28 @@ const _SET_TAB_ICONS = {
   av:      '<svg viewBox="0 0 16 16" fill="none"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   launcher:'<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2.6" width="12" height="10.8" rx="1.4" stroke="currentColor" stroke-width="1.3"/><path d="M2 5.4h12" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="4" r=".62" fill="currentColor"/><circle cx="6" cy="4" r=".62" fill="currentColor"/></svg>',
 };
+/* Préréglages du studio d'ambiance — clairs, foncés, flashy, duos.
+   t = clé i18n (les 4 historiques), n = nom de style universel. */
+const _AMB_PRESETS = [
+  { k:'off',       t:'thNoir',    a:{ on:false, c1:'#4060d6', c2:null,      dir:'v', force:8 } },
+  { k:'carbone',   t:'thCarbone', a:{ on:true,  c1:'#9ea3b1', c2:'#787e8c', dir:'v', force:7 } },
+  { k:'minuit',    t:'thMinuit',  a:{ on:true,  c1:'#4060d6', c2:'#182660', dir:'v', force:9 } },
+  { k:'braise',    t:'thBraise',  a:{ on:true,  c1:'#d6662c', c2:'#782a10', dir:'v', force:7 } },
+  { k:'synthwave', n:'Synthwave', a:{ on:true,  c1:'#ff3ea5', c2:'#5b2bff', dir:'d', force:10 } },
+  { k:'cyber',     n:'Cyber',     a:{ on:true,  c1:'#00e5ff', c2:'#0033aa', dir:'d', force:10 } },
+  { k:'aurora',    n:'Aurora',    a:{ on:true,  c1:'#2bff88', c2:'#1240c0', dir:'r', force:9 } },
+  { k:'sunset',    n:'Sunset',    a:{ on:true,  c1:'#ff9e2c', c2:'#b8336a', dir:'d', force:9 } },
+  { k:'sakura',    n:'Sakura',    a:{ on:true,  c1:'#ff9ecb', c2:'#c05de0', dir:'v', force:8 } },
+  { k:'glacier',   n:'Glacier',   a:{ on:true,  c1:'#bfeaff', c2:'#7aa8d8', dir:'v', force:8 } },
+  { k:'gold',      n:'Gold',      a:{ on:true,  c1:'#ffd452', c2:'#a86a12', dir:'d', force:8 } },
+  { k:'crimson',   n:'Crimson',   a:{ on:true,  c1:'#ff2e4d', c2:'#5c0715', dir:'v', force:8 } },
+  { k:'emerald',   n:'Emerald',   a:{ on:true,  c1:'#20e3a2', c2:'#0a5c46', dir:'v', force:8 } },
+  { k:'violet',    n:'Violet',    a:{ on:true,  c1:'#a06bff', c2:'#3b1a80', dir:'v', force:9 } },
+  { k:'lime',      n:'Neon Lime', a:{ on:true,  c1:'#c8ff3e', c2:'#2c8a12', dir:'d', force:9 } },
+  { k:'ocean',     n:'Ocean',     a:{ on:true,  c1:'#38b6ff', c2:'#062e64', dir:'v', force:9 } },
+];
+const _ambEq = (a, b) => !!a && !!b && a.on === b.on && (!a.on || (a.c1 === b.c1 && (a.c2 || null) === (b.c2 || null) && a.dir === b.dir && +a.force === +b.force));
+
 function _settingsTabs(){
   const tab = (key, label, active) => `
         <button class="set-tab ${active ? 'active' : ''}" data-tab="${key}">
@@ -4544,12 +4604,27 @@ function _settingsPanels(p, u, pr){
           ${head('tabLauncher', 'descLauncher')}
           <div class="set-card">
             <div class="set-group-label">${_ot('ambiance')}</div>
-            <div class="set-ambiances" id="ap-lc-theme">
-              ${[['noir','#050506','thNoir'],['carbone','#191b20','thCarbone'],['minuit','#0c1434','thMinuit'],['braise','#2e150c','thBraise']].map(([k,c,lbl]) => `
-              <button type="button" class="set-amb ${pr.launcher.theme===k?'on':''}" data-th="${k}">
-                <span class="set-amb-sw" style="--sw:${c}" aria-hidden="true"></span><span>${_ot(lbl)}</span>
-              </button>`).join('')}
+            <div class="set-amb2-grid" id="ap-amb-presets">
+              ${_AMB_PRESETS.map(ps => `
+              <button type="button" class="set-amb2 ${_ambEq(pr.launcher.amb, ps.a) ? 'on' : ''}" data-k="${ps.k}"
+                title="${ps.t ? _ot(ps.t) : ps.n}" aria-label="${ps.t ? _ot(ps.t) : ps.n}"
+                style="background:${ps.a.on ? _glgAmbCss(ps.a) : '#050506'}"></button>`).join('')}
             </div>
+            <div class="set-group-label" style="margin-top:22px">${_ot('ambCustom')}</div>
+            <div class="set-amb-custom">
+              <label class="set-amb-color"><input type="color" id="ap-amb-c1" value="${pr.launcher.amb.c1}"><span>${_ot('ambC1')}</span></label>
+              <label class="set-amb-color" id="ap-amb-c2wrap" ${pr.launcher.amb.c2 ? '' : 'data-off="1"'}><input type="color" id="ap-amb-c2" value="${pr.launcher.amb.c2 || '#182660'}"><span>${_ot('ambC2')}</span></label>
+            </div>
+            <div class="set-toggle-list" style="margin-top:10px">
+              ${_toggleHTML('ap-amb-grad', _ot('ambGrad'), '', !!pr.launcher.amb.c2)}
+            </div>
+            <div class="set-group-label" style="margin-top:16px">${_ot('ambDir')}</div>
+            <div class="set-seg" id="ap-amb-dir" role="radiogroup" aria-label="${_ot('ambDir')}">
+              ${[['v','↓','dirV'],['h','→','dirH'],['d','↘','dirD'],['r','◎','dirR']].map(([v, ico, lbl]) => `
+              <button type="button" data-v="${v}" class="${pr.launcher.amb.dir === v ? 'on' : ''}" title="${_ot(lbl)}" aria-label="${_ot(lbl)}">${ico}</button>`).join('')}
+            </div>
+            <div class="set-group-label" style="margin-top:16px">${_ot('ambForce')} · <span id="ap-amb-forceval">${pr.launcher.amb.force}%</span></div>
+            <input type="range" id="ap-amb-force" class="set-range" min="4" max="32" step="1" value="${pr.launcher.amb.force}" aria-label="${_ot('ambForce')}">
           </div>
           <div class="set-card">
             <div class="set-group-label">${_ot('density')}</div>
@@ -4814,10 +4889,45 @@ function _wireSettings(root) {
   // Activer les toasts système = demander la permission Windows tout de suite
   $('ap-n-sys')?.addEventListener('change', e => { if (e.target.checked) GLG_TOAST.ensure(); });
 
-  // ── Launcher : ambiance / densité / zoom / marque / page de démarrage ──
-  root.querySelectorAll('#ap-lc-theme .set-amb').forEach(b => b.addEventListener('click', () => {
-    root.querySelectorAll('#ap-lc-theme .set-amb').forEach(x => x.classList.toggle('on', x === b));
-    _savePrefs({ launcher: Object.assign({}, _userPrefs.launcher, { theme: b.dataset.th }) });
+  // ── Launcher : STUDIO D'AMBIANCE (presets + couleurs libres + dégradés) ──
+  const ambSave = amb => _savePrefs({ launcher: Object.assign({}, _userPrefs.launcher, { amb }) });
+  const ambReflect = amb => {   // reflète une ambiance dans les contrôles custom
+    if (q('#ap-amb-c1')) q('#ap-amb-c1').value = amb.c1;
+    if (q('#ap-amb-c2') && amb.c2) q('#ap-amb-c2').value = amb.c2;
+    const g = $('ap-amb-grad'); if (g) g.checked = !!amb.c2;
+    const w = $('ap-amb-c2wrap'); if (w) { if (amb.c2) w.removeAttribute('data-off'); else w.setAttribute('data-off', '1'); }
+    root.querySelectorAll('#ap-amb-dir button').forEach(x => x.classList.toggle('on', x.dataset.v === amb.dir));
+    const f = $('ap-amb-force'); if (f) f.value = amb.force;
+    const fv = $('ap-amb-forceval'); if (fv) fv.textContent = amb.force + '%';
+  };
+  root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(b => b.addEventListener('click', () => {
+    const ps = _AMB_PRESETS.find(x => x.k === b.dataset.k); if (!ps) return;
+    root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(x => x.classList.toggle('on', x === b));
+    ambReflect(ps.a);
+    ambSave(Object.assign({}, ps.a));
+  }));
+  let _ambT = 0;
+  const ambCustom = () => {
+    const grad = $('ap-amb-grad') && $('ap-amb-grad').checked;
+    const amb = {
+      on: true,
+      c1: (q('#ap-amb-c1') && q('#ap-amb-c1').value) || '#4060d6',
+      c2: grad ? ((q('#ap-amb-c2') && q('#ap-amb-c2').value) || '#182660') : null,
+      dir: (root.querySelector('#ap-amb-dir button.on') || {}).dataset ? root.querySelector('#ap-amb-dir button.on').dataset.v : 'v',
+      force: parseInt($('ap-amb-force') && $('ap-amb-force').value, 10) || 8,
+    };
+    _glgAmbApply(amb);                                    // visuel IMMÉDIAT
+    root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(x => x.classList.remove('on'));
+    const w = $('ap-amb-c2wrap'); if (w) { if (amb.c2) w.removeAttribute('data-off'); else w.setAttribute('data-off', '1'); }
+    const fv = $('ap-amb-forceval'); if (fv) fv.textContent = amb.force + '%';
+    clearTimeout(_ambT); _ambT = setTimeout(() => ambSave(amb), 500);   // réseau débouncé
+  };
+  ['#ap-amb-c1', '#ap-amb-c2'].forEach(sel => q(sel) && q(sel).addEventListener('input', ambCustom));
+  $('ap-amb-grad') && $('ap-amb-grad').addEventListener('change', ambCustom);
+  $('ap-amb-force') && $('ap-amb-force').addEventListener('input', ambCustom);
+  root.querySelectorAll('#ap-amb-dir button').forEach(b => b.addEventListener('click', () => {
+    root.querySelectorAll('#ap-amb-dir button').forEach(x => x.classList.toggle('on', x === b));
+    ambCustom();
   }));
   const _seg = (sel, key, cast) => root.querySelectorAll(sel + ' button').forEach(b => b.addEventListener('click', () => {
     root.querySelectorAll(sel + ' button').forEach(x => x.classList.toggle('on', x === b));
@@ -7458,7 +7568,11 @@ const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigato
 if (IS_TAURI) { try {
   const L = JSON.parse(localStorage.getItem('glg_lprefs') || 'null');
   if (L) {
-    if (L.theme && L.theme !== 'noir') document.documentElement.classList.add('glg-th-' + L.theme);
+    const legacy = { carbone:{on:true,c1:'#9ea3b1',c2:'#787e8c',dir:'v',force:7},
+                     minuit:{on:true,c1:'#4060d6',c2:'#182660',dir:'v',force:9},
+                     braise:{on:true,c1:'#d6662c',c2:'#782a10',dir:'v',force:7} };
+    const amb = L.amb || legacy[L.theme];
+    if (amb) _glgAmbApply(amb);
     if (L.density === 'compact') document.documentElement.classList.add('glg-compact');
     if (!window._bootWorkId && !window._bootPage && L.start && L.start !== 'home') window._bootPage = L.start;
   }
