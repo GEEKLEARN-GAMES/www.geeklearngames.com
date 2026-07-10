@@ -4356,3 +4356,152 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   /* profil : crayons d'édition avatar/bannière visibles */
   .pp-avatar .pp-avatar-edit{ opacity:1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   §78 · WAVE « CHAT + BIBLIO + PROFIL v4 » — picker émojis par
+   catégories (onglets/molette/scroll-spy), panneau GIF (mèmes +
+   imports, historique), héro bibliothèque épuré (bouton unique
+   INSTALLER→JOUER + progression), barre d'outils enrichie (★ favori,
+   méta, désinstaller), en-tête Options v3 (carte propre), profil
+   public v4 (anneau de niveau, badge fondateur, vitrine Favoris).
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 1 · Picker émojis v2 : onglets + sections + molette ── */
+/* Sélecteurs qualifiés par l'ID : la largeur de base de #glg-chatpick (§76,
+   spécificité 1-0-0) battait les simples classes. Colonne flex + max-height :
+   .chat-shell est overflow:hidden — sur petit écran le panneau se COMPRIME
+   (le scroll interne absorbe) au lieu d'être tronqué par le haut. */
+#glg-chatpick{ display:flex; flex-direction:column; max-height:calc(100% - 88px); }
+#glg-chatpick .chatpick-scroll{ flex:1 1 auto; min-height:0; }
+[dir="rtl"] #glg-chatpick{ right:auto; left:14px; }
+#glg-chatpick.chatpick--emo{ width:min(384px, calc(100% - 28px)); }
+.chatpick-tabs{
+  display:flex; gap:2px; margin:0 0 8px; padding-bottom:8px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  overflow-x:auto; scrollbar-width:none;
+}
+.chatpick-tabs::-webkit-scrollbar{ display:none; }
+.chatpick-tab{
+  flex:0 0 auto; width:34px; height:32px; border:none; cursor:pointer;
+  background:none; border-radius:8px; font-size:1.05rem; line-height:1;
+  opacity:.55; transition:background .15s, opacity .15s;
+}
+.chatpick-tab:hover{ background:rgba(255,255,255,.08); opacity:1; }
+.chatpick-tab.on{ background:rgba(255,255,255,.1); opacity:1; box-shadow:inset 0 -2px 0 var(--user-accent,#fff); }
+.chatpick-scroll{
+  position:relative; max-height:min(322px,46vh); overflow-y:auto;
+  scrollbar-width:thin; overscroll-behavior:contain;
+}
+/* les grilles internes ne scrollent plus individuellement (§76 neutralisé :
+   UNE seule barre, celle du panneau — la molette parcourt tout) */
+.chatpick-scroll .chatpick-grid{ max-height:none; overflow:visible; }
+.chatpick-sec-t{
+  position:sticky; top:0; z-index:3; margin:0; padding:7px 2px 6px;   /* >2 : passe AU-DESSUS des croix ✕ des tuiles GIF */
+  background:linear-gradient(180deg,#131316 78%, rgba(19,19,22,0));
+  font-family:var(--f-mono,monospace); font-size:.5rem; font-weight:600;
+  letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.45);
+}
+
+/* ── 2 · Panneau GIF : mèmes + « Tes GIFs » (suppression manuelle) ── */
+#glg-chatpick.chatpick--gif{ width:min(400px, calc(100% - 28px)); }
+.chatpick--gif .chatpick-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.chatpick-import{
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  padding:.5em .9em .45em; border-radius:3px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.16);
+  color:rgba(255,255,255,.82); font-family:var(--f-mono,monospace);
+  font-size:.52rem; letter-spacing:.14em; text-transform:uppercase;
+  transition:background .2s, border-color .2s;
+}
+.chatpick-import:hover{ background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.3); }
+.chatpick-scroll--gif{ max-height:min(340px,48vh); }
+.chatpick-gifs{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+.chatpick-gif{
+  position:relative; padding:0; border-radius:8px; overflow:hidden; cursor:pointer;
+  aspect-ratio:4/3; background:#101012; border:1px solid rgba(255,255,255,.1);
+  transition:transform .18s, border-color .18s;
+}
+.chatpick-gif img{ width:100%; height:100%; object-fit:cover; display:block; }
+.chatpick-gif:hover{ transform:scale(1.035); border-color:rgba(255,255,255,.4); }
+.chatpick-gif-x{
+  position:absolute; top:4px; right:4px; z-index:2;
+  width:20px; height:20px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(6,6,7,.72); border:1px solid rgba(255,255,255,.25);
+  color:#fff; font-size:.62rem; line-height:1; opacity:0;
+  transition:opacity .15s, background .15s;
+}
+.chatpick-gif:hover .chatpick-gif-x{ opacity:1; }
+.chatpick-gif-x:hover{ background:rgba(197,66,66,.85); }
+.chatpick-hint{ margin:2px 2px 12px; font-size:.78rem; line-height:1.55; color:rgba(255,255,255,.45); }
+/* Tactile : croix visible ET agrandie 28px (standard §77) — un raté sur la
+   tuile enverrait le GIF dans la conversation, sans confirmation */
+@media (hover:none){ .chatpick-gif-x{ opacity:1; width:28px; height:28px; font-size:.72rem; } }
+
+/* ── 3 · Héro bibliothèque ÉPURÉ : logo + UN bouton centré ── */
+.lib-hero--min .lib-hero-body{ gap:clamp(18px,2.6vh,28px); }
+.lib-cta-btn{ min-width:212px; justify-content:center; position:relative; overflow:hidden; }
+.lib-cta-installing{ cursor:default; opacity:1 !important; background:#101013; color:#fff; border-color:rgba(255,255,255,.25); }
+.lib-cta-bar{
+  position:absolute; inset:0 auto 0 0; width:0%;
+  background:linear-gradient(90deg, rgba(var(--tint-rgb,255,255,255),.28), rgba(var(--tint-rgb,255,255,255),.55));
+  transition:width .18s linear;
+}
+[dir="rtl"] .lib-cta-bar{ inset:0 0 0 auto; }
+.lib-cta-txt{ position:relative; z-index:1; font-variant-numeric:tabular-nums; }
+@keyframes libCtaPop{ 0%{transform:scale(.94)} 55%{transform:scale(1.04)} 100%{transform:scale(1)} }
+.lib-cta--pop .lib-cta-btn{ animation:libCtaPop .5s var(--ease,cubic-bezier(.2,.7,.2,1)); }
+
+/* ── 3b · Barre d'outils : ★ favori, désinstaller, méta déplacée ── */
+.lib-tool--fav.on{ color:#ffd479; border-color:rgba(255,212,121,.45); background:rgba(255,212,121,.07); }
+.lib-tool--uninst:hover{ color:#ff8f8f; border-color:rgba(197,66,66,.6); background:rgba(197,66,66,.1); }
+.lib-toolbar-meta{
+  margin-inline-start:auto; padding:4px 0;
+  font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.4); text-align:end;
+}
+@media (max-width:760px){ .lib-toolbar-meta{ flex-basis:100%; margin-inline-start:0; text-align:start; } }
+
+/* ── 4 · Options : en-tête v3 — carte propre, zéro chevauchement ── */
+.settings-page-head--v3{ padding:0; margin-bottom:26px; }
+.sph-card{
+  display:flex; align-items:center; gap:20px;
+  padding:clamp(18px,2.6vw,28px);
+  background:linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 55%, rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.09); border-radius:14px;
+}
+.sph-ava{ flex-shrink:0; width:84px; height:84px; }
+.sph-id{ min-width:0; }
+.sph-eyebrow{
+  display:block; margin-bottom:7px;
+  font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.3em;
+  text-transform:uppercase; color:rgba(255,255,255,.45);
+}
+.sph-name{ margin:0; font-size:clamp(1.45rem,3vw,2rem); line-height:1.05; letter-spacing:.02em; }
+.sph-meta{
+  margin:8px 0 0; font-family:var(--f-mono,monospace); font-size:.56rem;
+  letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.5);
+  overflow-wrap:anywhere;
+}
+.sph-dot{ opacity:.45; margin:0 2px; }
+.sph-actions{ margin-inline-start:auto; flex-shrink:0; }
+@media (max-width:640px){
+  .sph-card{ flex-wrap:wrap; }
+  .sph-ava{ width:64px; height:64px; }
+  .sph-actions{ margin-inline-start:0; width:100%; }
+  .sph-actions .btn{ width:100%; }
+}
+
+/* ── 5 · Profil public v4 : anneau, badge fondateur, vitrine Favoris ── */
+.pp--v4 .pp-actions--public{ display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+.pp--v4 .pp-actions-btns{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.pp-badge--founder{ color:#ffd479; border-color:rgba(255,212,121,.4); background:rgba(255,212,121,.07); }
+.pp-avatar--online{ box-shadow:0 0 0 2px rgba(76,195,138,.55), 0 0 26px rgba(76,195,138,.3); border-radius:50%; }
+.pp-favs-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:clamp(12px,2vw,20px); }
+.pp-stats--public .pp-stat{ cursor:default; }
+.pp-stats--public button.pp-stat{ cursor:pointer; }
+@media (max-width:760px){
+  .pp--v4 .pp-actions--public{ align-items:flex-start; }
+  .pp--v4 .pp-actions-btns{ justify-content:flex-start; }
+}
+/* (pas d'override RTL : align-items suit l'axe inline, le miroir est automatique) */

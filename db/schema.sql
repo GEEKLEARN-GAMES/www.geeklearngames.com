@@ -437,19 +437,39 @@ create or replace function public.public_profile(uid uuid)
 returns table (
   id uuid, username text, avatar_url text, banner_url text, bio text,
   created_at timestamptz, trophy_count bigint, friend_count bigint,
-  wishlist jsonb, achievements text[], recent_games jsonb
+  wishlist jsonb, achievements text[], recent_games jsonb,
+  games_count bigint, favorites jsonb
 )
 language sql security definer set search_path = public as $$
   select p.id, p.username, p.avatar_url, p.banner_url, p.bio, p.created_at,
-         (select count(*) from public.user_achievements ua where ua.user_id = p.id),
+         -- Trophées : comptés/servis SEULEMENT si prefs.privacy.showTrophies
+         -- (avant : servis à tous malgré l'opt-out — incohérent avec le client).
+         case when coalesce(p.prefs #>> '{privacy,showTrophies}', 'true') <> 'false'
+              then (select count(*) from public.user_achievements ua where ua.user_id = p.id)
+              else 0 end,
          (select count(*) from public.friendships f
             where f.status = 'accepted' and (f.requester = p.id or f.addressee = p.id)),
-         coalesce(p.wishlist, '[]'::jsonb),
-         coalesce((select array_agg(ua.ach_key) from public.user_achievements ua where ua.user_id = p.id), '{}'),
+         -- Liste de souhaits : respecte prefs.privacy.showWishlist.
+         case when coalesce(p.prefs #>> '{privacy,showWishlist}', 'true') <> 'false'
+              then coalesce(p.wishlist, '[]'::jsonb) else '[]'::jsonb end,
+         case when coalesce(p.prefs #>> '{privacy,showTrophies}', 'true') <> 'false'
+              then coalesce((select array_agg(ua.ach_key) from public.user_achievements ua where ua.user_id = p.id), '{}')
+              else '{}' end,
          -- Jeux récents : exposés SEULEMENT si le joueur n'a pas coupé
          -- "Afficher mon activité de jeu" (prefs.privacy.showRecent).
          case when coalesce(p.prefs #>> '{privacy,showRecent}', 'true') <> 'false'
-              then coalesce(p.recent_games, '[]'::jsonb) else '[]'::jsonb end
+              then coalesce(p.recent_games, '[]'::jsonb) else '[]'::jsonb end,
+         -- Profil public v4 : nombre de jeux possédés (compteur seul, jamais
+         -- la liste) + vitrine « Favoris » (ids d'œuvres publiques, coupable
+         -- via prefs.privacy.showFavs — Options → Confidentialité).
+         -- Favoris CLAMPÉS serveur (24) : prefs est écrit par le client, un
+         -- client modifié ne doit pas gonfler le payload servi aux visiteurs.
+         jsonb_array_length(coalesce(p.library, '[]'::jsonb))::bigint,
+         case when coalesce(p.prefs #>> '{privacy,showFavs}', 'true') <> 'false'
+               and jsonb_typeof(p.prefs -> 'favs') = 'array'
+              then (select coalesce(jsonb_agg(s.v), '[]'::jsonb)
+                      from (select value as v from jsonb_array_elements(p.prefs -> 'favs') limit 24) s)
+              else '[]'::jsonb end
   from public.profiles p
   where p.id = uid;
 $$;

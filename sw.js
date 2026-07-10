@@ -10,7 +10,7 @@
      • cross-origin (Supabase, API de change) → JAMAIS interceptés.
    Discipline : bumper CACHE à chaque déploiement (PROGRESS.md).
 ═══════════════════════════════════════════════════════════ */
-const CACHE = 'glg-v12';
+const CACHE = 'glg-v13';
 
 /* Précache AUTO-ENTRETENU : on télécharge l'index, on en extrait les
    assets versionnés (css/js/fonts ?v=) et on les met en cache À L'INSTALL.

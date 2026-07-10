@@ -13,7 +13,7 @@
 # ═══════════════════════════════════════════════════════════════════
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co; media-src 'self' blob: https://rjtccuikevoeqgbssjnx.supabase.co; connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co https://i.giphy.com; media-src 'self' blob: https://rjtccuikevoeqgbssjnx.supabase.co; connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), bluetooth=()

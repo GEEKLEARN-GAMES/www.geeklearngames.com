@@ -92,7 +92,7 @@
                  script-src 'self' 'unsafe-inline';
                  style-src  'self' 'unsafe-inline';
                  font-src   'self';
-                 img-src    'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co;
+                 img-src    'self' data: blob: https://rjtccuikevoeqgbssjnx.supabase.co https://i.giphy.com;
                  media-src  'self' blob: https://rjtccuikevoeqgbssjnx.supabase.co;
                  frame-src  https://www.youtube-nocookie.com https://www.youtube.com;
                  connect-src 'self' https://api.frankfurter.app https://formsubmit.co https://rjtccuikevoeqgbssjnx.supabase.co wss://rjtccuikevoeqgbssjnx.supabase.co;
@@ -124,7 +124,7 @@
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=7">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=64">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=65">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=2"></script>
 </head>
@@ -674,26 +674,6 @@
         </div>
       </div>
 
-      <!-- Contact topics grid -->
-      <div class="contact-topics">
-        <div class="c-info-block">
-          <div class="c-info-lbl" id="ci-lbl-gen">General</div>
-          <div class="c-info-sub" id="ci-sub-gen">All inquiries</div>
-        </div>
-        <div class="c-info-block">
-          <div class="c-info-lbl" id="ci-lbl-par">Publishers &amp; Partners</div>
-          <div class="c-info-sub" id="ci-sub-par">Collaborations, licensing, distribution</div>
-        </div>
-        <div class="c-info-block">
-          <div class="c-info-lbl" id="ci-lbl-press">Press &amp; Media</div>
-          <div class="c-info-sub" id="ci-sub-press">Press kit on request</div>
-        </div>
-        <div class="c-info-block">
-          <div class="c-info-lbl" id="ci-lbl-bug">Bug Report</div>
-          <div class="c-info-sub" id="ci-sub-bug">Players — report a recurring issue</div>
-        </div>
-      </div>
-
       <!-- Social links -->
       <div class="socials-row">
         <button class="soc-btn" onclick="window.open('https://x.com/geeklearngames')" title="X / Twitter" aria-label="X Twitter">
@@ -747,7 +727,7 @@
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=113"></script>
+<script src="js/app.js?v=114"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>

@@ -814,14 +814,6 @@ function applyTranslations() {
   setText('contact-eye', t('contactEye') || "Let's talk");
 
   // Contact info labels
-  setText('ci-lbl-gen',   t('ciLblGen')   || 'General');
-  setText('ci-sub-gen',   t('ciSubGen')   || 'All inquiries');
-  setText('ci-lbl-par',   t('ciLblPar')   || 'Publishers & Partners');
-  setText('ci-sub-par',   t('ciSubPar')   || 'Collaborations, licensing, distribution');
-  setText('ci-lbl-press', t('ciLblPress') || 'Press & Media');
-  setText('ci-sub-press', t('ciSubPress') || 'Press kit on request');
-  setText('ci-lbl-bug',   t('ciLblBug')   || 'Bug Report');
-  setText('ci-sub-bug',   t('ciSubBug')   || 'Players — report a recurring issue');
 
   // Contact promise strip + direct-contact promise (were hardcoded EN → now i18n)
   setText('cp-resp',    _cpt('resp'));
@@ -1433,6 +1425,9 @@ const _LIB_T = {
   colFilms:   { fr:'Films interactifs', en:'Interactive films', es:'Películas interactivas', de:'Interaktive Filme', it:'Film interattivi', ar:'أفلام تفاعلية', zh:'互动电影', ja:'インタラクティブ映画', ru:'Интерактивные фильмы', pl:'Filmy interaktywne' },
   favAdd:     { fr:'Ajouter aux favoris', en:'Add to favorites', es:'Añadir a favoritos', de:'Zu Favoriten hinzufügen', it:'Aggiungi ai preferiti', ar:'أضف إلى المفضلة', zh:'加入收藏', ja:'お気に入りに追加', ru:'В избранное', pl:'Dodaj do ulubionych' },
   favDel:     { fr:'Retirer des favoris', en:'Remove from favorites', es:'Quitar de favoritos', de:'Aus Favoriten entfernen', it:'Rimuovi dai preferiti', ar:'أزل من المفضلة', zh:'移出收藏', ja:'お気に入りから削除', ru:'Убрать из избранного', pl:'Usuń z ulubionych' },
+  installing: { fr:'Installation…', en:'Installing…', es:'Instalando…', de:'Wird installiert…', it:'Installazione…', ar:'جارٍ التثبيت…', zh:'安装中…', ja:'インストール中…', ru:'Установка…', pl:'Instalowanie…' },
+  uninstall:  { fr:'Désinstaller', en:'Uninstall', es:'Desinstalar', de:'Deinstallieren', it:'Disinstalla', ar:'إلغاء التثبيت', zh:'卸载', ja:'アンインストール', ru:'Удалить', pl:'Odinstaluj' },
+  uninstallQ: { fr:'Désinstaller %s de cette machine ?', en:'Uninstall %s from this machine?', es:'¿Desinstalar %s de este equipo?', de:'%s von diesem Rechner deinstallieren?', it:'Disinstallare %s da questa macchina?', ar:'إلغاء تثبيت %s من هذا الجهاز؟', zh:'从这台设备卸载 %s？', ja:'%s をこのマシンからアンインストールしますか？', ru:'Удалить %s с этого компьютера?', pl:'Odinstalować %s z tego komputera?' },
 };
 const _lbt = k => (_LIB_T[k] && (_LIB_T[k][LANG] || _LIB_T[k].en)) || '';
 /* Flèche directionnelle : « → » pointe EN ARRIÈRE en RTL (arabe) — miroir. */
@@ -1581,25 +1576,8 @@ async function buildLibraryPage() {
   // Succès réels du joueur — alimente la section « Succès » de chaque vitrine
   if (configured) { try { const r = await GLG_AUTH.getAchievements(); _achKeys = new Set(r.keys || []); } catch (e) {} }
 
-  // Collections façon Steam : Favoris (prefs.favs) puis, OBLIGATOIREMENT,
-  // Jeux vidéo et Films interactifs (une œuvre favorite apparaît dans les 2).
-  const prf = _applyPrefs(p.prefs);
-  const favSet = new Set(prf.favs || []);
-  const _STAR = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.8 9.9 5.9l4.4.5-3.3 3 .9 4.4L8 11.5 4.1 13.8l.9-4.4-3.3-3 4.4-.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>';
-  const railItem = x => `
-          <button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="${x.w.id}" aria-current="${x.w.id === _libSelected ? 'true' : 'false'}">
-            <span class="lib-item-cover"><img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async"></span>
-            <span class="lib-item-name">${x.w.title}</span>
-            <span class="lib-item-fav ${favSet.has(x.w.id) ? 'on' : ''}" data-fav="${x.w.id}" role="button" tabindex="0"
-              aria-label="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}" title="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}">${_STAR}</span>
-          </button>`;
-  const favList = lib.filter(x => favSet.has(x.w.id));
-  const games   = lib.filter(x => x.w.type !== 'film');
-  const films   = lib.filter(x => x.w.type === 'film');
-  const groups  = [];
-  if (favList.length) groups.push(['colFavs', favList]);
-  if (games.length)   groups.push(['colGames', games]);
-  if (films.length)   groups.push(['colFilms', films]);
+  _applyPrefs(p.prefs);
+  _libData = { lib, recent };   // partagé avec le toggle favori + install (maj in-place)
 
   root.innerHTML = `
     <div class="lib-shell">
@@ -1608,18 +1586,52 @@ async function buildLibraryPage() {
           <span>${_lbt('eyebrow')}</span>
           <span class="lib-count">${lib.length}</span>
         </div>
-        <div class="lib-rail-list">
-          ${groups.map(([key, arr]) => `
-          <div class="lib-col">
-            <div class="lib-col-head">${key === 'colFavs' ? `<span class="lib-col-star">${_STAR}</span>` : ''}<span>${_lbt(key)}</span><span class="lib-col-n">${arr.length}</span></div>
-            ${arr.map(railItem).join('')}
-          </div>`).join('')}
-        </div>
+        <div class="lib-rail-list">${_libRailListHTML()}</div>
       </aside>
       <div class="lib-stage" id="lib-stage">${_libStageHTML(lib.find(x => x.w.id === _libSelected), recent)}</div>
     </div>`;
 
-  // Étoiles favoris : toggle + re-render (les collections se regroupent)
+  _libWireRail(root);
+  setTimeout(() => $('lib-stage')?.classList.add('lib-stage--in'), 30);
+  _libFillFriendsPlayed(_libSelected);
+  _libFillMyReview(_libSelected);
+}
+
+/* ── Rail : collections façon Steam — Favoris (prefs.favs) puis,
+   OBLIGATOIREMENT, Jeux vidéo et Films interactifs (une œuvre favorite
+   apparaît dans les deux). Rendu par helper : le toggle favori ne re-rend
+   QUE cette liste (jamais la page entière). ── */
+let _libData = { lib: [], recent: [] };
+const _LIB_STAR = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.8 9.9 5.9l4.4.5-3.3 3 .9 4.4L8 11.5 4.1 13.8l.9-4.4-3.3-3 4.4-.5Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>';
+function _libRailListHTML() {
+  const lib = _libData.lib;
+  const favSet = new Set((_userPrefs && _userPrefs.favs) || []);
+  const railItem = x => `
+          <button class="lib-item ${x.w.id === _libSelected ? 'active' : ''}" data-lib="${x.w.id}" aria-current="${x.w.id === _libSelected ? 'true' : 'false'}">
+            <span class="lib-item-cover"><img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async"></span>
+            <span class="lib-item-name">${x.w.title}</span>
+            <span class="lib-item-fav ${favSet.has(x.w.id) ? 'on' : ''}" data-fav="${x.w.id}" role="button" tabindex="0"
+              aria-label="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}" title="${favSet.has(x.w.id) ? _lbt('favDel') : _lbt('favAdd')}">${_LIB_STAR}</span>
+          </button>`;
+  const favList = lib.filter(x => favSet.has(x.w.id));
+  const games   = lib.filter(x => x.w.type !== 'film');
+  const films   = lib.filter(x => x.w.type === 'film');
+  const groups  = [];
+  if (favList.length) groups.push(['colFavs', favList]);
+  if (games.length)   groups.push(['colGames', games]);
+  if (films.length)   groups.push(['colFilms', films]);
+  return groups.map(([key, arr]) => `
+          <div class="lib-col">
+            <div class="lib-col-head">${key === 'colFavs' ? `<span class="lib-col-star">${_LIB_STAR}</span>` : ''}<span>${_lbt(key)}</span><span class="lib-col-n">${arr.length}</span></div>
+            ${arr.map(railItem).join('')}
+          </div>`).join('');
+}
+
+/* Câblage du rail (étoiles + sélection) — rappelé après chaque re-rendu. */
+function _libWireRail(root) {
+  root = root || $('page-library'); if (!root) return;
+
+  // Étoiles favoris : toggle in-place (les collections se regroupent)
   root.querySelectorAll('[data-fav]').forEach(s => {
     const toggle = ev => { ev.stopPropagation(); ev.preventDefault(); _libToggleFav(s.dataset.fav); };
     s.addEventListener('click', toggle);
@@ -1636,16 +1648,13 @@ async function buildLibraryPage() {
     const stage = $('lib-stage');
     if (stage) {
       stage.classList.remove('lib-stage--in');
-      stage.innerHTML = _libStageHTML(lib.find(x => x.w.id === _libSelected), recent);
+      stage.innerHTML = _libStageHTML(_libData.lib.find(x => x.w.id === _libSelected), _libData.recent);
       _scrollTopInstant();          // repartir en haut de la nouvelle vitrine
       _libFillFriendsPlayed(_libSelected);
       _libFillMyReview(_libSelected);
       setTimeout(() => stage.classList.add('lib-stage--in'), 20); // setTimeout, pas rAF (onglet caché)
     }
   }));
-  setTimeout(() => $('lib-stage')?.classList.add('lib-stage--in'), 30);
-  _libFillFriendsPlayed(_libSelected);
-  _libFillMyReview(_libSelected);
 }
 
 /* ══════════════════════════════════════════
@@ -1797,20 +1806,39 @@ function _libNewsSectionHTML(gid) {
   </section>`;
 }
 
-/* ── Barre d'outils sous la bannière (façon Steam : « Page du magasin »,
-   DLC, Succès, Actualités) — hors bannière/logo, ancres vers les sections. */
-function _libToolbarHTML(w) {
+/* ── Barre d'outils sous la bannière (façon Steam : ★ favori, « Page du
+   magasin », DLC, Succès, Actualités, Désinstaller) — hors bannière/logo.
+   Elle accueille aussi la méta froide (possession, date, temps de jeu)
+   retirée du héro pour le garder épuré. ── */
+function _libToolbarHTML(w, e, recent) {
+  e = e || {};
   const scroll = sel => `document.querySelector('${sel}')?.scrollIntoView({behavior:'smooth',block:'start'})`;
   const hasDlc  = typeof GLG_DLC !== 'undefined' && GLG_DLC[w.id] && GLG_DLC[w.id].length;
   const hasAch  = typeof TROPHIES !== 'undefined' && TROPHIES[w.id] && TROPHIES[w.id].length;
   const storeIco = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 5.5l1-3h9l1 3M2.5 5.5h11M2.5 5.5V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V5.5M6.5 13V9h3v4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+  const isFav = !!(_userPrefs && _userPrefs.favs && _userPrefs.favs.includes(w.id));
+  const rec = (recent || []).find(r => r.id === w.id);
+  let playedTxt = '';
+  if (rec && rec.mins > 0) {
+    const mins = Math.max(0, parseInt(rec.mins, 10) || 0);
+    let h = '';
+    try { h = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: mins >= 600 ? 0 : 1 }).format(mins / 60); } catch (err) { h = (mins / 60).toFixed(1); }
+    playedTxt = mins >= 60 ? _rgt('playedH').replace('%s', h) : _rgt('playedM').replace('%s', String(mins));
+  }
+  let sinceTxt = '';
+  if (e.at) { try { sinceTxt = _lbt('since').replace('%s', new Date(e.at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'long', year:'numeric' })); } catch (err) {} }
+  const meta = [_lbt('ownedOn').replace('%s', escHtml(_LIB_PLAT_NAME(e.platform))), sinceTxt, playedTxt].filter(Boolean).join(' · ');
   return `
   <div class="lib-toolbar">
+    <button id="lib-fav-tool" class="lib-tool lib-tool--fav ${isFav ? 'on' : ''}" data-id="${w.id}"
+      onclick="_libToggleFav('${w.id}')" title="${isFav ? _lbt('favDel') : _lbt('favAdd')}">★ <span>${isFav ? _lbt('favDel') : _lbt('favAdd')}</span></button>
     <button class="lib-tool lib-tool--store" onclick="showPage('detail','${w.id}')">${storeIco} ${_lst('store')}</button>
     ${hasDlc ? `<button class="lib-tool" onclick="${scroll('.lib-sec--dlc')}">DLC</button>` : ''}
     ${hasAch ? `<button class="lib-tool" onclick="${scroll('.lib-sec--ach')}">${_lst('ach')}</button>` : ''}
     <button class="lib-tool" onclick="${scroll('.lib-sec--news')}">${_lst('news')}</button>
     <button class="lib-tool" onclick="${scroll('.lib-sec--rev')}">${_lst('rev')}</button>
+    ${_libIsInstalled(w.id) ? `<button class="lib-tool lib-tool--uninst" onclick="_libUninstall('${w.id}')">${_lbt('uninstall')}</button>` : ''}
+    <span class="lib-toolbar-meta">${meta}</span>
   </div>`;
 }
 
@@ -1884,62 +1912,122 @@ function _libBelowHTML(w) {
   </div>`;
 }
 
-/* Favori on/off (étoile du rail + lien du héro) → prefs.favs, puis
-   re-render (les collections se regroupent) en préservant le mode zen. */
-async function _libToggleFav(id) {
+/* Favori on/off (étoile du rail + bouton de la barre d'outils) → prefs.favs.
+   FIX : maj IN-PLACE — seul le rail se re-rend (les collections se
+   regroupent), la vitrine, le scroll, le zen et la sélection ne bougent
+   plus, et l'UI n'attend plus le réseau (persistance en arrière-plan). */
+function _libToggleFav(id) {
+  if (!id) return;
   const favs = ((_userPrefs && _userPrefs.favs) || []).slice();
   const i = favs.indexOf(id);
   if (i >= 0) favs.splice(i, 1); else favs.push(id);
-  const wasZen = !!document.querySelector('.lib-shell--zen');
-  await _savePrefs({ favs });
-  await buildLibraryPage();
-  if (wasZen) document.querySelector('.lib-shell')?.classList.add('lib-shell--zen');
+  _savePrefs({ favs });   // maj _userPrefs immédiate (sync), réseau ensuite
+
+  // 1) le rail : re-rendu seul, scroll préservé
+  const list = document.querySelector('#page-library .lib-rail-list');
+  if (list) {
+    const keep = list.scrollTop;
+    list.innerHTML = _libRailListHTML();
+    _libWireRail($('page-library'));
+    list.scrollTop = keep;
+  }
+  // 2) le bouton ★ de la barre d'outils (œuvre affichée)
+  const t = document.getElementById('lib-fav-tool');
+  if (t && t.dataset.id === id) {
+    const on = favs.includes(id);
+    t.classList.toggle('on', on);
+    const lbl = t.querySelector('span'); if (lbl) lbl.textContent = on ? _lbt('favDel') : _lbt('favAdd');
+    t.title = on ? _lbt('favDel') : _lbt('favAdd');
+  }
 }
 
-/* Vitrine du jeu sélectionné (key art plein cadre + actions launcher). */
+/* ── INSTALLER / JOUER : un SEUL bouton sous le logo (état persistant
+   prefs.installed). Installation simulée avec progression crédible — le
+   téléchargement natif du launcher se branchera ici. ── */
+let _libBusy = {};   // id → progression (0-100) d'une installation en cours
+function _libIsInstalled(id) { return !!(_userPrefs && Array.isArray(_userPrefs.installed) && _userPrefs.installed.includes(id)); }
+function _libCtaHTML(w) {
+  if (_libBusy[w.id] != null) return `
+      <button class="btn btn-primary btn-lg lib-cta-btn lib-cta-installing" disabled>
+        <span class="lib-cta-bar" style="width:${_libBusy[w.id]}%" aria-hidden="true"></span>
+        <span class="lib-cta-txt">${_lbt('installing')} ${Math.round(_libBusy[w.id])}%</span>
+      </button>`;
+  if (_libIsInstalled(w.id)) return `
+      <button class="btn btn-primary btn-lg lib-cta-btn lib-play" onclick="launcherHandoff('${w.id}','play')">▶ ${_lbt('play')}</button>`;
+  return `
+      <button class="btn btn-primary btn-lg lib-cta-btn" onclick="_libInstallStart('${w.id}')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v7.4M4.6 6.4 8 9.8l3.4-3.4M3 13.4h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${_lbt('install')}</button>`;
+}
+function _libInstallStart(id) {
+  if (_libBusy[id] != null || _libIsInstalled(id)) return;
+  const w = ALL_WORKS.find(x => x.id === id); if (!w) return;
+  _libBusy[id] = 0;
+  const cta0 = document.getElementById('lib-cta');
+  if (cta0 && _libSelected === id) cta0.innerHTML = _libCtaHTML(w);
+  const t0 = Date.now(), dur = 4200 + Math.random() * 1800;
+  // setInterval (pas rAF) : la progression survit à un onglet/launcher masqué
+  const iv = setInterval(() => {
+    const p = Math.min(100, (Date.now() - t0) / dur * 100);
+    _libBusy[id] = p;
+    const cta = document.getElementById('lib-cta');
+    if (cta && _libSelected === id) {
+      const bar = cta.querySelector('.lib-cta-bar'), txt = cta.querySelector('.lib-cta-txt');
+      if (bar && txt) { bar.style.width = p + '%'; txt.textContent = `${_lbt('installing')} ${Math.round(p)}%`; }
+      else cta.innerHTML = _libCtaHTML(w);
+    }
+    if (p >= 100) {
+      clearInterval(iv);
+      delete _libBusy[id];
+      const installed = ((_userPrefs && _userPrefs.installed) || []).slice();
+      if (!installed.includes(id)) installed.push(id);
+      _savePrefs({ installed });
+      const c = document.getElementById('lib-cta');
+      if (c && _libSelected === id) {
+        c.innerHTML = _libCtaHTML(w);
+        c.classList.add('lib-cta--pop'); setTimeout(() => c.classList.remove('lib-cta--pop'), 700);
+        _libRefreshToolbar(id);
+      }
+    }
+  }, 120);
+}
+function _libUninstall(id) {
+  const w = ALL_WORKS.find(x => x.id === id); if (!w) return;
+  if (!confirm(_lbt('uninstallQ').replace('%s', w.title))) return;
+  const installed = ((_userPrefs && _userPrefs.installed) || []).filter(g => g !== id);
+  _savePrefs({ installed });
+  if (_libSelected === id) {
+    const cta = document.getElementById('lib-cta');
+    if (cta) cta.innerHTML = _libCtaHTML(w);
+    _libRefreshToolbar(id);
+  }
+}
+/* Re-rend la barre d'outils de l'œuvre affichée (fav / désinstaller / méta). */
+function _libRefreshToolbar(id) {
+  const x = _libData.lib.find(v => v.w.id === id); if (!x) return;
+  const bar = document.querySelector('#page-library .lib-toolbar');
+  if (bar) bar.outerHTML = _libToolbarHTML(x.e ? x.w : x, x.e || {}, _libData.recent);
+}
+
+/* Vitrine du jeu sélectionné — héro ÉPURÉ : rien que le key art plein
+   cadre, le logo, et UN bouton (INSTALLER → JOUER une fois installé).
+   Tout le reste (favori, magasin, méta, sections) vit sous la bannière. */
 function _libStageHTML(x, recent) {
   if (!x) return '';
   const w = x.e ? x.w : x, e = x.e || {};
   const tint = w.tint || '#ffffff';
   const rgb  = hexToRgb(tint) || '255,255,255';
-  const rec  = (recent || []).find(r => r.id === w.id);
-  let playedTxt = '';
-  if (rec && rec.mins > 0) {
-    const mins = Math.max(0, parseInt(rec.mins, 10) || 0);
-    let h = '';
-    try { h = new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: mins >= 600 ? 0 : 1 }).format(mins / 60); } catch (err) { h = (mins / 60).toFixed(1); }
-    playedTxt = mins >= 60 ? _rgt('playedH').replace('%s', h) : _rgt('playedM').replace('%s', String(mins));
-  }
-  let sinceTxt = '';
-  if (e.at) { try { sinceTxt = _lbt('since').replace('%s', new Date(e.at).toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day:'numeric', month:'long', year:'numeric' })); } catch (err) {} }
-  const troph = _gameTrophySummary(w.id);
   return `
-    <div class="lib-hero" style="--tint:${tint};--tint-rgb:${rgb}">
+    <div class="lib-hero lib-hero--min" style="--tint:${tint};--tint-rgb:${rgb}">
       <div class="lib-hero-bg" style="background-image:url('${av(w.cover)}')"></div>
       <div class="lib-hero-veil"></div>
       <div class="lib-hero-body">
-        <span class="lib-eyebrow">${getCatLabel(w)} · ${w.year}</span>
         ${w.logo ? `<img class="lib-logo" src="${av(w.logo)}" alt="${w.title}">` : `<h1 class="lib-title">${w.title}</h1>`}
-        <p class="lib-tagline">${getItemField(w, 'tagline') || ''}</p>
-        <div class="lib-ctas">
-          <button class="btn btn-primary btn-lg lib-play" onclick="launcherHandoff('${w.id}','play')">▶ ${_lbt('play')}</button>
-          <button class="btn btn-outline btn-lg" onclick="launcherHandoff('${w.id}','install')">${_lbt('install')}</button>
-        </div>
-        <div class="lib-meta">
-          <span>${_lbt('ownedOn').replace('%s', escHtml(_LIB_PLAT_NAME(e.platform)))}</span>
-          ${sinceTxt ? `<span class="lib-meta-dot">·</span><span>${sinceTxt}</span>` : ''}
-          ${playedTxt ? `<span class="lib-meta-dot">·</span><span>${playedTxt}</span>` : ''}
-        </div>
-        <div class="lib-links">
-          ${(() => { const isFav = !!(_userPrefs && _userPrefs.favs && _userPrefs.favs.includes(w.id));
-            return `<button class="lib-link lib-link-fav ${isFav ? 'on' : ''}" onclick="_libToggleFav('${w.id}')">★ ${isFav ? _lbt('favDel') : _lbt('favAdd')}</button>`; })()}
-          <button class="lib-link" onclick="showPage('detail','${w.id}')">${_st('view')} <span aria-hidden="true">${_ARR()}</span></button>
-          ${troph ? `<button class="lib-link" onclick="openTrophyList('${w.id}')">${_tt('section')} <span aria-hidden="true">${_ARR()}</span></button>` : ''}
-        </div>
+        <div class="lib-ctas" id="lib-cta">${_libCtaHTML(w)}</div>
       </div>
       <span class="lib-scroll-cue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
     </div>
-    ${_libToolbarHTML(w)}
+    ${_libToolbarHTML(w, e, recent)}
     ${_libBelowHTML(w)}`;
 }
 
@@ -3562,29 +3650,6 @@ function initContactEnhancements() {
     });
   }
 
-  // Topic cards → preselect the matching subject + scroll to form
-  // Card order in DOM: [General, Publishers, Press, Bug] → subjectOpts index
-  const TOPIC_SUBJ = [7, 0, 2, 5];
-  const cards = document.querySelectorAll('.contact-topics .c-info-block');
-  cards.forEach((card, i) => {
-    card.classList.add('c-info-block--clickable');
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    const pick = () => {
-      const sel = $('contact-subject');
-      if (sel) {
-        sel.selectedIndex = (TOPIC_SUBJ[i] ?? 0) + 1; // +1 skips placeholder
-        sel.classList.remove('form-select--err');
-        sel.classList.add('field-flash');
-        setTimeout(() => sel.classList.remove('field-flash'), 700);
-      }
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const firstEmpty = [...form.querySelectorAll('input[required]')].find(el => !el.value.trim());
-      if (firstEmpty) setTimeout(() => firstEmpty.focus(), 350);
-    };
-    card.addEventListener('click', pick);
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-  });
 }
 
 /* ══════════════════════════════════════════
@@ -4213,6 +4278,9 @@ const _OPT_T = {
   language:{fr:'Langue',en:'Language',es:'Idioma',de:'Sprache',it:'Lingua',ar:'اللغة',zh:'语言',ja:'言語',ru:'Язык',pl:'Język'},
   changeLang:{fr:'Changer de langue',en:'Change language',es:'Cambiar idioma',de:'Sprache wechseln',it:'Cambia lingua',ar:'تغيير اللغة',zh:'更改语言',ja:'言語を変更',ru:'Сменить язык',pl:'Zmień język'},
   settingsTitle:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
+  viewProfile:{fr:'Voir le profil',en:'View profile',es:'Ver perfil',de:'Profil ansehen',it:'Vedi profilo',ar:'عرض الملف الشخصي',zh:'查看个人资料',ja:'プロフィールを見る',ru:'Открыть профиль',pl:'Zobacz profil'},
+  privShowFavs:{fr:'Afficher mes jeux favoris',en:'Show my favorite games',es:'Mostrar mis juegos favoritos',de:'Meine Lieblingsspiele zeigen',it:'Mostra i miei giochi preferiti',ar:'إظهار ألعابي المفضلة',zh:'展示我的收藏游戏',ja:'お気に入りのゲームを表示',ru:'Показывать любимые игры',pl:'Pokazuj ulubione gry'},
+  privShowFavsD:{fr:'Ta vitrine « Favoris » apparaît sur ton profil public.',en:'Your “Favorites” showcase appears on your public profile.',es:'Tu vitrina de «Favoritos» aparece en tu perfil público.',de:'Deine „Favoriten“-Vitrine erscheint auf deinem öffentlichen Profil.',it:'La tua vetrina «Preferiti» appare sul tuo profilo pubblico.',ar:'تظهر واجهة «المفضلة» في ملفك العام.',zh:'你的“收藏”橱窗会显示在公开个人资料上。',ja:'「お気に入り」ショーケースが公開プロフィールに表示されます。',ru:'Витрина «Избранное» видна в вашем публичном профиле.',pl:'Twoja gablota „Ulubione” pojawia się na profilu publicznym.'},
   settingsSub:{fr:'Gère ton compte, ton apparence, ta confidentialité et les mises à jour.',en:'Manage your account, appearance, privacy and updates.',es:'Gestiona tu cuenta, apariencia, privacidad y actualizaciones.',de:'Verwalte Konto, Aussehen, Datenschutz und Updates.',it:'Gestisci account, aspetto, privacy e aggiornamenti.',ar:'أدر حسابك ومظهرك وخصوصيتك والتحديثات.',zh:'管理账户、外观、隐私与更新。',ja:'アカウント・外観・プライバシー・更新を管理。',ru:'Управление аккаунтом, оформлением, приватностью и обновлениями.',pl:'Zarządzaj kontem, wyglądem, prywatnością i aktualizacjami.'},
   tabUpdates:{fr:'Mises à jour',en:'Updates',es:'Actualizaciones',de:'Updates',it:'Aggiornamenti',ar:'التحديثات',zh:'更新',ja:'更新',ru:'Обновления',pl:'Aktualizacje'},
   appVersion:{fr:'Version installée',en:'Installed version',es:'Versión instalada',de:'Installierte Version',it:'Versione installata',ar:'الإصدار المثبت',zh:'已安装版本',ja:'インストール済みバージョン',ru:'Установленная версия',pl:'Zainstalowana wersja'},
@@ -4226,7 +4294,7 @@ function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
 
 let _userPrefs = null;
-function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true}, favs:[], av:{micId:null,outId:null,camId:null} }; }
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true,showFavs:true}, favs:[], installed:[], gifs:[], av:{micId:null,outId:null,camId:null} }; }
 function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
   accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
   reducedMotion:!!p.reducedMotion,
@@ -4234,6 +4302,10 @@ function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}
   notif:Object.assign({},d.notif,p.notif||{}),
   privacy:Object.assign({},d.privacy,p.privacy||{}),
   favs:Array.isArray(p.favs)?p.favs.filter(x=>typeof x==='string').slice(0,64):[],   // jeux favoris (bibliothèque)
+  installed:Array.isArray(p.installed)?p.installed.filter(x=>typeof x==='string').slice(0,64):[],  // jeux installés (launcher)
+  gifs:Array.isArray(p.gifs)?p.gifs                                                  // historique GIF du chat
+    .filter(g=>g&&typeof g==='object'&&typeof g.u==='string'&&/^https:\/\//i.test(g.u))
+    .map(g=>({u:g.u.slice(0,500),n:(typeof g.n==='string'?g.n:'GIF').slice(0,80)})).slice(0,48):[],
   av:{ micId:(p.av&&typeof p.av.micId==='string')?p.av.micId:null,                   // périphériques voix/vidéo
        outId:(p.av&&typeof p.av.outId==='string')?p.av.outId:null,
        camId:(p.av&&typeof p.av.camId==='string')?p.av.camId:null } }; }
@@ -4389,6 +4461,7 @@ function _settingsPanels(p, u, pr){
           <div class="set-toggle-list">
             ${_toggleHTML('ap-p-tro',  _ot('privShowTrophies'), '', pr.privacy.showTrophies)}
             ${_toggleHTML('ap-p-wish', _ot('privShowWishlist'), '', pr.privacy.showWishlist)}
+            ${_toggleHTML('ap-p-favs', _ot('privShowFavs'),     _ot('privShowFavsD'), pr.privacy.showFavs)}
             ${_toggleHTML('ap-p-onl',  _ot('privShowOnline'),   '', pr.privacy.showOnline)}
             ${_toggleHTML('ap-p-rec',  _ot('privShowRecent'),   _ot('privShowRecentD'), pr.privacy.showRecent)}
           </div>
@@ -4498,16 +4571,22 @@ async function buildSettingsPage(){
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '';
   host.innerHTML = `
     <section class="settings-page">
-      <div class="settings-page-head settings-page-head--v2">
-        <div class="settings-head-bg" aria-hidden="true" ${p.banner_url && safeMediaUrl(p.banner_url) ? `style="background-image:url('${safeMediaUrl(p.banner_url)}')"` : ''}></div>
-        <button type="button" class="auth-avatar auth-avatar--btn settings-head-ava" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
-          ${_avatarDiscHTML(p, user)}
-          <span class="auth-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
-        </button>
-        <div class="settings-head-id">
-          <span class="settings-eyebrow">${_ot('settingsTitle')}</span>
-          <h1 class="settings-page-title">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
-          <p class="settings-page-sub">${user.email||''}${since?` · ${_at('memberSince')} ${since}`:''}</p>
+      <!-- En-tête v3 : carte propre SANS bannière photo derrière le texte —
+           plus aucun chevauchement pseudo/eyebrow, hiérarchie nette. -->
+      <div class="settings-page-head settings-page-head--v3">
+        <div class="sph-card">
+          <button type="button" class="auth-avatar auth-avatar--btn sph-ava" id="ap-avatar" aria-label="${_at('avatarChange')}" title="${_at('avatarChange')}">
+            ${_avatarDiscHTML(p, user)}
+            <span class="auth-avatar-edit" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+          </button>
+          <div class="sph-id">
+            <span class="sph-eyebrow">${_ot('settingsTitle')}</span>
+            <h1 class="sph-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
+            <p class="sph-meta">${user.email||''}${since?` <span class="sph-dot">·</span> ${_at('memberSince')} ${since}`:''}</p>
+          </div>
+          <div class="sph-actions">
+            <button type="button" class="btn btn-outline sph-profile-btn" onclick="showPage('profile')">${_ot('viewProfile')}</button>
+          </div>
         </div>
       </div>
       <div class="settings-layout">
@@ -4568,11 +4647,11 @@ function _wireSettings(root) {
   ['ap-n-freq','ap-n-facc','ap-n-rel'].forEach(id => $(id)?.addEventListener('change', notifSave));
   // Confidentialité (impacte l'affichage du profil)
   const privSave = async () => {
-    await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showOnline:$('ap-p-onl').checked, showRecent:$('ap-p-rec')?.checked !== false } });
+    await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showFavs:$('ap-p-favs')?.checked !== false, showOnline:$('ap-p-onl').checked, showRecent:$('ap-p-rec')?.checked !== false } });
     GLG_PRESENCE.setVisible($('ap-p-onl').checked);   // bascule visible/invisible immédiate
     if (document.getElementById('page-profile')?.classList.contains('active')) buildProfilePage();
   };
-  ['ap-p-tro','ap-p-wish','ap-p-onl','ap-p-rec'].forEach(id => $(id)?.addEventListener('change', privSave));
+  ['ap-p-tro','ap-p-wish','ap-p-favs','ap-p-onl','ap-p-rec'].forEach(id => $(id)?.addEventListener('change', privSave));
   // Changement de mot de passe
   $('ap-pw-save')?.addEventListener('click', async () => {
     _hideErr('ap-pw-err');
@@ -5739,6 +5818,8 @@ const _UP_T = {
   removeQ:  { fr:'Retirer cette personne de vos amis ?', en:'Remove this person from your friends?', es:'¿Eliminar a esta persona de tus amigos?', de:'Diese Person aus deinen Freunden entfernen?', it:'Rimuovere questa persona dai tuoi amici?', ar:'إزالة هذا الشخص من أصدقائك؟', zh:'将此人从好友中移除？', ja:'この人をフレンドから外しますか？', ru:'Удалить этого человека из друзей?', pl:'Usunąć tę osobę ze znajomych?' },
   mine:     { fr:'Mon espace', en:'My space', es:'Mi espacio', de:'Mein Bereich', it:'Il mio spazio', ar:'مساحتي', zh:'我的空间', ja:'マイスペース', ru:'Мой профиль', pl:'Mój profil' },
   noBio:    { fr:'Ce joueur n’a pas encore de bio.', en:'This player hasn’t added a bio yet.', es:'Este jugador aún no tiene biografía.', de:'Dieser Spieler hat noch keine Bio.', it:'Questo giocatore non ha ancora una bio.', ar:'لم يضف هذا اللاعب نبذة بعد.', zh:'该玩家尚未填写简介。', ja:'このプレイヤーはまだ自己紹介がありません。', ru:'Игрок ещё не добавил описание.', pl:'Ten gracz nie dodał jeszcze bio.' },
+  founder:  { fr:'Fondateur du studio', en:'Studio founder', es:'Fundador del estudio', de:'Studio-Gründer', it:'Fondatore dello studio', ar:'مؤسس الأستوديو', zh:'工作室创始人', ja:'スタジオ創設者', ru:'Основатель студии', pl:'Założyciel studia' },
+  favShowcase:{ fr:'Jeux favoris', en:'Favorite games', es:'Juegos favoritos', de:'Lieblingsspiele', it:'Giochi preferiti', ar:'الألعاب المفضلة', zh:'收藏的游戏', ja:'お気に入りのゲーム', ru:'Любимые игры', pl:'Ulubione gry' },
 };
 function _upt(k){ const m=_UP_T[k]; return m ? (m[LANG]||m.en) : k; }
 
@@ -5799,6 +5880,12 @@ async function buildPublicProfilePage(viewId){
   const d = computeTrophies(keys);                       // trophées calculés depuis SES déblocages
   const wids = Array.isArray(prof.wishlist) ? prof.wishlist : [];
   const wWorks = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => wids.includes(w.id) && !isMatureHidden(w));
+  // v4 : vitrine « Favoris » + compteur de jeux (public_profile étendu ;
+  // les deux restent vides/null tant que schema.sql n'a pas été rejoué).
+  const favIds = Array.isArray(prof.favorites) ? prof.favorites.filter(x => typeof x === 'string') : [];
+  const favWorks = (typeof ALL_WORKS!=='undefined'?ALL_WORKS:[]).filter(w => favIds.includes(w.id) && !isMatureHidden(w));
+  const isFounder = (typeof _isVerified === 'function') && _isVerified(name);
+  const gamesCount = isFounder ? ALL_WORKS.length : (prof.games_count != null ? prof.games_count : null);
   const rel = await _userRelation(viewId);
   let action = '';
   if (rel === 'friend')        action = `<button class="btn btn-primary up-action" onclick="openChatWith('${escHtml(viewId)}')">${_chT('navLabel')}</button>
@@ -5809,28 +5896,35 @@ async function buildPublicProfilePage(viewId){
   else                         action = `<button class="btn btn-primary up-action" data-act="add">${_upt('add')}</button>`;
 
   host.innerHTML = `
-    <section class="pp pp--public">
+    <section class="pp pp--public pp--v4">
       <div class="pp-banner ${banner?'has-img':''}" ${banner?`style="background-image:url(${banner})"`:''}><div class="pp-banner-scrim"></div></div>
       <div class="pp-head">
-        <span class="pp-avatar pp-avatar--ro">${_userAvatarHTML(prof)}</span>
+        <span class="pp-avatar pp-avatar--ro ${GLG_PRESENCE.isOnline(viewId) ? 'pp-avatar--online' : ''}">${_userAvatarHTML(prof)}</span>
         <div class="pp-id">
           <h1 class="pp-name">${escHtml(name)}${_verifiedTag(name,'glg-verified--lg')}</h1>
-          <span class="pp-level-chip"><span class="pp-lc-cup">${_TROPHY_SVG}</span><b>${_tt('levelShort')} ${d.level}</b><span class="pp-lc-bar"><i style="width:${d.nextPct}%"></i></span></span>
+          ${GLG_PRESENCE.isOnline(viewId) ? `<span class="pp-online"><i aria-hidden="true"></i>${_ft('online')}</span>` : ''}
           <div class="pp-badges">
-            ${GLG_PRESENCE.isOnline(viewId) ? `<span class="pp-badge pp-badge--online">${_ft('online')}</span>` : ''}
+            ${isFounder ? `<span class="pp-badge pp-badge--founder">★ ${_upt('founder')}</span>` : ''}
             <span class="pp-badge pp-badge--muted">${_ppt('statMember')} ${since}</span>
           </div>
           ${prof.bio ? `<p class="pp-bio">${escHtml(prof.bio)}</p>` : `<p class="pp-bio pp-bio--empty">${_upt('noBio')}</p>`}
         </div>
         <div class="pp-actions pp-actions--public">
-          <button class="btn btn-outline pp-back-btn" onclick="_backFromPublic()">‹ ${_ft('title')}</button>
-          ${action}
+          <div class="pp-level-ring" title="${_tt('level')}" aria-label="${_tt('level')}"><span class="pp-ring-track" style="--pct:${d.nextPct}"><span class="pp-ring-in"><b>${d.level}</b><small>${_tt('levelShort')}</small></span></span></div>
+          <div class="pp-actions-btns">
+            <button class="btn btn-outline pp-back-btn" onclick="_backFromPublic()">‹ ${_ft('title')}</button>
+            ${action}
+          </div>
         </div>
       </div>
-      <div class="pp-stats">
-        <div class="pp-stat"><b>${d.earnedTotal}</b><span>${_tt('section')}</span></div>
+      <!-- v4 : 5 compteurs (jeux, trophées, amis, évaluations, souhaits) —
+           parité visuelle avec le profil perso, mieux que Steam. -->
+      <div class="pp-stats pp-stats--public">
+        <div class="pp-stat"><b>${gamesCount != null ? gamesCount : '—'}</b><span>${_ppt('statGames')}</span></div>
+        <button class="pp-stat" onclick="document.querySelector('.pp-trophy-section')?.scrollIntoView({behavior:'smooth'})"><b>${d.earnedTotal}</b><span>${_tt('section')}</span></button>
         <div class="pp-stat"><b>${prof.friend_count!=null?prof.friend_count:'—'}</b><span>${_ft('statFriends')}</span></div>
-        <div class="pp-stat"><b>${wWorks.length}</b><span>${_wt('title')}</span></div>
+        <button class="pp-stat" onclick="document.querySelector('.pp-rev-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
+        <button class="pp-stat" onclick="document.querySelector('.pp-wish-grid')?.scrollIntoView({behavior:'smooth'})"><b>${wWorks.length}</b><span>${_wt('title')}</span></button>
       </div>
       ${(() => { /* numérotation continue même quand « Jeux récents » est absent */
         let _pi = 0; const nidx = () => `${String(++_pi).padStart(2, '0')} /`;
@@ -5838,6 +5932,11 @@ async function buildPublicProfilePage(viewId){
         return `
       <div class="pp-cols">
         <div class="pp-main">
+          ${favWorks.length ? `
+          <div class="pp-section pp-favs-section">
+            <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_upt('favShowcase')}</h2><span class="pp-sec-count">${favWorks.length}</span></div>
+            <div class="pp-favs-grid">${favWorks.map(_publicWishCardHTML).join('')}</div>
+          </div>` : ''}
           ${rg ? `
           <div class="pp-section pp-recent-section">
             <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="${nidx()}">${_rgt('title')}</h2></div>
@@ -5870,8 +5969,10 @@ async function buildPublicProfilePage(viewId){
   _renderProfileReviews(viewId);
   _initProfileShots(viewId, { readOnly: true });
 
-  const actBtn = host.querySelector('.up-action');
-  if (actBtn) actBtn.addEventListener('click', async () => {
+  // FIX : câbler TOUS les boutons d'action (avant : querySelector ne prenait
+  // que le 1er .up-action — pour un ami, c'était « Message » (onclick inline)
+  // et « Retirer des amis » restait MORT).
+  host.querySelectorAll('.up-action[data-act]').forEach(actBtn => actBtn.addEventListener('click', async () => {
     const act = actBtn.dataset.act;
     if (act === 'remove' && !confirm(_upt('removeQ'))) return;
     actBtn.disabled = true;
@@ -5882,7 +5983,7 @@ async function buildPublicProfilePage(viewId){
     } catch(e){}
     await refreshFriendsUI();
     buildPublicProfilePage(viewId);
-  });
+  }));
   setTimeout(initReveal, 60);
 }
 
@@ -7284,6 +7385,11 @@ const _CHAT_T = {
   confirm:   { fr:'Valider', en:'Confirm', es:'Validar', de:'Bestätigen', it:'Conferma', ar:'تأكيد', zh:'确认', ja:'確定', ru:'Готово', pl:'Zatwierdź' },
   emojiT:    { fr:'Émojis', en:'Emoji', es:'Emojis', de:'Emojis', it:'Emoji', ar:'الإيموجي', zh:'表情符号', ja:'絵文字', ru:'Эмодзи', pl:'Emoji' },
   gifT:      { fr:'Envoyer un GIF', en:'Send a GIF', es:'Enviar un GIF', de:'GIF senden', it:'Invia una GIF', ar:'إرسال GIF', zh:'发送 GIF', ja:'GIFを送信', ru:'Отправить GIF', pl:'Wyślij GIF-a' },
+  gifYours:  { fr:'Tes GIFs', en:'Your GIFs', es:'Tus GIFs', de:'Deine GIFs', it:'I tuoi GIF', ar:'ملفات GIF الخاصة بك', zh:'你的 GIF', ja:'あなたのGIF', ru:'Ваши GIF', pl:'Twoje GIF-y' },
+  gifMemes:  { fr:'Mèmes', en:'Memes', es:'Memes', de:'Memes', it:'Meme', ar:'ميمز', zh:'梗图', ja:'ミーム', ru:'Мемы', pl:'Memy' },
+  gifImport: { fr:'Importer un GIF', en:'Import a GIF', es:'Importar un GIF', de:'GIF importieren', it:'Importa una GIF', ar:'استيراد GIF', zh:'导入 GIF', ja:'GIFをインポート', ru:'Импортировать GIF', pl:'Importuj GIF-a' },
+  gifDel:    { fr:'Supprimer de tes GIFs', en:'Remove from your GIFs', es:'Quitar de tus GIFs', de:'Aus deinen GIFs entfernen', it:'Rimuovi dai tuoi GIF', ar:'إزالة من ملفات GIF الخاصة بك', zh:'从你的 GIF 中删除', ja:'あなたのGIFから削除', ru:'Удалить из ваших GIF', pl:'Usuń z twoich GIF-ów' },
+  gifHint:   { fr:'Envoie un mème ou importe tes propres GIFs — ils restent ici jusqu’à ce que tu les supprimes.', en:'Send a meme or import your own GIFs — they stay here until you delete them.', es:'Envía un meme o importa tus propios GIFs — se quedan aquí hasta que los borres.', de:'Sende ein Meme oder importiere eigene GIFs — sie bleiben hier, bis du sie löschst.', it:'Invia un meme o importa le tue GIF — restano qui finché non le elimini.', ar:'أرسل ميمًا أو استورد ملفات GIF الخاصة بك — تبقى هنا حتى تحذفها بنفسك.', zh:'发送梗图或导入你自己的 GIF——它们会一直保留，直到你删除为止。', ja:'ミームを送るか、自分のGIFをインポートしよう — 削除するまでここに残ります。', ru:'Отправьте мем или импортируйте свои GIF — они останутся здесь, пока вы их не удалите.', pl:'Wyślij mema lub importuj własne GIF-y — zostaną tu, dopóki ich nie usuniesz.' },
   stickerT:  { fr:'Stickers', en:'Stickers', es:'Stickers', de:'Sticker', it:'Sticker', ar:'الملصقات', zh:'贴纸', ja:'スタンプ', ru:'Стикеры', pl:'Naklejki' },
   reactT:    { fr:'Réagir', en:'React', es:'Reaccionar', de:'Reagieren', it:'Reagisci', ar:'تفاعل', zh:'回应', ja:'リアクション', ru:'Отреагировать', pl:'Zareaguj' },
   playA:     { fr:'Écouter', en:'Play', es:'Reproducir', de:'Abspielen', it:'Riproduci', ar:'تشغيل', zh:'播放', ja:'再生', ru:'Слушать', pl:'Odtwórz' },
@@ -7527,8 +7633,8 @@ async function _chatOpen(channel) {
   $('chat-send').addEventListener('click', _chatSendCurrent);
   $('chat-attach').addEventListener('click', () => $('chat-file').click());
   $('chat-file').addEventListener('change', () => _chatFilePicked('chat-file'));
-  $('chat-gifbtn').addEventListener('click', () => $('chat-gif').click());
-  $('chat-gif').addEventListener('change', () => _chatFilePicked('chat-gif'));
+  $('chat-gifbtn').addEventListener('click', ev => { ev.stopPropagation(); _chatGifToggle(); });
+  $('chat-gif').addEventListener('change', _chatGifImported);
   $('chat-emojibtn').addEventListener('click', ev => { ev.stopPropagation(); _chatEmojiToggle(); });
   $('chat-stickbtn').addEventListener('click', ev => { ev.stopPropagation(); _chatStickToggle(); });
   $('chat-mic').addEventListener('click', _chatMicStart);
@@ -8328,21 +8434,47 @@ function _wireAvPanel(q) {
 /* ══════════════════════════════════════════
    CHAT — ÉMOJIS · STICKERS · RÉACTIONS
    ──────────────────────────────────────────
-   Émojis : picker natif (zéro dépendance), insertion au curseur.
+   Émojis : picker COMPLET par catégories (Récents dynamiques, onglets,
+   molette, scroll-spy) — zéro dépendance, insertion au curseur.
    Stickers : pack maison GLG = les key arts des 8 œuvres (aucun upload,
    pièce jointe {kind:'sticker'} pointant sur l'asset du site).
    Réactions : toggle par joueur (RPC chat_react, optimiste + realtime),
-   palette rapide sur chaque message. GIF : bouton dédié (fichier .gif —
-   un picker Tenor pourra se brancher ici avec une clé API).
+   palette rapide sur chaque message. GIF : panneau memes + imports
+   (historique persistant prefs.gifs, suppression manuelle).
 ══════════════════════════════════════════ */
-const _EMOJI_SET = [
-  ['😀','😄','😂','🤣','😊','😉','😍','🥰','😘','😎','🤩','🥳','😏','😅','🙃','😇'],
-  ['😢','😭','😤','😡','🤯','😱','😨','😴','🥱','🤔','🤨','😬','🙄','😮','🤐','🤢'],
-  ['👍','👎','👏','🙌','🤝','💪','🙏','✌️','🤞','👌','🤙','👋','✍️','🫡','🫶','❤️'],
-  ['💥','🔥','⭐','✨','🎈','🎉','🎊','💯','⚡','💀','👻','🎃','🤖','👾','🕹️','🎮'],
-  ['🏆','🥇','🎯','🎲','🃏','🎬','🎧','🎵','🍿','🌙','☀️','🌈','🍀','🎁','💎','🚀'],
+const _EMO_T = {
+  recent:    { fr:'Récents', en:'Recent', es:'Recientes', de:'Zuletzt verwendet', it:'Recenti', ar:'الأخيرة', zh:'最近使用', ja:'最近使った絵文字', ru:'Недавние', pl:'Ostatnie' },
+  smileys:   { fr:'Visages', en:'Smileys', es:'Caritas', de:'Smileys', it:'Faccine', ar:'الوجوه', zh:'表情', ja:'顔', ru:'Смайлы', pl:'Buźki' },
+  gestures:  { fr:'Gestes & mains', en:'Hands & gestures', es:'Manos y gestos', de:'Hände & Gesten', it:'Mani e gesti', ar:'الأيدي والإيماءات', zh:'手势', ja:'手・ジェスチャー', ru:'Жесты', pl:'Dłonie i gesty' },
+  hearts:    { fr:'Cœurs', en:'Hearts', es:'Corazones', de:'Herzen', it:'Cuori', ar:'قلوب', zh:'爱心', ja:'ハート', ru:'Сердца', pl:'Serca' },
+  animals:   { fr:'Animaux & nature', en:'Animals & nature', es:'Animales y naturaleza', de:'Tiere & Natur', it:'Animali e natura', ar:'حيوانات وطبيعة', zh:'动物与自然', ja:'動物・自然', ru:'Животные и природа', pl:'Zwierzęta i natura' },
+  food:      { fr:'Nourriture & boissons', en:'Food & drink', es:'Comida y bebida', de:'Essen & Trinken', it:'Cibo e bevande', ar:'طعام وشراب', zh:'美食', ja:'食べ物・飲み物', ru:'Еда и напитки', pl:'Jedzenie i napoje' },
+  activities:{ fr:'Activités & jeux', en:'Activities & games', es:'Actividades y juegos', de:'Aktivitäten & Spiele', it:'Attività e giochi', ar:'أنشطة وألعاب', zh:'活动与游戏', ja:'アクティビティ・ゲーム', ru:'Активности и игры', pl:'Aktywności i gry' },
+  travel:    { fr:'Voyage & lieux', en:'Travel & places', es:'Viajes y lugares', de:'Reisen & Orte', it:'Viaggi e luoghi', ar:'سفر وأماكن', zh:'旅行与地点', ja:'旅行・場所', ru:'Путешествия и места', pl:'Podróże i miejsca' },
+  objects:   { fr:'Objets', en:'Objects', es:'Objetos', de:'Objekte', it:'Oggetti', ar:'أشياء', zh:'物品', ja:'モノ', ru:'Предметы', pl:'Przedmioty' },
+  symbols:   { fr:'Symboles', en:'Symbols', es:'Símbolos', de:'Symbole', it:'Simboli', ar:'رموز', zh:'符号', ja:'記号', ru:'Символы', pl:'Symbole' },
+};
+const _emt = k => (_EMO_T[k] && (_EMO_T[k][LANG] || _EMO_T[k].en)) || '';
+
+/* Chaque catégorie : [clé, émoji d'onglet, liste (séparée par espaces)].
+   Pas de drapeaux nationaux : Windows ne les rend pas (paires de lettres). */
+const _EMO_CATS = [
+  ['smileys','😀','😀 😃 😄 😁 😆 😅 😂 🤣 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾'],
+  ['gestures','👋','👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🧠 👀 👁️ 👂 👃 👄 👅 🦷 🦿 🦵 🦶'],
+  ['hearts','❤️','❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ♥️ 💋 💌 💍 💒 🌹 🥀 💐 🌺 💑 💏'],
+  ['animals','🐻','🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🐧 🐦 🐤 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🕷️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🐆 🦓 🦍 🐘 🦏 🐪 🦒 🦘 🌵 🎄 🌲 🌳 🌴 🌱 🌿 ☘️ 🍀 🍁 🍂 🍄 🌷 🌸 🌼 🌻 🌞 🌝 🌚 🌙 ⭐ 🌟 ✨ ⚡ 🔥 🌈 ☀️ ⛅ ☁️ 🌧️ ⛈️ ❄️ ☃️ ⛄ 🌊 💧 💦 ☔'],
+  ['food','🍕','🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🍆 🥑 🥦 🥕 🌽 🌶️ 🥔 🍠 🥐 🍞 🥖 🥨 🧀 🥚 🍳 🥞 🧇 🥓 🥩 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🌮 🌯 🥗 🍝 🍜 🍲 🍛 🍣 🍱 🍤 🍙 🍚 🍘 🥟 🥠 🍢 🍡 🍧 🍨 🍦 🥧 🧁 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🥛 ☕ 🍵 🧋 🍺 🍻 🥂 🍷 🥃 🍸 🍹 🧃 🧊'],
+  ['activities','🎮','🎮 🕹️ 🎯 🎲 ♟️ 🧩 🎳 🎰 🃏 🀄 🏆 🥇 🥈 🥉 🏅 🎖️ ⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🏓 🏸 🏒 🥅 ⛳ 🏹 🎣 🥊 🥋 ⛸️ 🎿 🏂 🏋️ 🤸 🤺 🏇 🧘 🏄 🏊 🚴 🧗 🎪 🤹 🎭 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 🎫 🎟️'],
+  ['travel','🚀','🚗 🚕 🚙 🚌 🏎️ 🚓 🚑 🚒 🚚 🚜 🛴 🚲 🛵 🏍️ 🚨 🚃 🚝 🚄 🚂 ✈️ 🛫 🛬 🛩️ 🚀 🛸 🚁 🛶 ⛵ 🚤 🛳️ ⚓ 🗺️ 🗿 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ ⛱️ 🏖️ 🏝️ 🌋 ⛰️ 🏔️ 🗻 🏕️ 🏠 🏡 🏢 🏭 🌃 🌆 🌇 🌉 🌌 🌍 🌎 🌏 🪐'],
+  ['objects','💡','⌚ 📱 💻 ⌨️ 🖥️ 🖨️ 🖱️ 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 📞 ☎️ 📺 📻 🎙️ ⏰ ⌛ ⏳ 📡 🔋 🔌 💡 🔦 🕯️ 💸 💵 💰 💳 💎 ⚖️ 🔧 🔨 🛠️ ⛏️ 🔩 ⚙️ 🧲 💣 🧨 🔪 🗡️ ⚔️ 🛡️ 🔮 🧿 🔭 🔬 💊 💉 🧬 🦠 🧪 🌡️ 🧸 🎁 🎈 🎀 🎊 🎉 🪄 📦 📚 📖 ✏️ 🖊️ 🖌️ 🖍️ 📝 💼 📁 📊 📈 📉 ✂️ 📌 📎 🔑 🗝️ 🔒 🔓 🚪 🪑 🛋️ 🛏️'],
+  ['symbols','✨','💯 ✅ ❌ ❓ ❗ ⁉️ 💤 💢 💥 💫 🕳️ ♻️ ⚜️ 🔱 📛 🔰 ⭕ ✔️ ✖️ ➕ ➖ ➗ ➰ ✳️ ✴️ ❇️ ©️ ®️ ™️ 🔀 🔁 ▶️ ⏸️ ⏹️ ⏭️ ⏮️ 🔼 🔽 🎵 🎶 ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↔️ ↕️ 🔄 🆗 🆕 🆓 🆒 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟥 🟧 🟨 🟩 🟦 🟪 ⬛ ⬜ 🔶 🔷 🔸 🔹 🔺 🔻 💠 🔘 🏁 🚩 🏴 🏳️'],
 ];
-let _chatPickOpen = null;   // 'emoji' | 'stick' | null
+
+/* Récents : mémoire locale de l'appareil (24 max, dédupliqués). */
+function _emoRecGet() { try { const a = JSON.parse(localStorage.getItem('glg_emo_recent') || '[]'); return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.length <= 8 && !/[<>"'&\\]/.test(x)).slice(0, 24) : []; } catch (e) { return []; } }
+function _emoRecPush(e) { try { const a = _emoRecGet().filter(x => x !== e); a.unshift(e); localStorage.setItem('glg_emo_recent', JSON.stringify(a.slice(0, 24))); } catch (err) {} }
+
+let _chatPickOpen = null;   // 'emoji' | 'stick' | 'gif' | null
 
 function _chatPickClose() {
   document.getElementById('glg-chatpick')?.remove();
@@ -8350,6 +8482,10 @@ function _chatPickClose() {
   _chatPickOpen = null;
 }
 document.addEventListener('click', e => {
+  // le .click() PROGRAMMATIQUE sur l'input fichier (Importer un GIF) bulle
+  // jusqu'ici — sans cette garde il refermait le panneau à l'ouverture du
+  // sélecteur de fichier.
+  if (e.target && e.target.id === 'chat-gif') return;
   if (!e.target.closest('#glg-chatpick') && !e.target.closest('#glg-rxpick')) _chatPickClose();
 });
 
@@ -8363,23 +8499,162 @@ function _chatPickShell(kind) {
   return host;
 }
 
-/* ── Picker émojis : insertion au curseur du composer ── */
+/* ── Picker émojis v2 : catégories complètes, onglets, molette (scroll
+   natif), scroll-spy, Récents dynamiques — insertion au curseur. ── */
 function _chatEmojiToggle() {
   if (_chatPickOpen === 'emoji') { _chatPickClose(); return; }
   const host = _chatPickShell('emoji');
+  host.classList.add('chatpick--emo');
+  const rec = _emoRecGet();
+  const cats = (rec.length ? [['recent', '🕘', rec]] : [])
+    .concat(_EMO_CATS.map(c => [c[0], c[1], c[2].split(' ')]));
   host.innerHTML = `
     <div class="chatpick-head">${_chT('emojiT')}</div>
-    <div class="chatpick-grid">
-      ${_EMOJI_SET.map(row => row.map(e => `<button class="chatpick-emo" data-emo="${e}">${e}</button>`).join('')).join('')}
+    <div class="chatpick-tabs" role="tablist" aria-label="${_chT('emojiT')}">
+      ${cats.map(([k, ico], i) => `<button class="chatpick-tab ${i === 0 ? 'on' : ''}" data-cat="${k}" role="tab" title="${_emt(k)}" aria-label="${_emt(k)}">${ico}</button>`).join('')}
+    </div>
+    <div class="chatpick-scroll" id="chatpick-scroll">
+      ${cats.map(([k, , list]) => `
+      <section class="chatpick-sec" data-cat="${k}">
+        <h5 class="chatpick-sec-t">${_emt(k)}</h5>
+        <div class="chatpick-grid">${list.map(e => `<button class="chatpick-emo" data-emo="${e}">${e}</button>`).join('')}</div>
+      </section>`).join('')}
     </div>`;
-  host.querySelectorAll('.chatpick-emo').forEach(b => b.addEventListener('click', () => {
+  const sc = host.querySelector('#chatpick-scroll');
+  // Insertion au curseur — délégation : UN listener pour ~600 émojis
+  sc.addEventListener('click', ev => {
+    const b = ev.target.closest('.chatpick-emo'); if (!b) return;
     const inp = $('chat-input'); if (!inp) return;
     const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? inp.value.length;
     inp.value = inp.value.slice(0, s) + b.dataset.emo + inp.value.slice(en);
     const pos = s + b.dataset.emo.length;
     inp.focus(); inp.setSelectionRange(pos, pos);
+    _emoRecPush(b.dataset.emo);   // alimente « Récents » (prochaine ouverture)
     _chatTypingPing();
+  });
+  // Onglet → défile vers la section ; défilement → active l'onglet (spy)
+  const tabs = [...host.querySelectorAll('.chatpick-tab')];
+  const secs = [...host.querySelectorAll('.chatpick-sec')];
+  tabs.forEach(t => t.addEventListener('click', () => {
+    const sec = secs.find(x => x.dataset.cat === t.dataset.cat);
+    if (sec) sc.scrollTo({ top: sec.offsetTop - 4, behavior: 'smooth' });
   }));
+  let spy = 0;
+  sc.addEventListener('scroll', () => {
+    cancelAnimationFrame(spy);
+    spy = requestAnimationFrame(() => {
+      const y = sc.scrollTop + 48;
+      let cur = secs[0];
+      for (const s2 of secs) if (s2.offsetTop <= y) cur = s2;
+      if (cur) tabs.forEach(t => t.classList.toggle('on', t.dataset.cat === cur.dataset.cat));
+    });
+  }, { passive: true });
+}
+
+/* ── PANNEAU GIF : mèmes proposés + imports personnels ──────────────────
+   Mèmes : 20 classiques servis par le CDN Giphy (i.giphy.com, autorisé
+   par la CSP img-src) — chaque URL a été VÉRIFIÉE (200 + image/gif).
+   Imports : .gif ≤25 Mo → bucket chat-media → historique prefs.gifs
+   (synchronisé entre appareils), conservé jusqu'à suppression manuelle.
+   Un mème envoyé rejoint aussi « Tes GIFs » (récemment utilisés). ── */
+const _GLG_MEMES = [
+  { u:'https://i.giphy.com/QMHoU66sBXqqLqYvGO.gif', n:'This is fine' },
+  { u:'https://i.giphy.com/6nWhy3ulBL7GSCvKw6.gif', n:'Surprised Pikachu' },
+  { u:'https://i.giphy.com/hEc4k5pN17GZq.gif',      n:'Confused Travolta' },
+  { u:'https://i.giphy.com/62PP2yEIAZF6g.gif',      n:'Deal with it' },
+  { u:'https://i.giphy.com/xT0xeJpnrWC4XWblEk.gif', n:'Mind blown' },
+  { u:'https://i.giphy.com/a0h7sAqON67nO.gif',      n:'Great success' },
+  { u:'https://i.giphy.com/8VrtCswiLDNnO.gif',      n:'Nailed it' },
+  { u:'https://i.giphy.com/d3mlE7uhX8KFgEmY.gif',   n:'Roll safe' },
+  { u:'https://i.giphy.com/l4Jz3a8jO92crUlWM.gif',  n:'Salt Bae' },
+  { u:'https://i.giphy.com/fnuSiwXMTV3zmYDf6k.gif', n:'Who are you?' },
+  { u:'https://i.giphy.com/32mC2kXYWCsg0.gif',      n:'Sweating' },
+  { u:'https://i.giphy.com/HhTXt43pk1I1W.gif',      n:'Boom' },
+  { u:'https://i.giphy.com/13HgwGsXF0aiGY.gif',     n:'Everything is fine' },
+  { u:'https://i.giphy.com/JIX9t2j0ZTN9S.gif',      n:'Cat coding' },
+  { u:'https://i.giphy.com/11sBLVxNs7v6WA.gif',     n:'Minions party' },
+  { u:'https://i.giphy.com/kEKcOWl8RMLde.gif',      n:'Woo-hoo!' },
+  { u:'https://i.giphy.com/3o6Zt6KHxJTbXCnSvu.gif', n:'Thank you' },
+  { u:'https://i.giphy.com/l0MYt5jPR6QX5pnqM.gif',  n:'Celebrate' },
+  { u:'https://i.giphy.com/5aLrlDiJPMPFS.gif',      n:'Stress max' },
+  { u:'https://i.giphy.com/LTYT5GTIiAMBa.gif',      n:'Big sad' },
+];
+
+function _chatGifToggle() {
+  if (_chatPickOpen === 'gif') { _chatPickClose(); return; }
+  const host = _chatPickShell('gif');
+  host.classList.add('chatpick--gif');
+  _chatGifRender(host);
+}
+function _chatGifRender(host) {
+  host = host || document.getElementById('glg-chatpick'); if (!host) return;
+  const mine = (_userPrefs && _userPrefs.gifs) || [];
+  const tile = (u0, n, del) => {
+    const u = safeMediaUrl(u0);   // même filtre qu'à l'affichage des messages
+    if (!u) return '';
+    return `
+      <button class="chatpick-gif" data-u="${escHtml(u)}" data-n="${escHtml(n)}" title="${escHtml(n)}">
+        <img src="${escHtml(u)}" alt="${escHtml(n)}" loading="lazy">
+        ${del ? `<span class="chatpick-gif-x" data-del="${escHtml(u)}" role="button" tabindex="0" title="${_chT('gifDel')}" aria-label="${_chT('gifDel')}">✕</span>` : ''}
+      </button>`;
+  };
+  host.innerHTML = `
+    <div class="chatpick-head">GIF
+      <button class="chatpick-import" id="chatpick-import" title="${_chT('gifImport')}">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 10V2M4.6 5.4 8 2l3.4 3.4M3 13.4h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${_chT('gifImport')}</button>
+    </div>
+    <div class="chatpick-scroll chatpick-scroll--gif">
+      ${mine.length
+        ? `<section class="chatpick-sec"><h5 class="chatpick-sec-t">${_chT('gifYours')}</h5><div class="chatpick-gifs">${mine.map(g => tile(g.u, g.n, true)).join('')}</div></section>`
+        : `<p class="chatpick-hint">${_chT('gifHint')}</p>`}
+      <section class="chatpick-sec"><h5 class="chatpick-sec-t">${_chT('gifMemes')}</h5><div class="chatpick-gifs">${_GLG_MEMES.map(m => tile(m.u, m.n, false)).join('')}</div></section>
+    </div>`;
+  host.querySelector('#chatpick-import')?.addEventListener('click', ev => { ev.stopPropagation(); $('chat-gif')?.click(); });
+  host.querySelector('.chatpick-scroll').addEventListener('click', ev => {
+    const del = ev.target.closest('[data-del]');
+    if (del) { ev.stopPropagation(); _chatGifDelete(del.dataset.del); return; }
+    const b = ev.target.closest('.chatpick-gif'); if (!b) return;
+    _chatGifSend(b.dataset.u, b.dataset.n);
+  });
+}
+/* Mémorise un GIF en tête de « Tes GIFs » (dédupliqué, cap 48 via _normPrefs). */
+function _chatGifRemember(url, name) {
+  const cur = ((_userPrefs && _userPrefs.gifs) || []).filter(g => g.u !== url);
+  cur.unshift({ u: url, n: (name || 'GIF').slice(0, 80) });
+  _savePrefs({ gifs: cur });
+}
+async function _chatGifSend(url, name) {
+  if (!_chat.current || !url) return;
+  const chan = _chat.current;   // garde : la conversation peut changer pendant l'envoi
+  _chatGifRemember(url, name);
+  _chatPickClose();
+  const r = await GLG_AUTH.chatSend(chan, null, { kind: 'image', url, name: name || 'GIF' });
+  if (_chat.current === chan && r.ok && r.message && !_chat.rows.some(x => x.id === r.message.id)) {
+    _chat.rows.push(r.message); _chatRenderMessages(true);
+  }
+  _chatRefreshChannels();
+}
+function _chatGifDelete(url) {
+  const cur = ((_userPrefs && _userPrefs.gifs) || []).filter(g => g.u !== url);
+  _savePrefs({ gifs: cur });
+  if (_chatPickOpen === 'gif') _chatGifRender();
+}
+/* Import d'un .gif → upload chat-media → rejoint « Tes GIFs » (pas d'envoi
+   automatique : tu choisis ensuite quand l'envoyer, comme sur Discord). */
+async function _chatGifImported() {
+  const inp = $('chat-gif');
+  const f = inp?.files?.[0]; if (!f) return;
+  inp.value = '';
+  if (!/image\/gif/i.test(f.type || '')) { _chatNote('✕'); return; }
+  if (f.size > 25 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
+  _chatNote('⬆ …');
+  const up = await GLG_AUTH.chatUpload(f);
+  _chatNote('');
+  if (!up.ok || !up.attachment || !up.attachment.url) { _chatNote(up.code === 'size' ? _chT('tooBig') : '✕'); return; }
+  _chatGifRemember(up.attachment.url, String(f.name || 'GIF').replace(/\.gif$/i, ''));
+  // montre le nouvel arrivant : re-rend le panneau (le rouvre s'il a été fermé)
+  if (_chatPickOpen === 'gif') _chatGifRender(); else _chatGifToggle();
 }
 
 /* ── Stickers maison : key arts des œuvres — envoi direct ── */
