@@ -850,6 +850,7 @@ function initSite() {
   buildMarquee();
   buildStatsBand();
   buildCarousels();
+  _buildOdyssey();
   buildPuzzleStrips();
   buildAboutPage();
   buildFeaturedWork();
@@ -1170,6 +1171,93 @@ window.addEventListener('resize', () => {
 /* Debounce: multiple synchronous calls in the same tick (e.g. from applyTranslations
    + initSite + applyWorksPageLabels) collapse into a single actual rebuild. */
 let _buildCarouselsTimer = null;
+/* ══ ACCUEIL « ODYSSEY » — vitrine cinématique façon Rockstar/GTA VI ══
+   Un panneau PLEIN ÉCRAN par œuvre : épinglage CSS sticky (fiable avec
+   Lenis), key art qui DÉ-ZOOME, logo en parallaxe, textes en fondu — le
+   tout SCRUBBÉ par GSAP/ScrollTrigger, sortie en FONDU AU NOIR (le panneau
+   suivant émerge de l'obscurité). Sans GSAP / mouvement réduit : pile
+   sticky statique, tout reste lisible. */
+const _ODY_T = {
+  kicker: { fr:'LE CATALOGUE', en:'THE CATALOGUE', es:'EL CATÁLOGO', de:'DER KATALOG', it:'IL CATALOGO', ar:'الكتالوج', zh:'作品目录', ja:'カタログ', ru:'КАТАЛОГ', pl:'KATALOG' },
+  title:  { fr:'Huit mondes. Aucune échappatoire.', en:'Eight worlds. No way out.', es:'Ocho mundos. Sin escapatoria.', de:'Acht Welten. Kein Entkommen.', it:'Otto mondi. Nessuna via di fuga.', ar:'ثمانية عوالم. لا مهرب.', zh:'八个世界。无处可逃。', ja:'八つの世界。逃げ場はない。', ru:'Восемь миров. Выхода нет.', pl:'Osiem światów. Nie ma ucieczki.' },
+  discover:{ fr:'Découvrir', en:'Discover', es:'Descubrir', de:'Entdecken', it:'Scopri', ar:'اكتشف', zh:'了解详情', ja:'詳しく見る', ru:'Узнать больше', pl:'Odkryj' },
+  explore:{ fr:'Explorer les huit mondes', en:'Explore all eight worlds', es:'Explora los ocho mundos', de:'Alle acht Welten erkunden', it:'Esplora gli otto mondi', ar:'استكشف العوالم الثمانية', zh:'探索全部八个世界', ja:'八つの世界をすべて見る', ru:'Исследовать все восемь миров', pl:'Poznaj wszystkie osiem światów' },
+};
+const _odt = k => (_ODY_T[k] && (_ODY_T[k][LANG] || _ODY_T[k].en)) || '';
+let _odyST = [];   // ScrollTriggers de l'Odyssey (tués à chaque rebuild)
+
+function _buildOdyssey() {
+  const host = document.getElementById('glg-odyssey'); if (!host) return;
+  _odyST.forEach(t => { try { t.kill(); } catch (e) {} }); _odyST = [];
+  const works = (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).filter(w => !isMatureHidden(w));
+  if (!works.length) { host.innerHTML = ''; return; }
+  const n = works.length;
+  host.innerHTML = `
+    <div class="ody-intro">
+      <div class="ody-intro-pin">
+        <p class="ody-kicker">${_odt('kicker')}</p>
+        <h2 class="ody-title">${escHtml(_odt('title'))}</h2>
+      </div>
+    </div>
+    ${works.map((w, i) => `
+    <section class="ody" data-ody="${w.id}" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
+      <div class="ody-pin">
+        <div class="ody-bg" style="background-image:url('${av(w.cover)}')"></div>
+        <div class="ody-veil" aria-hidden="true"></div>
+        <div class="ody-body">
+          <span class="ody-eyebrow">${getCatLabel(w)} · ${w.year}</span>
+          ${w.logo ? `<img class="ody-logo" src="${av(w.logo)}" alt="${w.title}" loading="lazy" decoding="async">` : `<h3 class="ody-name">${w.title}</h3>`}
+          <p class="ody-tag">${getItemField(w, 'tagline') || ''}</p>
+          <div class="ody-ctas">
+            <button class="btn btn-primary btn-lg" onclick="showPage('detail','${w.id}')">${_odt('discover')}</button>
+            <span class="ody-price">${priceHTML(w, { size: 'sm' })}</span>
+          </div>
+        </div>
+        <span class="ody-idx" aria-hidden="true">${String(i + 1).padStart(2, '0')} — ${String(n).padStart(2, '0')}</span>
+        <div class="ody-dim" aria-hidden="true"></div>
+      </div>
+    </section>`).join('')}
+    <div class="ody-outro">
+      <button class="btn btn-primary btn-lg" onclick="showPage('works')">${_odt('explore')} <span aria-hidden="true">${_ARR()}</span></button>
+    </div>`;
+  _odyWire(host);
+}
+
+/* Scrub GSAP : chaque panneau vit au rythme du scroll (ease:none = collé
+   au doigt/à la molette — jamais en avance, jamais en retard). */
+function _odyWire(host) {
+  const gs = window.gsap, ST = window.ScrollTrigger;
+  if (!gs || !ST || document.documentElement.classList.contains('glg-reduce-motion')) return;
+  const intro = host.querySelector('.ody-intro');
+  if (intro) {
+    const tl = gs.timeline({ scrollTrigger: { trigger: intro, start: 'top bottom', end: 'bottom top', scrub: .6 } });
+    tl.fromTo(intro.querySelector('.ody-title'), { opacity: 0, letterSpacing: '.34em', y: 40 }, { opacity: 1, letterSpacing: '.06em', y: 0, ease: 'none', duration: .5 }, .1)
+      .fromTo(intro.querySelector('.ody-kicker'), { opacity: 0 }, { opacity: 1, ease: 'none', duration: .25 }, .12)
+      .to(intro.querySelector('.ody-intro-pin'), { opacity: 0, y: -46, ease: 'none', duration: .3 }, .68);
+    _odyST.push(tl.scrollTrigger);
+  }
+  host.querySelectorAll('.ody').forEach(sec => {
+    const q = sel => sec.querySelector(sel);
+    const tl = gs.timeline({ scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: .5 } });
+    tl.fromTo(q('.ody-bg'), { scale: 1.18, yPercent: -5 }, { scale: 1.02, yPercent: 3, ease: 'none', duration: 1 }, 0)
+      .fromTo(q('.ody-logo') || q('.ody-name'), { yPercent: 46, scale: .84, opacity: 0 }, { yPercent: 0, scale: 1, opacity: 1, ease: 'power1.out', duration: .3 }, .12)
+      .fromTo(q('.ody-eyebrow'), { opacity: 0, y: 26 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .2)
+      .fromTo(q('.ody-tag'), { opacity: 0, y: 30 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .24)
+      .fromTo(q('.ody-ctas'), { opacity: 0, y: 34 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .28)
+      .fromTo(q('.ody-idx'), { opacity: 0 }, { opacity: 1, ease: 'none', duration: .14 }, .3)
+      .to(q('.ody-dim'), { opacity: 1, ease: 'none', duration: .16 }, .84);   // fondu au noir de sortie
+    _odyST.push(tl.scrollTrigger);
+  });
+  requestAnimationFrame(() => { try { ST.refresh(); } catch (e) {} });
+}
+// Revenir sur l'accueil → recalage des déclencheurs (la page était display:none)
+if (!window._odyPageHook) {
+  window._odyPageHook = true;
+  document.addEventListener('glg:page-changed', e => {
+    if (e.detail && e.detail.name === 'home') requestAnimationFrame(() => { try { window.ScrollTrigger && window.ScrollTrigger.refresh(); } catch (err) {} });
+  });
+}
+
 function buildCarousels() {
   clearTimeout(_buildCarouselsTimer);
   _buildCarouselsTimer = setTimeout(() => {
@@ -7060,6 +7148,7 @@ function applyWorksPageLabels() {
   if (se) se.textContent = t('showcaseEye') || 'Our Universe';
   // Rebuild carousels so price currency reflects current language
   buildCarousels();
+  _buildOdyssey();
 }
 
 

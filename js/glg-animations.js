@@ -267,6 +267,11 @@
   ═══════════════════════════════════════════════════════════ */
   function killTriggers() {
     ScrollTrigger.getAll().forEach(t => {
+      // L'ODYSSEY de l'accueil (app.js → _buildOdyssey) possède et recycle
+      // SES propres triggers : les tuer ici avec progress(1) figerait son
+      // fondu-noir de sortie → panneaux définitivement noirs.
+      const trg = t.trigger || (t.vars && t.vars.trigger);
+      if (trg && trg.closest && trg.closest('#glg-odyssey')) return;
       const tween = t.animation;
       // Force any reveal tween to its FINAL (fully-visible) state BEFORE killing.
       // t.kill() kills the attached tween at its CURRENT value, so if we killed

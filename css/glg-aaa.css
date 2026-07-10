@@ -4652,3 +4652,96 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   background:var(--user-accent,#fff); border:2px solid #0a0a0b;
   box-shadow:0 0 0 1px rgba(255,255,255,.35);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   §81 · ACCUEIL « ODYSSEY » — vitrine cinématique façon Rockstar :
+   panneaux plein écran épinglés (sticky), key art dé-zoomé au scroll,
+   logo en parallaxe, fondu au noir entre les mondes.
+═══════════════════════════════════════════════════════════════ */
+#glg-odyssey{ position:relative; background:#020203; }
+
+/* — Intro : déclaration cinématique traversée au scroll — */
+.ody-intro{ height:150vh; position:relative; }
+.ody-intro-pin{
+  position:sticky; top:0; height:100svh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:24px; text-align:center; padding:0 6vw;
+}
+.ody-kicker{
+  margin:0; font-family:var(--f-mono,monospace); font-size:.6rem;
+  letter-spacing:.44em; text-indent:.44em; color:rgba(255,255,255,.45); text-transform:uppercase;
+}
+.ody-title{
+  margin:0; font-size:clamp(2rem,5.6vw,4.4rem); line-height:1.06;
+  text-transform:uppercase; letter-spacing:.06em; max-width:20ch;
+}
+
+/* — Panneau d'œuvre : 190vh de piste, contenu épinglé 100svh — */
+.ody{ height:190vh; position:relative; }
+.ody-pin{
+  position:sticky; top:0; height:100svh; overflow:hidden;
+  display:flex; align-items:flex-end; justify-content:center;
+  background:#020203;
+}
+.ody-bg{
+  position:absolute; inset:-2%;
+  background-size:cover; background-position:center 28%;
+  filter:brightness(.6) saturate(1.06);
+  will-change:transform; transform:scale(1.06);
+}
+.ody-veil{
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(180deg, rgba(2,2,3,.55), rgba(2,2,3,.05) 32%, rgba(2,2,3,.12) 56%, rgba(2,2,3,.94) 97%);
+}
+.ody-body{
+  position:relative; z-index:2;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:16px; max-width:920px;
+  padding:0 6vw clamp(58px,11vh,130px);
+}
+.ody-eyebrow{
+  font-family:var(--f-mono,monospace); font-size:.58rem; letter-spacing:.32em; text-indent:.32em;
+  text-transform:uppercase; color:rgba(var(--tint-rgb,255,255,255),.92);
+  text-shadow:0 2px 14px rgba(0,0,0,.8);
+}
+.ody-logo{
+  max-width:min(470px,74vw); height:auto;
+  filter:drop-shadow(0 16px 44px rgba(0,0,0,.85));
+  will-change:transform;
+}
+.ody-name{ margin:0; font-size:clamp(2.4rem,6.6vw,5rem); line-height:1; text-transform:uppercase; text-shadow:0 10px 40px rgba(0,0,0,.9); }
+.ody-tag{
+  margin:0; font-family:var(--f-serif,Georgia,serif); font-style:italic;
+  font-size:clamp(.95rem,1.6vw,1.16rem); line-height:1.55; color:rgba(255,255,255,.8);
+  max-width:52ch; text-shadow:0 2px 12px rgba(0,0,0,.75);
+}
+.ody-ctas{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
+.ody-price{ display:inline-flex; align-items:center; }
+.ody-idx{
+  position:absolute; z-index:2; right:clamp(20px,4.5vw,58px); bottom:26px;
+  font-family:var(--f-mono,monospace); font-size:.6rem; letter-spacing:.3em;
+  color:rgba(255,255,255,.42);
+}
+[dir="rtl"] .ody-idx{ right:auto; left:clamp(20px,4.5vw,58px); }
+.ody-dim{ position:absolute; inset:0; z-index:3; background:#020203; opacity:0; pointer-events:none; }
+
+/* — Outro : l'appel du catalogue — */
+.ody-outro{
+  min-height:44vh; display:flex; align-items:center; justify-content:center;
+  padding:50px 6vw 100px;
+}
+
+/* — Mouvement réduit / sans GSAP : pile statique lisible (les éléments
+     scrubbés démarrent visibles : les fromTo n'ont jamais tourné) — */
+.glg-reduce-motion .ody{ height:auto; }
+.glg-reduce-motion .ody-pin{ position:relative; }
+.glg-reduce-motion .ody-intro{ height:auto; }
+.glg-reduce-motion .ody-intro-pin{ position:relative; min-height:60svh; height:auto; }
+
+/* — Mobile : pistes plus courtes, index remonté au-dessus du contenu — */
+@media (max-width:760px){
+  .ody{ height:165vh; }
+  .ody-intro{ height:130vh; }
+  .ody-idx{ bottom:auto; top:calc(var(--nav-h,64px) + 12px); }
+  .ody-body{ padding-bottom:clamp(46px,9vh,90px); }
+}
