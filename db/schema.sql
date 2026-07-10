@@ -6,6 +6,12 @@
 --  du schéma (chaque session qui ajoute colonnes/RPC/policies le signale) :
 --    Supabase Dashboard → SQL Editor → coller tout ce fichier → "Run".
 --
+--  ⚠️ « ERROR 40P01: deadlock detected » — PAS un bug du script : il modifie
+--  les tables (verrous exclusifs) pendant que le LAUNCHER/site OUVERT les lit
+--  en temps réel (chat, présence). La transaction est annulée proprement,
+--  rien n'est appliqué à moitié. Remède : FERMER le launcher et les onglets
+--  du site, attendre ~10 s, re-Run (retenter une 2e fois si besoin).
+--
 --  Sécurité :
 --    • Mots de passe + unicité email  → gérés par Supabase Auth (table auth.users).
 --    • Profils protégés par RLS         → chaque membre ne voit/modifie que SES données.
