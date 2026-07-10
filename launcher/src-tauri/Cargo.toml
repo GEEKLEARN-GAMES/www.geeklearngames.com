@@ -1,6 +1,6 @@
 [package]
 name = "glg-launcher"
-version = "1.0.3"
+version = "1.0.4"
 description = "GEEKLEARN GAMES — launcher de bureau (Windows/macOS/Linux)"
 authors = ["GEEKLEARN GAMES"]
 edition = "2021"
@@ -20,6 +20,10 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-deep-link = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
+# Liens externes → navigateur par défaut (réseaux, page contact du site)
+tauri-plugin-opener = "2"
+# Toasts système Windows/macOS/Linux (messages, appels, amis, installations)
+tauri-plugin-notification = "2"
 serde_json = "1"
 # Statut Discord (logo + activité) — IPC local, léger, échec silencieux
 discord-rich-presence = "0.2"

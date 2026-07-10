@@ -46,7 +46,7 @@ fn splash_eval(app: &tauri::AppHandle, js: &str) {
 // nommée « GEEKLEARN GAMES » avec un asset Rich Presence nommé `glg-logo`.
 // ID vide = fonctionnalité coupée. Échec TOUJOURS silencieux (Discord
 // absent, fermé, IPC indisponible) — jamais bloquant pour le launcher.
-const DISCORD_APP_ID: &str = "";
+const DISCORD_APP_ID: &str = "1524119572435963916";
 
 fn start_discord_presence() {
     if DISCORD_APP_ID.is_empty() {
@@ -118,6 +118,10 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        // Liens externes → navigateur par défaut (réseaux, contact du site)
+        .plugin(tauri_plugin_opener::init())
+        // Toasts système — messages/appels/amis/installations (app.js GLG_TOAST)
+        .plugin(tauri_plugin_notification::init())
         // Splash embarqué : HTML + logo servis depuis le binaire lui-même
         .register_uri_scheme_protocol("glgsplash", |_ctx, request| {
             if request.uri().path().ends_with("icon.png") {
