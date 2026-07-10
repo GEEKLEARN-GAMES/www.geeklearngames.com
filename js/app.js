@@ -1579,7 +1579,7 @@ async function buildLibraryPage() {
   // Succès réels du joueur — alimente la section « Succès » de chaque vitrine
   if (configured) { try { const r = await GLG_AUTH.getAchievements(); _achKeys = new Set(r.keys || []); } catch (e) {} }
 
-  _applyPrefs(p.prefs);
+  _applyPrefs(_userPrefs || p.prefs);   // LOCAL d'abord : un fetch en retard n'écrase jamais un réglage frais
   _libData = { lib, recent };   // partagé avec le toggle favori + install (maj in-place)
 
   root.innerHTML = `
@@ -3671,6 +3671,8 @@ function glgOpenExternal(url) {
   try {
     const op = IS_TAURI && window.__TAURI__ && window.__TAURI__.opener;
     if (op && op.openUrl) { const pr = op.openUrl(url); if (pr && pr.catch) pr.catch(() => {}); return; }
+    const c = IS_TAURI && window.__TAURI__ && window.__TAURI__.core;   // repli : invoke direct
+    if (c && c.invoke) { const pr = c.invoke('plugin:opener|open_url', { url }); if (pr && pr.catch) pr.catch(() => {}); return; }
   } catch (e) {}
   try { window.open(url, '_blank', 'noopener'); } catch (e) {}
 }
@@ -4803,7 +4805,7 @@ async function buildSettingsPage(){
   }
   const p = (await GLG_AUTH.getProfile()) || {};
   if (_accountProfile && _accountProfile.avatar_url !== undefined) p.avatar_url = _accountProfile.avatar_url;
-  const pr = _applyPrefs(p.prefs);
+  const pr = _applyPrefs(_userPrefs || p.prefs);   // LOCAL d'abord (anti-reset)
   const name = p.username || user.email?.split('@')[0] || '—';
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '';
   host.innerHTML = `
@@ -5292,12 +5294,14 @@ window.GLG_NOTIF = GLG_NOTIF;
 const GLG_TOAST = {
   _perm: null,
   api(){ return (IS_TAURI && window.__TAURI__ && window.__TAURI__.notification) || null; },
+  inv(cmd, args){ try { const c = IS_TAURI && window.__TAURI__ && window.__TAURI__.core; return (c && c.invoke) ? c.invoke('plugin:notification|' + cmd, args || {}) : null; } catch(e){ return null; } },
   async ensure(){
-    const n = this.api(); if (!n) return false;
+    if (!IS_TAURI) return false;
     if (this._perm === true) return true;
     try {
-      let ok = await n.isPermissionGranted();
-      if (!ok) ok = (await n.requestPermission()) === 'granted';
+      const n = this.api();
+      let ok = n ? await n.isPermissionGranted() : await this.inv('is_permission_granted');
+      if (!ok) { const r = n ? await n.requestPermission() : await this.inv('request_permission'); ok = (r === 'granted' || r === true); }
       this._perm = !!ok; return this._perm;
     } catch(e){ return false; }
   },
@@ -5306,7 +5310,12 @@ const GLG_TOAST = {
     if (_userPrefs && _userPrefs.notif && _userPrefs.notif.system === false) return;
     try { if (document.hasFocus()) return; } catch(e){}
     if (!(await this.ensure())) return;
-    try { this.api().sendNotification({ title: String(title || 'GEEKLEARN GAMES').slice(0, 80), body: String(body || '').slice(0, 180) }); } catch(e){}
+    const t = String(title || 'GEEKLEARN GAMES').slice(0, 80), b = String(body || '').slice(0, 180);
+    try {
+      const n = this.api();
+      if (n) n.sendNotification({ title: t, body: b });
+      else await this.inv('notify', { options: { title: t, body: b } });
+    } catch(e){ try { await this.inv('notify', { options: { title: t, body: b } }); } catch(e2){} }
   },
 };
 window.GLG_TOAST = GLG_TOAST;
@@ -5482,6 +5491,7 @@ async function refreshAccountUI() {
     _wishlist = (p.wishlist || []).slice();
     _wishSaveLocal();
     _applyPrefs(p.prefs);                 // applique réduction d'animations + accent dès la connexion
+    if (IS_TAURI) { try { GLG_TOAST.ensure(); } catch(e){} }   // permission toasts demandée tôt
   } else {
     _accountProfile = null;
     _wishlist = _wishLoadLocal();
@@ -5626,7 +5636,7 @@ async function buildProfilePage(){
   const p = (await GLG_AUTH.getProfile()) || {};
   // Anti-retard : si on vient de changer d'avatar, le cache est plus frais que getProfile
   if (_accountProfile && _accountProfile.avatar_url !== undefined) p.avatar_url = _accountProfile.avatar_url;
-  const pr = _applyPrefs(p.prefs);   // confidentialité + accent + réduction d'animations
+  const pr = _applyPrefs(_userPrefs || p.prefs);   // LOCAL d'abord (anti-reset)   // confidentialité + accent + réduction d'animations
   const name  = p.username || user.email?.split('@')[0] || '—';
   const since = p.created_at ? new Date(p.created_at).toLocaleDateString(LANG_LOCALE[LANG]||'en-US',{year:'numeric',month:'long'}) : '—';
   const gLabel = p.gender==='male' ? _at('male') : p.gender==='female' ? _at('female') : (p.gender_other || _at('other'));
@@ -8445,6 +8455,30 @@ async function _chatLeaveGroup() {
    (glg:call:<uid> — chacun écoute SON canal, on émet sur celui de l'autre).
    Garde-fou : seuls les AMIS peuvent faire sonner (vérifié à la réception).
 ══════════════════════════════════════════ */
+/* Sonnerie d'appel entrant — deux tons WebAudio, boucle 2 s (façon Discord). */
+let _ringCtx = null, _ringIv = null;
+function _ringStart() {
+  if (_ringIv) return;
+  try {
+    _ringCtx = _ringCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (_ringCtx.state === 'suspended') { const r = _ringCtx.resume(); if (r && r.catch) r.catch(() => {}); }
+    const beep = () => { try {
+      const t = _ringCtx.currentTime;
+      [880, 660].forEach((f, i) => {
+        const o = _ringCtx.createOscillator(), g = _ringCtx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t + i * .3);
+        g.gain.linearRampToValueAtTime(.11, t + i * .3 + .05);
+        g.gain.exponentialRampToValueAtTime(.001, t + i * .3 + .28);
+        o.connect(g); g.connect(_ringCtx.destination);
+        o.start(t + i * .3); o.stop(t + i * .3 + .32);
+      });
+    } catch (e) {} };
+    beep(); _ringIv = setInterval(beep, 2000);
+  } catch (e) {}
+}
+function _ringStop() { clearInterval(_ringIv); _ringIv = null; }
+
 let _call = { pc:null, stream:null, otherId:null, otherName:'', state:'idle', t0:0, timer:null,
               sendCh:null, sendReady:false, sendQ:[], pendingOffer:null, iceQueue:[], ringTimeout:null };
 let _callMyCh = null;
@@ -8576,6 +8610,7 @@ async function _callOnSignal(s) {
     _call.state = 'ringing-in'; _call.otherId = s.from; _call.otherName = s.name || '';
     _call.pendingOffer = s.sdp; _call.iceQueue = [];
     _callRenderBar();
+    _ringStart();
     GLG_TOAST.show(s.name || 'GLG', _chT('incoming').replace('%s', s.name || ''));
   } else if (s.t === 'answer') {
     if (_call.state !== 'ringing-out' || !_call.pc) return;
@@ -8593,6 +8628,7 @@ async function _callOnSignal(s) {
 
 async function _callAccept() {
   if (_call.state !== 'ringing-in' || !_call.pendingOffer) return;
+  _ringStop();
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
   catch (e) { _callDecline(); return; }
@@ -8625,6 +8661,7 @@ function _callToggleMute() {
 }
 function _callEnd(notify) {
   if (notify === undefined) notify = true;
+  _ringStop();
   if (notify && _call.otherId) {
     if (_call.sendReady) _callSend({ t: 'end', from: _chatMe });
     else _callSendTo(_call.otherId, { t: 'end', from: _chatMe });
@@ -8736,6 +8773,7 @@ async function _gcallOnSignal(s) {
     _gcall.state = 'ringing-in'; _gcall.room = s.room; _gcall.gid = s.gid;
     _gcall.gname = s.gname || ''; _gcall.fromId = s.from; _gcall.fromName = s.name || '';
     _gcRenderBar();
+    _ringStart();
     GLG_TOAST.show(_gcall.gname || _chT('gcall'), _chT('gIncoming').replace('%s', s.name || ''));
     _gcall.ringTimeout = setTimeout(() => { if (_gcall.state === 'ringing-in') _gcallEnd(false); }, 45000);
     return;
@@ -8771,6 +8809,7 @@ async function _gcallOnSignal(s) {
 
 async function _gcallAccept() {
   if (_gcall.state !== 'ringing-in') return;
+  _ringStop();
   clearTimeout(_gcall.ringTimeout);
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
@@ -8892,6 +8931,7 @@ function _gcallToggleMute() {
 }
 function _gcallEnd(notify) {
   if (notify === undefined) notify = true;
+  _ringStop();
   if (notify) Object.keys(_gcall.peers).forEach(uid => _gcSend(uid, { t:'gleave', from:_chatMe, room:_gcall.room }));
   // laisser partir les gleave avant de fermer les canaux
   const peers = _gcall.peers, roomCh = _gcall.roomCh;
@@ -9098,6 +9138,7 @@ const _EMO_T = {
   travel:    { fr:'Voyage & lieux', en:'Travel & places', es:'Viajes y lugares', de:'Reisen & Orte', it:'Viaggi e luoghi', ar:'سفر وأماكن', zh:'旅行与地点', ja:'旅行・場所', ru:'Путешествия и места', pl:'Podróże i miejsca' },
   objects:   { fr:'Objets', en:'Objects', es:'Objetos', de:'Objekte', it:'Oggetti', ar:'أشياء', zh:'物品', ja:'モノ', ru:'Предметы', pl:'Przedmioty' },
   symbols:   { fr:'Symboles', en:'Symbols', es:'Símbolos', de:'Symbole', it:'Simboli', ar:'رموز', zh:'符号', ja:'記号', ru:'Символы', pl:'Symbole' },
+  all:       { fr:'Tous les émojis', en:'All emojis', es:'Todos los emojis', de:'Alle Emojis', it:'Tutte le emoji', ar:'كل الإيموجي', zh:'全部表情符号', ja:'すべての絵文字', ru:'Все эмодзи', pl:'Wszystkie emoji' },
 };
 const _emt = k => (_EMO_T[k] && (_EMO_T[k][LANG] || _EMO_T[k].en)) || '';
 
@@ -9119,6 +9160,44 @@ const _EMO_CATS = [
 function _emoRecGet() { try { const a = JSON.parse(localStorage.getItem('glg_emo_recent') || '[]'); return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.length <= 8 && !/[<>"'&\\]/.test(x)).slice(0, 24) : []; } catch (e) { return []; } }
 function _emoRecPush(e) { try { const a = _emoRecGet().filter(x => x !== e); a.unshift(e); localStorage.setItem('glg_emo_recent', JSON.stringify(a.slice(0, 24))); } catch (err) {} }
 
+/* « Tous les émojis » : générés depuis les blocs Unicode émoji, puis filtrés
+   par RENDU RÉEL (canvas : tout glyphe identique au tofu de référence est
+   écarté). Calculé au 1er open du picker (~300 ms), cache localStorage. */
+let _emoAllMem = null;
+function _emoAll() {
+  if (_emoAllMem) return _emoAllMem;
+  try { const c = JSON.parse(localStorage.getItem('glg_emo_all_v1') || 'null'); if (Array.isArray(c) && c.length > 300) return (_emoAllMem = c); } catch (e) {}
+  const out = [];
+  try {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 22;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.font = '17px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+    ctx.textBaseline = 'top';
+    const sig = ch => {
+      ctx.clearRect(0, 0, 22, 22); ctx.fillText(ch, 0, 1);
+      const d = ctx.getImageData(0, 0, 22, 22).data;
+      let h = 0; for (let i = 0; i < d.length; i += 16) h = (h * 31 + d[i] + d[i + 1] + d[i + 2] + d[i + 3]) >>> 0;
+      return h;
+    };
+    const tofu = sig('\u{10FFFE}');   // codepoint non assigné = tofu de référence
+    const vide = sig('');
+    const seen = new Set(_EMO_CATS.flatMap(c => c[2].split(' ')));
+    const ranges = [[0x1F600, 0x1F64F], [0x1F300, 0x1F5FF], [0x1F680, 0x1F6FF], [0x1F900, 0x1F9FF], [0x1FA70, 0x1FAFF], [0x2600, 0x26FF], [0x2700, 0x27BF]];
+    for (const [a, b] of ranges) for (let cp = a; cp <= b; cp++) {
+      const base = String.fromCodePoint(cp);
+      const ch = cp < 0x1F000 ? base + '\uFE0F' : base;   // Misc/Dingbats → présentation émoji
+      if (seen.has(ch) || seen.has(base)) continue;
+      const g = sig(ch);
+      if (g !== tofu && g !== vide) out.push(ch);
+    }
+    if (out.length > 300) { try { localStorage.setItem('glg_emo_all_v1', JSON.stringify(out)); } catch (e) {} }
+  } catch (e) {}
+  return (_emoAllMem = out);
+}
+// Pré-calcul en tâche de fond (1re visite ~1,5 s) → ouverture du picker instantanée
+if ('requestIdleCallback' in window) requestIdleCallback(() => { try { _emoAll(); } catch (e) {} }, { timeout: 8000 });
+else setTimeout(() => { try { _emoAll(); } catch (e) {} }, 4000);
+
 let _chatPickOpen = null;   // 'emoji' | 'stick' | 'gif' | null
 
 function _chatPickClose() {
@@ -9139,6 +9218,7 @@ function _chatPickShell(kind) {
   _chatPickOpen = kind;
   const host = document.createElement('div');
   host.id = 'glg-chatpick';
+  host.setAttribute('data-lenis-prevent', '');   // molette NATIVE dans le picker (Lenis passe son tour)
   const compose = document.querySelector('.chat-compose');
   (compose ? compose.parentElement : document.body).appendChild(host);
   return host;
@@ -9151,8 +9231,10 @@ function _chatEmojiToggle() {
   const host = _chatPickShell('emoji');
   host.classList.add('chatpick--emo');
   const rec = _emoRecGet();
+  const all = _emoAll();
   const cats = (rec.length ? [['recent', '🕘', rec]] : [])
-    .concat(_EMO_CATS.map(c => [c[0], c[1], c[2].split(' ')]));
+    .concat(_EMO_CATS.map(c => [c[0], c[1], c[2].split(' ')]))
+    .concat(all.length ? [['all', '🗂️', all]] : []);
   host.innerHTML = `
     <div class="chatpick-head">${_chT('emojiT')}</div>
     <div class="chatpick-tabs" role="tablist" aria-label="${_chT('emojiT')}">
