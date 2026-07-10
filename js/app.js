@@ -1000,6 +1000,8 @@ function showPage(name, itemId = null) {
     if (name === 'library') buildLibraryPage();
     /* Build the chat (GLG Chat — MP + groupes) on demand */
     if (name === 'chat') buildChatPage();
+    /* Launcher : le contact vit sur le SITE WEB (formulaire + réseaux) */
+    if (name === 'contact' && IS_TAURI) _contactLauncherCard();
   }
 
   // Update browser URL without reload.
@@ -1428,6 +1430,7 @@ const _LIB_T = {
   installing: { fr:'Installation…', en:'Installing…', es:'Instalando…', de:'Wird installiert…', it:'Installazione…', ar:'جارٍ التثبيت…', zh:'安装中…', ja:'インストール中…', ru:'Установка…', pl:'Instalowanie…' },
   uninstall:  { fr:'Désinstaller', en:'Uninstall', es:'Desinstalar', de:'Deinstallieren', it:'Disinstalla', ar:'إلغاء التثبيت', zh:'卸载', ja:'アンインストール', ru:'Удалить', pl:'Odinstaluj' },
   uninstallQ: { fr:'Désinstaller %s de cette machine ?', en:'Uninstall %s from this machine?', es:'¿Desinstalar %s de este equipo?', de:'%s von diesem Rechner deinstallieren?', it:'Disinstallare %s da questa macchina?', ar:'إلغاء تثبيت %s من هذا الجهاز؟', zh:'从这台设备卸载 %s？', ja:'%s をこのマシンからアンインストールしますか？', ru:'Удалить %s с этого компьютера?', pl:'Odinstalować %s z tego komputera?' },
+  installedOk:{ fr:'Installation terminée', en:'Install complete', es:'Instalación completada', de:'Installation abgeschlossen', it:'Installazione completata', ar:'اكتمل التثبيت', zh:'安装完成', ja:'インストール完了', ru:'Установка завершена', pl:'Instalacja zakończona' },
 };
 const _lbt = k => (_LIB_T[k] && (_LIB_T[k][LANG] || _LIB_T[k].en)) || '';
 /* Flèche directionnelle : « → » pointe EN ARRIÈRE en RTL (arabe) — miroir. */
@@ -1982,6 +1985,7 @@ function _libInstallStart(id) {
       const installed = ((_userPrefs && _userPrefs.installed) || []).slice();
       if (!installed.includes(id)) installed.push(id);
       _savePrefs({ installed });
+      GLG_TOAST.show(w.title, _lbt('installedOk'));
       const c = document.getElementById('lib-cta');
       if (c && _libSelected === id) {
         c.innerHTML = _libCtaHTML(w);
@@ -2295,12 +2299,12 @@ const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
    Windows : installeur auto-hébergé (léger, 1,7 Mo). macOS/Linux : renseigner
    les URLs GitHub Releases à la 1re release CI (tag launcher-v*). */
 /* Base des fichiers de la release CI signée — à bumper à chaque release. */
-const _DL_VER = '1.0.3';
+const _DL_VER = '1.0.4';
 const _DL_REL = `https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/download/launcher-v${_DL_VER}`;
 const LAUNCHER_DL = {
   version: _DL_VER,
   sizeMB: 2.1,
-  sha256: 'e888b37efff6fa32a54247b5c72b5a34e2996ee1d6fbf0fa6c659df3070db76d',
+  sha256: '7844f76cc55adbcde75fa25433696c7d4e0b07f75d21441d9956cc73ea85a391',
   all: 'https://github.com/GEEKLEARN-GAMES/www.geeklearngames.com/releases/latest',
   /* Variantes par plateforme : la 1re = lien principal (gros bouton pour
      l'OS détecté), toutes sont listées sur la carte de la plateforme. */
@@ -3653,6 +3657,67 @@ function initContactEnhancements() {
 }
 
 /* ══════════════════════════════════════════
+   LIENS EXTERNES + CONTACT côté LAUNCHER
+   ──────────────────────────────────────────
+   La WebView du launcher BLOQUE les nouvelles fenêtres (window.open,
+   target=_blank) : tout lien externe passe par le plugin opener
+   (navigateur par défaut — dispo à partir du launcher 1.0.4, fallback
+   window.open sur le web). Le CONTACT (formulaire + réseaux) reste une
+   affaire de SITE WEB : dans le launcher, la page devient une carte de
+   renvoi (le formulaire FormSubmit y échouait de toute façon).
+══════════════════════════════════════════ */
+function glgOpenExternal(url) {
+  if (!url) return;
+  try {
+    const op = IS_TAURI && window.__TAURI__ && window.__TAURI__.opener;
+    if (op && op.openUrl) { const pr = op.openUrl(url); if (pr && pr.catch) pr.catch(() => {}); return; }
+  } catch (e) {}
+  try { window.open(url, '_blank', 'noopener'); } catch (e) {}
+}
+/* Launcher : intercepte TOUT lien target=_blank (pièces jointes du chat,
+   liens futurs) et le route vers le navigateur par défaut. */
+document.addEventListener('click', e => {
+  if (!IS_TAURI) return;   // teste AU CLIC — const declaree plus bas (TDZ au chargement)
+  const a = e.target && e.target.closest && e.target.closest('a[target="_blank"]');
+  if (!a || !a.href) return;
+  e.preventDefault();
+  glgOpenExternal(a.href);
+}, true);
+
+const _CTC_LX = {
+  title: { fr:'LE CONTACT VIT SUR LE SITE WEB', en:'CONTACT LIVES ON THE WEBSITE', es:'EL CONTACTO VIVE EN LA WEB', de:'DER KONTAKT LEBT AUF DER WEBSITE', it:'IL CONTATTO VIVE SUL SITO WEB', ar:'التواصل يتم عبر الموقع الإلكتروني', zh:'联系我们请前往官网', ja:'お問い合わせはウェブサイトで', ru:'КОНТАКТЫ ЖИВУТ НА САЙТЕ', pl:'KONTAKT ŻYJE NA STRONIE WWW' },
+  sub:   { fr:'Éditeurs, presse, joueurs — le formulaire et les réseaux du studio s’ouvrent dans ton navigateur. Ton launcher, lui, reste ta salle de jeu.', en:'Publishers, press, players — the form and the studio’s socials open in your browser. Your launcher stays your game room.', es:'Editores, prensa, jugadores — el formulario y las redes del estudio se abren en tu navegador. Tu launcher sigue siendo tu sala de juego.', de:'Publisher, Presse, Spieler — Formular und Studio-Kanäle öffnen sich in deinem Browser. Dein Launcher bleibt dein Spielzimmer.', it:'Editori, stampa, giocatori — il modulo e i social dello studio si aprono nel tuo browser. Il launcher resta la tua sala giochi.', ar:'الناشرون والصحافة واللاعبون — يُفتح النموذج وقنوات الأستوديو في متصفحك، ويبقى المشغّل غرفة ألعابك.', zh:'发行商、媒体、玩家——表单与工作室社交渠道会在浏览器中打开。启动器依然是你的游戏空间。', ja:'パブリッシャー・プレス・プレイヤーの皆さま — フォームとSNSはブラウザで開きます。ランチャーはあなたのゲームルームのままです。', ru:'Издатели, пресса, игроки — форма и соцсети студии открываются в браузере. Лаунчер остаётся вашей игровой комнатой.', pl:'Wydawcy, prasa, gracze — formularz i kanały studia otwierają się w przeglądarce. Launcher pozostaje twoją salą gier.' },
+  open:  { fr:'Ouvrir la page contact', en:'Open the contact page', es:'Abrir la página de contacto', de:'Kontaktseite öffnen', it:'Apri la pagina contatti', ar:'فتح صفحة التواصل', zh:'打开联系页面', ja:'お問い合わせページを開く', ru:'Открыть страницу контактов', pl:'Otwórz stronę kontaktu' },
+  mail:  { fr:'Copier l’e-mail', en:'Copy the email', es:'Copiar el correo', de:'E-Mail kopieren', it:'Copia l’e-mail', ar:'نسخ البريد الإلكتروني', zh:'复制邮箱地址', ja:'メールアドレスをコピー', ru:'Скопировать e-mail', pl:'Skopiuj e-mail' },
+  copied:{ fr:'E-mail copié ✓', en:'Email copied ✓', es:'Correo copiado ✓', de:'E-Mail kopiert ✓', it:'E-mail copiata ✓', ar:'تم نسخ البريد ✓', zh:'已复制 ✓', ja:'コピーしました ✓', ru:'Скопировано ✓', pl:'Skopiowano ✓' },
+};
+const _cxt = k => (_CTC_LX[k] && (_CTC_LX[k][LANG] || _CTC_LX[k].en)) || '';
+function _contactLauncherCard() {
+  const host = $('page-contact'); if (!host) return;
+  host.innerHTML = `
+    <section class="pp-signed-out"><div class="pp-so-inner reveal">
+      <div class="pp-so-badge">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 5.5h17v13h-17z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="m4 6 8 6.5L20 6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </div>
+      <h1 class="pp-so-title">${_cxt('title')}</h1>
+      <p class="pp-so-desc">${_cxt('sub')}</p>
+      <div class="pp-so-actions">
+        <button class="btn btn-primary" onclick="glgOpenExternal('https://www.geeklearngames.com/#contact')">${_cxt('open')}</button>
+        <button class="btn btn-outline" id="ctc-lx-mail">${_cxt('mail')}</button>
+      </div>
+      <p class="ctc-lx-mailtxt">geeklearngames.studio@gmail.com</p>
+    </div></section>`;
+  host.querySelector('#ctc-lx-mail')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText('geeklearngames.studio@gmail.com');
+      const b = host.querySelector('#ctc-lx-mail'); if (b) b.textContent = _cxt('copied');
+      setTimeout(() => { const b2 = host.querySelector('#ctc-lx-mail'); if (b2) b2.textContent = _cxt('mail'); }, 1800);
+    } catch (e) {}
+  });
+  setTimeout(initReveal, 60);
+}
+
+/* ══════════════════════════════════════════
    ACCESSIBILITY — skip link + keyboard activation
 ══════════════════════════════════════════ */
 const _SKIP_LABELS = { fr:'Aller au contenu', en:'Skip to content', es:'Ir al contenido', de:'Zum Inhalt springen', ar:'انتقل إلى المحتوى', zh:'跳到内容', ja:'本文へスキップ', ru:'К содержимому', pl:'Przejdź do treści', it:'Vai al contenuto' };
@@ -4279,6 +4344,27 @@ const _OPT_T = {
   changeLang:{fr:'Changer de langue',en:'Change language',es:'Cambiar idioma',de:'Sprache wechseln',it:'Cambia lingua',ar:'تغيير اللغة',zh:'更改语言',ja:'言語を変更',ru:'Сменить язык',pl:'Zmień język'},
   settingsTitle:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
   viewProfile:{fr:'Voir le profil',en:'View profile',es:'Ver perfil',de:'Profil ansehen',it:'Vedi profilo',ar:'عرض الملف الشخصي',zh:'查看个人资料',ja:'プロフィールを見る',ru:'Открыть профиль',pl:'Zobacz profil'},
+  tabLauncher:{fr:'Launcher',en:'Launcher',es:'Launcher',de:'Launcher',it:'Launcher',ar:'المشغّل',zh:'启动器',ja:'ランチャー',ru:'Лаунчер',pl:'Launcher'},
+  descLauncher:{fr:'Ton launcher, à ton image — ambiance, densité, zoom, marque et démarrage.',en:'Your launcher, your way — ambiance, density, zoom, branding and startup.',es:'Tu launcher, a tu manera — ambiente, densidad, zoom, marca e inicio.',de:'Dein Launcher, dein Stil — Ambiente, Dichte, Zoom, Branding und Start.',it:'Il tuo launcher, a modo tuo — atmosfera, densità, zoom, marchio e avvio.',ar:'مشغّلك على ذوقك — الأجواء والكثافة والتكبير والشعار وبدء التشغيل.',zh:'你的启动器，由你定义——氛围、密度、缩放、品牌与启动页。',ja:'ランチャーを自分好みに — アンビエンス・密度・ズーム・ブランド・起動ページ。',ru:'Ваш лаунчер — по-вашему: атмосфера, плотность, масштаб, брендинг и запуск.',pl:'Twój launcher po twojemu — klimat, gęstość, zoom, branding i start.'},
+  ambiance:{fr:'Ambiance de couleurs',en:'Color ambiance',es:'Ambiente de color',de:'Farbambiente',it:'Atmosfera di colore',ar:'أجواء الألوان',zh:'色彩氛围',ja:'カラーアンビエンス',ru:'Цветовая атмосфера',pl:'Klimat kolorystyczny'},
+  thNoir:{fr:'Noir GLG',en:'GLG Black',es:'Negro GLG',de:'GLG-Schwarz',it:'Nero GLG',ar:'أسود GLG',zh:'GLG 纯黑',ja:'GLGブラック',ru:'Чёрный GLG',pl:'Czerń GLG'},
+  thCarbone:{fr:'Carbone',en:'Carbon',es:'Carbono',de:'Carbon',it:'Carbonio',ar:'كربون',zh:'碳灰',ja:'カーボン',ru:'Карбон',pl:'Karbon'},
+  thMinuit:{fr:'Minuit',en:'Midnight',es:'Medianoche',de:'Mitternacht',it:'Mezzanotte',ar:'منتصف الليل',zh:'午夜蓝',ja:'ミッドナイト',ru:'Полночь',pl:'Północ'},
+  thBraise:{fr:'Braise',en:'Ember',es:'Brasa',de:'Glut',it:'Brace',ar:'جمرة',zh:'余烬',ja:'エンバー',ru:'Тлеющий уголь',pl:'Żar'},
+  density:{fr:'Densité d’affichage',en:'Display density',es:'Densidad de la interfaz',de:'Anzeigedichte',it:'Densità di visualizzazione',ar:'كثافة العرض',zh:'显示密度',ja:'表示密度',ru:'Плотность интерфейса',pl:'Gęstość interfejsu'},
+  densityConfort:{fr:'Confortable',en:'Comfortable',es:'Cómoda',de:'Komfortabel',it:'Comoda',ar:'مريحة',zh:'舒适',ja:'ゆったり',ru:'Комфортная',pl:'Komfortowa'},
+  densityCompact:{fr:'Compacte',en:'Compact',es:'Compacta',de:'Kompakt',it:'Compatta',ar:'مضغوطة',zh:'紧凑',ja:'コンパクト',ru:'Компактная',pl:'Kompaktowa'},
+  uiZoom:{fr:'Zoom de l’interface',en:'Interface zoom',es:'Zoom de la interfaz',de:'Oberflächen-Zoom',it:'Zoom dell’interfaccia',ar:'تكبير الواجهة',zh:'界面缩放',ja:'インターフェースズーム',ru:'Масштаб интерфейса',pl:'Powiększenie interfejsu'},
+  uiZoomD:{fr:'Zoom natif de la fenêtre — net à toutes les tailles (launcher 1.0.4+).',en:'Native window zoom — crisp at every size (launcher 1.0.4+).',es:'Zoom nativo de la ventana — nítido en todos los tamaños (launcher 1.0.4+).',de:'Nativer Fenster-Zoom — gestochen scharf in jeder Größe (Launcher 1.0.4+).',it:'Zoom nativo della finestra — nitido a ogni dimensione (launcher 1.0.4+).',ar:'تكبير أصلي للنافذة — حاد في كل الأحجام (المشغّل 1.0.4+).',zh:'窗口原生缩放——任何尺寸都清晰（启动器 1.0.4+）。',ja:'ウィンドウのネイティブズーム — どのサイズでも鮮明（ランチャー1.0.4以降）。',ru:'Нативный зум окна — чёткий при любом размере (лаунчер 1.0.4+).',pl:'Natywny zoom okna — ostry w każdym rozmiarze (launcher 1.0.4+).'},
+  tbBrand:{fr:'Marque de la barre de titre',en:'Title bar branding',es:'Marca de la barra de título',de:'Titelleisten-Branding',it:'Marchio della barra del titolo',ar:'شعار شريط العنوان',zh:'标题栏品牌样式',ja:'タイトルバーのブランド表示',ru:'Брендинг строки заголовка',pl:'Branding paska tytułu'},
+  brandLogo:{fr:'Logo seul',en:'Logo only',es:'Solo logo',de:'Nur Logo',it:'Solo logo',ar:'الشعار فقط',zh:'仅 Logo',ja:'ロゴのみ',ru:'Только логотип',pl:'Tylko logo'},
+  brandLogoName:{fr:'Logo + nom',en:'Logo + name',es:'Logo + nombre',de:'Logo + Name',it:'Logo + nome',ar:'الشعار + الاسم',zh:'Logo + 名称',ja:'ロゴ + 名前',ru:'Логотип + имя',pl:'Logo + nazwa'},
+  startPage:{fr:'Page ouverte au lancement',en:'Page opened at launch',es:'Página al iniciar',de:'Seite beim Start',it:'Pagina all’avvio',ar:'الصفحة عند التشغيل',zh:'启动时打开的页面',ja:'起動時に開くページ',ru:'Страница при запуске',pl:'Strona przy starcie'},
+  startPageD:{fr:'Le launcher s’ouvrira directement sur cette section.',en:'The launcher will open straight to this section.',es:'El launcher se abrirá directamente en esta sección.',de:'Der Launcher öffnet direkt diesen Bereich.',it:'Il launcher si aprirà direttamente su questa sezione.',ar:'سيفتح المشغّل مباشرة على هذا القسم.',zh:'启动器将直接打开该板块。',ja:'ランチャーはこのセクションを直接開きます。',ru:'Лаунчер будет открываться сразу на этом разделе.',pl:'Launcher otworzy się od razu na tej sekcji.'},
+  startHome:{fr:'Accueil',en:'Home',es:'Inicio',de:'Startseite',it:'Home',ar:'الرئيسية',zh:'首页',ja:'ホーム',ru:'Главная',pl:'Strona główna'},
+  notifSystem:{fr:'Notifications système',en:'System notifications',es:'Notificaciones del sistema',de:'Systembenachrichtigungen',it:'Notifiche di sistema',ar:'إشعارات النظام',zh:'系统通知',ja:'システム通知',ru:'Системные уведомления',pl:'Powiadomienia systemowe'},
+  notifSystemD:{fr:'Toasts Windows quand le launcher est en arrière-plan (messages, appels, amis, installations).',en:'Windows toasts while the launcher is in the background (messages, calls, friends, installs).',es:'Avisos de Windows con el launcher en segundo plano (mensajes, llamadas, amigos, instalaciones).',de:'Windows-Toasts, wenn der Launcher im Hintergrund läuft (Nachrichten, Anrufe, Freunde, Installationen).',it:'Toast di Windows quando il launcher è in background (messaggi, chiamate, amici, installazioni).',ar:'إشعارات ويندوز عندما يكون المشغّل في الخلفية (رسائل ومكالمات وأصدقاء وتثبيتات).',zh:'启动器在后台时显示 Windows 通知（消息、通话、好友、安装）。',ja:'ランチャーがバックグラウンドのときにWindows通知を表示（メッセージ・通話・フレンド・インストール）。',ru:'Уведомления Windows, когда лаунчер в фоне (сообщения, звонки, друзья, установки).',pl:'Powiadomienia Windows, gdy launcher działa w tle (wiadomości, połączenia, znajomi, instalacje).'},
+  notifChatMsg:{fr:'Nouveaux messages du chat',en:'New chat messages',es:'Nuevos mensajes del chat',de:'Neue Chat-Nachrichten',it:'Nuovi messaggi della chat',ar:'رسائل دردشة جديدة',zh:'新的聊天消息',ja:'新しいチャットメッセージ',ru:'Новые сообщения чата',pl:'Nowe wiadomości czatu'},
   privShowFavs:{fr:'Afficher mes jeux favoris',en:'Show my favorite games',es:'Mostrar mis juegos favoritos',de:'Meine Lieblingsspiele zeigen',it:'Mostra i miei giochi preferiti',ar:'إظهار ألعابي المفضلة',zh:'展示我的收藏游戏',ja:'お気に入りのゲームを表示',ru:'Показывать любимые игры',pl:'Pokazuj ulubione gry'},
   privShowFavsD:{fr:'Ta vitrine « Favoris » apparaît sur ton profil public.',en:'Your “Favorites” showcase appears on your public profile.',es:'Tu vitrina de «Favoritos» aparece en tu perfil público.',de:'Deine „Favoriten“-Vitrine erscheint auf deinem öffentlichen Profil.',it:'La tua vetrina «Preferiti» appare sul tuo profilo pubblico.',ar:'تظهر واجهة «المفضلة» في ملفك العام.',zh:'你的“收藏”橱窗会显示在公开个人资料上。',ja:'「お気に入り」ショーケースが公開プロフィールに表示されます。',ru:'Витрина «Избранное» видна в вашем публичном профиле.',pl:'Twoja gablota „Ulubione” pojawia się na profilu publicznym.'},
   settingsSub:{fr:'Gère ton compte, ton apparence, ta confidentialité et les mises à jour.',en:'Manage your account, appearance, privacy and updates.',es:'Gestiona tu cuenta, apariencia, privacidad y actualizaciones.',de:'Verwalte Konto, Aussehen, Datenschutz und Updates.',it:'Gestisci account, aspetto, privacy e aggiornamenti.',ar:'أدر حسابك ومظهرك وخصوصيتك والتحديثات.',zh:'管理账户、外观、隐私与更新。',ja:'アカウント・外観・プライバシー・更新を管理。',ru:'Управление аккаунтом, оформлением, приватностью и обновлениями.',pl:'Zarządzaj kontem, wyglądem, prywatnością i aktualizacjami.'},
@@ -4294,7 +4380,7 @@ function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
 
 let _userPrefs = null;
-function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true,showFavs:true}, favs:[], installed:[], gifs:[], av:{micId:null,outId:null,camId:null} }; }
+function _defaultPrefs(){ return { accent:null, reducedMotion:false, sfx:false, notif:{friendReq:true,friendAcc:true,release:true,system:true,chatMsg:true}, privacy:{showTrophies:true,showWishlist:true,showOnline:true,showRecent:true,showFavs:true}, favs:[], installed:[], gifs:[], av:{micId:null,outId:null,camId:null}, launcher:{theme:'noir',density:'confort',zoom:100,start:'home',brand:'logo'} }; }
 function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}; return {
   accent:(typeof p.accent==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.accent))?p.accent:null,
   reducedMotion:!!p.reducedMotion,
@@ -4308,14 +4394,48 @@ function _normPrefs(p){ const d=_defaultPrefs(); p=(p&&typeof p==='object')?p:{}
     .map(g=>({u:g.u.slice(0,500),n:(typeof g.n==='string'?g.n:'GIF').slice(0,80)})).slice(0,48):[],
   av:{ micId:(p.av&&typeof p.av.micId==='string')?p.av.micId:null,                   // périphériques voix/vidéo
        outId:(p.av&&typeof p.av.outId==='string')?p.av.outId:null,
-       camId:(p.av&&typeof p.av.camId==='string')?p.av.camId:null } }; }
+       camId:(p.av&&typeof p.av.camId==='string')?p.av.camId:null },
+  launcher:(l=>({                                                                    // personnalisation du LAUNCHER
+    theme:['noir','carbone','minuit','braise'].includes(l.theme)?l.theme:'noir',
+    density:l.density==='compact'?'compact':'confort',
+    zoom:[90,100,110].includes(+l.zoom)?+l.zoom:100,
+    start:['home','library','chat'].includes(l.start)?l.start:'home',
+    brand:l.brand==='logo-name'?'logo-name':'logo',
+  }))((p.launcher&&typeof p.launcher==='object')?p.launcher:{}) }; }
 function _applyPrefs(p){
   _userPrefs = _normPrefs(p);
   document.documentElement.classList.toggle('glg-reduce-motion', _userPrefs.reducedMotion);
   if (_userPrefs.accent) document.documentElement.style.setProperty('--user-accent', _userPrefs.accent);
   else document.documentElement.style.removeProperty('--user-accent');
   window.GLG_SFX?.setEnabled(_userPrefs.sfx); // sons d'interface (opt-in)
+  _applyLauncherPrefs();                      // personnalisation launcher (thème/densité/zoom/marque)
   return _userPrefs;
+}
+/* ── Personnalisation du LAUNCHER (Options → Launcher) ──────────────────
+   Ambiance (voile coloré plein écran, zéro risque de layout), densité,
+   zoom natif WebView (API Tauri — dispo à partir du launcher 1.0.4),
+   marque de la barre de titre. Miroir localStorage pour un boot SANS
+   flash (thème + page de démarrage appliqués avant le profil réseau). */
+function _applyLauncherPrefs(){
+  if (!IS_TAURI || !_userPrefs || !_userPrefs.launcher) return;
+  const L = _userPrefs.launcher, de = document.documentElement;
+  ['glg-th-carbone','glg-th-minuit','glg-th-braise'].forEach(c => de.classList.remove(c));
+  if (L.theme !== 'noir') de.classList.add('glg-th-' + L.theme);
+  de.classList.toggle('glg-compact', L.density === 'compact');
+  _glgEnsureAmbiance();
+  try {
+    const wv = window.__TAURI__ && window.__TAURI__.webview;
+    const cur = wv && wv.getCurrentWebview && wv.getCurrentWebview();
+    if (cur && cur.setZoom) { const pr = cur.setZoom(L.zoom / 100); if (pr && pr.catch) pr.catch(() => {}); }
+  } catch (e) {}
+  _refreshTitlebarBrand(L.brand);
+  try { localStorage.setItem('glg_lprefs', JSON.stringify(L)); } catch (e) {}
+}
+function _glgEnsureAmbiance(){
+  if (!IS_TAURI || document.getElementById('glg-ambiance') || !document.body) return;
+  const d = document.createElement('div');
+  d.id = 'glg-ambiance'; d.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(d);
 }
 async function _savePrefs(patch){
   _userPrefs = _normPrefs(Object.assign({}, _userPrefs||_defaultPrefs(), patch));
@@ -4361,6 +4481,7 @@ const _SET_TAB_ICONS = {
   account: '<svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="8" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M8.6 8H14M12 8v2.4M14 8v1.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   updates: '<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 6.5A5.5 5.5 0 003.6 5M2.6 9.5A5.5 5.5 0 0012.4 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13.6 2.6v3h-3M2.4 13.4v-3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   av:      '<svg viewBox="0 0 16 16" fill="none"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  launcher:'<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2.6" width="12" height="10.8" rx="1.4" stroke="currentColor" stroke-width="1.3"/><path d="M2 5.4h12" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="4" r=".62" fill="currentColor"/><circle cx="6" cy="4" r=".62" fill="currentColor"/></svg>',
 };
 function _settingsTabs(){
   const tab = (key, label, active) => `
@@ -4370,6 +4491,7 @@ function _settingsTabs(){
         </button>`;
   return tab('profile', _ot('tabProfile'), true)
        + tab('perso',   _ot('tabPerso'))
+       + tab('launcher',_ot('tabLauncher'))
        + tab('av',      _ot('tabAv'))
        + tab('notif',   _ot('tabNotif'))
        + tab('privacy', _ot('tabPrivacy'))
@@ -4418,6 +4540,44 @@ function _settingsPanels(p, u, pr){
           </div>
           </div>
         </div>
+        <div class="set-panel" data-panel="launcher" hidden>
+          ${head('tabLauncher', 'descLauncher')}
+          <div class="set-card">
+            <div class="set-group-label">${_ot('ambiance')}</div>
+            <div class="set-ambiances" id="ap-lc-theme">
+              ${[['noir','#050506','thNoir'],['carbone','#191b20','thCarbone'],['minuit','#0c1434','thMinuit'],['braise','#2e150c','thBraise']].map(([k,c,lbl]) => `
+              <button type="button" class="set-amb ${pr.launcher.theme===k?'on':''}" data-th="${k}">
+                <span class="set-amb-sw" style="--sw:${c}" aria-hidden="true"></span><span>${_ot(lbl)}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="set-card">
+            <div class="set-group-label">${_ot('density')}</div>
+            <div class="set-seg" id="ap-lc-density" role="radiogroup" aria-label="${_ot('density')}">
+              <button type="button" data-v="confort" class="${pr.launcher.density==='confort'?'on':''}">${_ot('densityConfort')}</button>
+              <button type="button" data-v="compact" class="${pr.launcher.density==='compact'?'on':''}">${_ot('densityCompact')}</button>
+            </div>
+            <div class="set-group-label" style="margin-top:20px">${_ot('uiZoom')}</div>
+            <div class="set-seg" id="ap-lc-zoom" role="radiogroup" aria-label="${_ot('uiZoom')}">
+              ${[90,100,110].map(z => `<button type="button" data-v="${z}" class="${pr.launcher.zoom===z?'on':''}">${z}%</button>`).join('')}
+            </div>
+            <p class="set-update-note" style="margin-top:10px">${_ot('uiZoomD')}</p>
+          </div>
+          <div class="set-card">
+            <div class="set-group-label">${_ot('tbBrand')}</div>
+            <div class="set-seg" id="ap-lc-brand" role="radiogroup" aria-label="${_ot('tbBrand')}">
+              <button type="button" data-v="logo" class="${pr.launcher.brand==='logo'?'on':''}">${_ot('brandLogo')}</button>
+              <button type="button" data-v="logo-name" class="${pr.launcher.brand==='logo-name'?'on':''}">${_ot('brandLogoName')}</button>
+            </div>
+            <div class="set-group-label" style="margin-top:20px">${_ot('startPage')}</div>
+            <select id="ap-lc-start" class="set-av-select" style="max-width:300px">
+              <option value="home" ${pr.launcher.start==='home'?'selected':''}>${_ot('startHome')}</option>
+              <option value="library" ${pr.launcher.start==='library'?'selected':''}>${_lbt('navLabel')}</option>
+              <option value="chat" ${pr.launcher.start==='chat'?'selected':''}>${_chT('navLabel')}</option>
+            </select>
+            <p class="set-update-note" style="margin-top:10px">${_ot('startPageD')}</p>
+          </div>
+        </div>
         <div class="set-panel" data-panel="av" hidden>
           ${head('tabAv', 'descAv')}
           <div class="set-card">
@@ -4449,6 +4609,8 @@ function _settingsPanels(p, u, pr){
           ${head('tabNotif', 'descNotif')}
           <div class="set-card">
           <div class="set-toggle-list">
+            ${IS_TAURI ? _toggleHTML('ap-n-sys', _ot('notifSystem'), _ot('notifSystemD'), pr.notif.system !== false) : ''}
+            ${_toggleHTML('ap-n-chat', _ot('notifChatMsg'), '', pr.notif.chatMsg !== false)}
             ${_toggleHTML('ap-n-freq', _ot('notifFriendReq'), '', pr.notif.friendReq)}
             ${_toggleHTML('ap-n-facc', _ot('notifFriendAcc'), '', pr.notif.friendAcc)}
             ${_toggleHTML('ap-n-rel',  _ot('notifRelease'),  '', pr.notif.release)}
@@ -4643,8 +4805,28 @@ function _wireSettings(root) {
     if (e.target.checked) window.GLG_SFX?.play('confirm');
   });
   // Notifications
-  const notifSave = () => _savePrefs({ notif:{ friendReq:$('ap-n-freq').checked, friendAcc:$('ap-n-facc').checked, release:$('ap-n-rel').checked } });
-  ['ap-n-freq','ap-n-facc','ap-n-rel'].forEach(id => $(id)?.addEventListener('change', notifSave));
+  const notifSave = () => _savePrefs({ notif:{
+    friendReq:$('ap-n-freq').checked, friendAcc:$('ap-n-facc').checked, release:$('ap-n-rel').checked,
+    system:$('ap-n-sys') ? $('ap-n-sys').checked : (_userPrefs?.notif?.system !== false),
+    chatMsg:$('ap-n-chat') ? $('ap-n-chat').checked : (_userPrefs?.notif?.chatMsg !== false),
+  } });
+  ['ap-n-freq','ap-n-facc','ap-n-rel','ap-n-sys','ap-n-chat'].forEach(id => $(id)?.addEventListener('change', notifSave));
+  // Activer les toasts système = demander la permission Windows tout de suite
+  $('ap-n-sys')?.addEventListener('change', e => { if (e.target.checked) GLG_TOAST.ensure(); });
+
+  // ── Launcher : ambiance / densité / zoom / marque / page de démarrage ──
+  root.querySelectorAll('#ap-lc-theme .set-amb').forEach(b => b.addEventListener('click', () => {
+    root.querySelectorAll('#ap-lc-theme .set-amb').forEach(x => x.classList.toggle('on', x === b));
+    _savePrefs({ launcher: Object.assign({}, _userPrefs.launcher, { theme: b.dataset.th }) });
+  }));
+  const _seg = (sel, key, cast) => root.querySelectorAll(sel + ' button').forEach(b => b.addEventListener('click', () => {
+    root.querySelectorAll(sel + ' button').forEach(x => x.classList.toggle('on', x === b));
+    _savePrefs({ launcher: Object.assign({}, _userPrefs.launcher, { [key]: cast ? cast(b.dataset.v) : b.dataset.v }) });
+  }));
+  _seg('#ap-lc-density', 'density');
+  _seg('#ap-lc-zoom', 'zoom', Number);
+  _seg('#ap-lc-brand', 'brand');
+  q('#ap-lc-start')?.addEventListener('change', e => _savePrefs({ launcher: Object.assign({}, _userPrefs.launcher, { start: e.target.value }) }));
   // Confidentialité (impacte l'affichage du profil)
   const privSave = async () => {
     await _savePrefs({ privacy:{ showTrophies:$('ap-p-tro').checked, showWishlist:$('ap-p-wish').checked, showFavs:$('ap-p-favs')?.checked !== false, showOnline:$('ap-p-onl').checked, showRecent:$('ap-p-rec')?.checked !== false } });
@@ -4942,7 +5124,10 @@ const GLG_NOTIF = (function(){
     if (!n || !n.id) return false;
     if (_list.some(x => x.id === n.id)) return false;   // dédup stable
     _list.unshift(Object.assign({ ts: Date.now(), read: false }, n));
-    _save(); _emit(); return true;
+    _save(); _emit();
+    // Launcher en arrière-plan → la notification devient un toast Windows
+    try { GLG_TOAST.show(n.title, n.body); } catch(e){}
+    return true;
   }
   function getAll(){ return _list.slice(); }
   function unread(){ return _list.filter(n => !n.read).length; }
@@ -4986,6 +5171,35 @@ const GLG_NOTIF = (function(){
   return { setUser, add, getAll, unread, markAllRead, clear, sync };
 })();
 window.GLG_NOTIF = GLG_NOTIF;
+
+/* ══════════════════════════════════════════
+   TOASTS SYSTÈME (launcher) — plugin Tauri notification (1.0.4+).
+   Un toast Windows n'apparaît QUE si la fenêtre n'est pas au premier
+   plan (sinon l'UI in-app suffit), et si Options → Notifications →
+   « Notifications système » est actif. Silencieux sur le web et sur
+   les launchers antérieurs (l'API n'existe pas → no-op).
+══════════════════════════════════════════ */
+const GLG_TOAST = {
+  _perm: null,
+  api(){ return (IS_TAURI && window.__TAURI__ && window.__TAURI__.notification) || null; },
+  async ensure(){
+    const n = this.api(); if (!n) return false;
+    if (this._perm === true) return true;
+    try {
+      let ok = await n.isPermissionGranted();
+      if (!ok) ok = (await n.requestPermission()) === 'granted';
+      this._perm = !!ok; return this._perm;
+    } catch(e){ return false; }
+  },
+  async show(title, body){
+    if (!IS_TAURI) return;
+    if (_userPrefs && _userPrefs.notif && _userPrefs.notif.system === false) return;
+    try { if (document.hasFocus()) return; } catch(e){}
+    if (!(await this.ensure())) return;
+    try { this.api().sendNotification({ title: String(title || 'GEEKLEARN GAMES').slice(0, 80), body: String(body || '').slice(0, 180) }); } catch(e){}
+  },
+};
+window.GLG_TOAST = GLG_TOAST;
 
 /* ══════════════════════════════════════════
    PRÉSENCE EN LIGNE (Supabase Realtime presence) + notifs d'amis LIVE
@@ -7215,6 +7429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) {}
 
+
   // ── URL de langue partageable / SEO (?lang=xx) ─────────────────────────
   // Une URL comme /?lang=fr entre directement dans la langue demandée
   // (équivaut à un clic sur le drapeau : selectLang gère loader + failsafes).
@@ -7238,6 +7453,17 @@ document.addEventListener('DOMContentLoaded', () => {
    du launcher (contenu distant, voir launcher/src-tauri/tauri.conf.json). */
 const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigator.userAgent);
 
+// ── Launcher : préférences INSTANTANÉES (miroir localStorage) — thème sans
+// flash + page de démarrage (Options → Launcher), appliquées avant le profil.
+if (IS_TAURI) { try {
+  const L = JSON.parse(localStorage.getItem('glg_lprefs') || 'null');
+  if (L) {
+    if (L.theme && L.theme !== 'noir') document.documentElement.classList.add('glg-th-' + L.theme);
+    if (L.density === 'compact') document.documentElement.classList.add('glg-compact');
+    if (!window._bootWorkId && !window._bootPage && L.start && L.start !== 'home') window._bootPage = L.start;
+  }
+} catch (e) {} }
+
 /* ── BARRE DE TITRE CUSTOM (launcher ≥ 1.0.2, fenêtre sans décorations) ──
    Comme Discord : titre « GEEKLEARN GAMES » CENTRÉ, zone de drag pleine
    largeur, contrôles fenêtre à droite. Ne se rend QUE si l'IPC fenêtre est
@@ -7253,6 +7479,13 @@ function _refreshTitlebarLabels() {
   const bar = document.getElementById('glg-titlebar'); if (!bar) return;
   const set = (id, k) => { const b = bar.querySelector('#' + id); if (b) { b.setAttribute('aria-label', _tbT(k)); b.title = _tbT(k); } };
   set('tb-min', 'min'); set('tb-max', 'max'); set('tb-close', 'close');
+}
+/* Marque de la barre de titre (Options → Launcher) : logo seul (défaut)
+   ou logo + wordmark — appliqué live, persisté prefs.launcher.brand. */
+function _refreshTitlebarBrand(mode) {
+  const t = document.querySelector('#glg-titlebar .tb-title'); if (!t) return;
+  const img = '<img src="assets/img/brand/glg-mark.png" alt="GEEKLEARN GAMES" onerror="this.outerHTML=\'<span>GEEKLEARN GAMES</span>\'">';
+  t.innerHTML = mode === 'logo-name' ? img + '<span class="tb-name">GEEKLEARN GAMES</span>' : img;
 }
 function _initTauriTitlebar() {
   try {
@@ -7390,6 +7623,10 @@ const _CHAT_T = {
   gifImport: { fr:'Importer un GIF', en:'Import a GIF', es:'Importar un GIF', de:'GIF importieren', it:'Importa una GIF', ar:'استيراد GIF', zh:'导入 GIF', ja:'GIFをインポート', ru:'Импортировать GIF', pl:'Importuj GIF-a' },
   gifDel:    { fr:'Supprimer de tes GIFs', en:'Remove from your GIFs', es:'Quitar de tus GIFs', de:'Aus deinen GIFs entfernen', it:'Rimuovi dai tuoi GIF', ar:'إزالة من ملفات GIF الخاصة بك', zh:'从你的 GIF 中删除', ja:'あなたのGIFから削除', ru:'Удалить из ваших GIF', pl:'Usuń z twoich GIF-ów' },
   gifHint:   { fr:'Envoie un mème ou importe tes propres GIFs — ils restent ici jusqu’à ce que tu les supprimes.', en:'Send a meme or import your own GIFs — they stay here until you delete them.', es:'Envía un meme o importa tus propios GIFs — se quedan aquí hasta que los borres.', de:'Sende ein Meme oder importiere eigene GIFs — sie bleiben hier, bis du sie löschst.', it:'Invia un meme o importa le tue GIF — restano qui finché non le elimini.', ar:'أرسل ميمًا أو استورد ملفات GIF الخاصة بك — تبقى هنا حتى تحذفها بنفسك.', zh:'发送梗图或导入你自己的 GIF——它们会一直保留，直到你删除为止。', ja:'ミームを送るか、自分のGIFをインポートしよう — 削除するまでここに残ります。', ru:'Отправьте мем или импортируйте свои GIF — они останутся здесь, пока вы их не удалите.', pl:'Wyślij mema lub importuj własne GIF-y — zostaną tu, dopóki ich nie usuniesz.' },
+  gcall:     { fr:'Appel de groupe', en:'Group call', es:'Llamada de grupo', de:'Gruppenanruf', it:'Chiamata di gruppo', ar:'مكالمة جماعية', zh:'群组通话', ja:'グループ通話', ru:'Групповой звонок', pl:'Połączenie grupowe' },
+  gIncoming: { fr:'%s appelle le groupe', en:'%s is calling the group', es:'%s está llamando al grupo', de:'%s ruft die Gruppe an', it:'%s sta chiamando il gruppo', ar:'%s يتصل بالمجموعة', zh:'%s 发起了群组通话', ja:'%s がグループに発信中', ru:'%s звонит группе', pl:'%s dzwoni do grupy' },
+  gParts:    { fr:'%s participants', en:'%s participants', es:'%s participantes', de:'%s Teilnehmer', it:'%s partecipanti', ar:'%s مشاركين', zh:'%s 位参与者', ja:'参加者 %s 人', ru:'Участников: %s', pl:'Uczestnicy: %s' },
+  gWaiting:  { fr:'Connexion au salon…', en:'Joining the call…', es:'Conectando a la llamada…', de:'Anruf wird beigetreten…', it:'Connessione alla chiamata…', ar:'جارٍ الانضمام إلى المكالمة…', zh:'正在加入通话…', ja:'通話に参加中…', ru:'Подключение к звонку…', pl:'Dołączanie do rozmowy…' },
   stickerT:  { fr:'Stickers', en:'Stickers', es:'Stickers', de:'Sticker', it:'Sticker', ar:'الملصقات', zh:'贴纸', ja:'スタンプ', ru:'Стикеры', pl:'Naklejki' },
   reactT:    { fr:'Réagir', en:'React', es:'Reaccionar', de:'Reagieren', it:'Reagisci', ar:'تفاعل', zh:'回应', ja:'リアクション', ru:'Отреагировать', pl:'Zareaguj' },
   playA:     { fr:'Écouter', en:'Play', es:'Reproducir', de:'Abspielen', it:'Riproduci', ar:'تشغيل', zh:'播放', ja:'再生', ru:'Слушать', pl:'Odtwórz' },
@@ -7453,6 +7690,7 @@ function _chatEnsureRealtime() {
         const c = _chat.channels.find(x => x.channel === row.channel);
         if (c) c.unread = (c.unread || 0) + 1;
         _refreshChatBadge();
+        _chatToastMsg(row, c);   // launcher en arrière-plan → toast Windows
       }
     }
     if (t === 'INSERT' && row.sender === _chatMe && row.channel === _chat.current && $('chat-msgs')) {
@@ -7471,6 +7709,22 @@ function _chatEnsureRealtime() {
     _chatRefreshT = setTimeout(() => { if ($('chat-rail')) _chatRefreshChannels(); }, 2000);
   });
 }
+/* Toast système pour un nouveau message (throttle 6 s par conversation). */
+let _chatToastLast = {};
+function _chatToastMsg(row, c) {
+  try {
+    if (!IS_TAURI || !row || (_userPrefs && _userPrefs.notif && _userPrefs.notif.chatMsg === false)) return;
+    const now = Date.now();
+    if (_chatToastLast[row.channel] && now - _chatToastLast[row.channel] < 6000) return;
+    _chatToastLast[row.channel] = now;
+    const who = (c && c.name) || _chT('navLabel');
+    const att = row.attachment && (typeof row.attachment === 'object') ? row.attachment : null;
+    const body = (row.body && String(row.body).slice(0, 120))
+      || (att && att.kind === 'audio' ? '🎙' : att && att.kind === 'sticker' ? '🏷' : att ? '📎' : '…');
+    GLG_TOAST.show(who, body);
+  } catch (e) {}
+}
+
 function _chatTeardownRealtime() {
   try { _chatRtUnsub && _chatRtUnsub(); } catch (e) {}
   _chatRtUnsub = null;
@@ -7591,7 +7845,10 @@ async function _chatOpen(channel) {
         <button class="chat-ic-btn" onclick="openUserProfile('${escHtml(c.other_id || '')}')" title="${_at('profileItem')}" aria-label="${_at('profileItem')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.4" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M5.4 19c1-3 3.5-4.6 6.6-4.6s5.6 1.6 6.6 4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         </button>` : ''}
-        ${isGroup ? `<button class="chat-ic-btn" onclick="_chatAddMemberModal()" title="${_chT('addMember')}" aria-label="${_chT('addMember')}">+</button>
+        ${isGroup ? `<button class="chat-ic-btn chat-ic-call" onclick="_gcallStart()" title="${_chT('gcall')}" aria-label="${_chT('gcall')}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.2 2.4 5 2.1c.4-.1.8.1 1 .5l1 2.1c.2.4.1.8-.2 1.1l-1 1c.7 1.4 1.9 2.6 3.4 3.4l1-1c.3-.3.7-.4 1.1-.2l2.1 1c.4.2.6.6.5 1l-.3 1.8c-.1.5-.5.8-1 .8C7.3 13.6 2.4 8.7 2.4 3.4c0-.5.3-.9.8-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="chat-ic-btn" onclick="_chatAddMemberModal()" title="${_chT('addMember')}" aria-label="${_chT('addMember')}">+</button>
         <button class="chat-ic-btn chat-ic-danger" onclick="_chatLeaveGroup()" title="${_chT('leave')}" aria-label="${_chT('leave')}">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 2H3.5A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14H6M10.5 11.5 14 8l-3.5-3.5M14 8H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>` : ''}
@@ -8091,6 +8348,7 @@ function _callTeardownListen() {
   try { _callMyCh && sb && sb.removeChannel(_callMyCh); } catch (e) {}
   _callMyCh = null;
   if (_call.state !== 'idle') _callEnd(false);
+  if (_gcall.state !== 'idle') _gcallEnd(false);   // appel de groupe → raccroche au logout
 }
 /* Émission one-shot (decline/busy — pas de canal d'appel ouvert). */
 function _callSendTo(uid, payload) {
@@ -8174,7 +8432,7 @@ function _callTune(pc) {
 }
 
 async function _callStart(uid, name) {
-  if (!uid || _call.state !== 'idle' || uid === _chatMe) return;
+  if (!uid || _call.state !== 'idle' || _gcall.state !== 'idle' || uid === _chatMe) return;
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
   catch (e) { _chatNote(_chT('recDenied')); return; }
@@ -8193,8 +8451,9 @@ async function _callStart(uid, name) {
 
 async function _callOnSignal(s) {
   if (!s || !s.t) return;
+  if (s.t.charAt(0) === 'g') return _gcallOnSignal(s);   // appels de GROUPE (module dédié)
   if (s.t === 'ring') {
-    if (_call.state !== 'idle') { _callSendTo(s.from, { t: 'busy', from: _chatMe }); return; }
+    if (_call.state !== 'idle' || _gcall.state !== 'idle') { _callSendTo(s.from, { t: 'busy', from: _chatMe }); return; }
     // Garde-fou : seuls les AMIS acceptés peuvent faire sonner
     let ok = ((_friendsCache && _friendsCache.friends) || []).some(f => f.id === s.from)
           || _chat.channels.some(c => c.kind === 'dm' && c.other_id === s.from);
@@ -8203,6 +8462,7 @@ async function _callOnSignal(s) {
     _call.state = 'ringing-in'; _call.otherId = s.from; _call.otherName = s.name || '';
     _call.pendingOffer = s.sdp; _call.iceQueue = [];
     _callRenderBar();
+    GLG_TOAST.show(s.name || 'GLG', _chT('incoming').replace('%s', s.name || ''));
   } else if (s.t === 'answer') {
     if (_call.state !== 'ringing-out' || !_call.pc) return;
     clearTimeout(_call.ringTimeout);
@@ -8305,6 +8565,277 @@ function _callRenderBar() {
       <span class="cb-actions">
         ${_call.state === 'live' ? `<button class="cb-btn cb-btn--mute" id="cb-mute" onclick="_callToggleMute()" title="${_chT('mute')}" aria-label="${_chT('mute')}">${micIco}</button>` : ''}
         <button class="cb-btn cb-btn--no" onclick="_callEnd()" title="${_chT('hangup')}" aria-label="${_chT('hangup')}">${hangIco}</button>
+      </span>
+    </div>`;
+  }
+  document.body.appendChild(bar);
+}
+
+/* ══════════════════════════════════════════
+   APPELS DE GROUPE — mesh WebRTC : chaque paire de participants est
+   reliée en DIRECT (parfait jusqu'à ~6-8 joueurs), sonnerie individuelle
+   (chacun accepte ou refuse, comme Discord). Signalisation :
+   · sonnerie + SDP/ICE par PAIRE → canaux personnels glg:call:<uid>
+     (messages préfixés g*, routés par _callOnSignal → _gcallOnSignal)
+   · roster → canal broadcast de salon glg:groom:<room> (hello/here)
+   · anti-glare : sur chaque paire, le plus GRAND uid crée l'offre.
+══════════════════════════════════════════ */
+let _gcall = _gcFresh();
+function _gcFresh(){ return { state:'idle', room:null, gid:null, gname:'', fromId:null, fromName:'',
+  stream:null, peers:{}, roomCh:null, muted:false, t0:0, timer:null, ringTimeout:null }; }
+function _gcMyName(){ return (_accountProfile && _accountProfile.username) || ''; }
+
+async function _gcallStart() {
+  if (!_chat.current || String(_chat.current).indexOf('g:') !== 0) return;
+  if (_call.state !== 'idle' || _gcall.state !== 'idle') return;
+  const gid = parseInt(String(_chat.current).slice(2), 10);
+  const cc = _chat.channels.find(x => x.channel === _chat.current);
+  let members = [];
+  try { const r = await GLG_AUTH.chatGroupMembers(gid); members = (r && r.members) || []; } catch (e) {}
+  const others = members.filter(m => m && m.id && m.id !== _chatMe);
+  if (!others.length) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
+  catch (e) { _chatNote(_chT('recDenied')); return; }
+  _gcall = _gcFresh();
+  _gcall.state = 'ringing-out'; _gcall.stream = stream;
+  _gcall.gid = gid; _gcall.gname = (cc && cc.name) || '';
+  _gcall.room = 'r' + gid + '-' + Date.now().toString(36);
+  _gcJoinRoom();
+  others.forEach(m => _callSendTo(m.id, { t:'gring', from:_chatMe, name:_gcMyName(), room:_gcall.room, gid, gname:_gcall.gname }));
+  _gcRenderBar();
+  // personne n'a rejoint au bout de 60 s → on raccroche proprement
+  _gcall.ringTimeout = setTimeout(() => {
+    if (_gcall.state === 'ringing-out' && !Object.values(_gcall.peers).some(p => p.live)) _gcallEnd(false);
+  }, 60000);
+}
+
+async function _gcallOnSignal(s) {
+  if (s.t === 'gring') {
+    if (_call.state !== 'idle' || _gcall.state !== 'idle') { _callSendTo(s.from, { t:'gdecline', from:_chatMe, room:s.room }); return; }
+    // Garde-fou : la RPC membres ne répond que si JE suis membre du groupe —
+    // et on vérifie que l'appelant en fait bien partie.
+    let ok = false;
+    try { const r = await GLG_AUTH.chatGroupMembers(s.gid); ok = ((r && r.members) || []).some(m => m && m.id === s.from); } catch (e) {}
+    if (!ok || _gcall.state !== 'idle') return;
+    _gcall = _gcFresh();
+    _gcall.state = 'ringing-in'; _gcall.room = s.room; _gcall.gid = s.gid;
+    _gcall.gname = s.gname || ''; _gcall.fromId = s.from; _gcall.fromName = s.name || '';
+    _gcRenderBar();
+    GLG_TOAST.show(_gcall.gname || _chT('gcall'), _chT('gIncoming').replace('%s', s.name || ''));
+    _gcall.ringTimeout = setTimeout(() => { if (_gcall.state === 'ringing-in') _gcallEnd(false); }, 45000);
+    return;
+  }
+  if (!_gcall.room || s.room !== _gcall.room || !s.from) return;
+  if (s.t === 'gdecline' || s.t === 'gleave') { _gcRemovePeer(s.from); return; }
+  const P = _gcEnsurePeer(s.from, s.name);
+  if (!P) return;
+  if (s.t === 'goffer') {
+    if (!_gcall.stream || P.pc) return;          // pas encore accepté / doublon
+    P.pc = _gcNewPC(s.from);
+    try {
+      await P.pc.setRemoteDescription({ type:'offer', sdp:s.sdp });
+      (P.iceQ || []).forEach(c => { const pr = P.pc.addIceCandidate(c); if (pr && pr.catch) pr.catch(() => {}); });
+      P.iceQ = [];
+      const ans = await P.pc.createAnswer();
+      await P.pc.setLocalDescription(ans);
+      _callTune(P.pc);
+      _gcSend(s.from, { t:'ganswer', from:_chatMe, name:_gcMyName(), room:_gcall.room, sdp:ans.sdp });
+    } catch (e) { _gcRemovePeer(s.from); }
+  } else if (s.t === 'ganswer') {
+    if (!P.pc) return;
+    try {
+      await P.pc.setRemoteDescription({ type:'answer', sdp:s.sdp });
+      (P.iceQ || []).forEach(c => { const pr = P.pc.addIceCandidate(c); if (pr && pr.catch) pr.catch(() => {}); });
+      P.iceQ = [];
+    } catch (e) { _gcRemovePeer(s.from); }
+  } else if (s.t === 'gice') {
+    if (P.pc && P.pc.remoteDescription) { try { await P.pc.addIceCandidate(s.cand); } catch (e) {} }
+    else if (s.cand) (P.iceQ = P.iceQ || []).push(s.cand);
+  }
+}
+
+async function _gcallAccept() {
+  if (_gcall.state !== 'ringing-in') return;
+  clearTimeout(_gcall.ringTimeout);
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia(_glgMicConstraints()); }
+  catch (e) { _gcallDecline(); return; }
+  _gcall.stream = stream;
+  _gcall.state = 'connecting';
+  _gcJoinRoom();   // hello → les présents répondent here → offres selon la règle uid
+  _gcRenderBar();
+  // salon vide (appelant déjà parti) ou connexion impossible → fin propre,
+  // jamais de micro ouvert dans le vide (annulé dès la 1re connexion : 'live')
+  _gcall.ringTimeout = setTimeout(() => { if (_gcall.state === 'connecting') _gcallEnd(false); }, 30000);
+}
+function _gcallDecline() {
+  if (_gcall.fromId) _callSendTo(_gcall.fromId, { t:'gdecline', from:_chatMe, room:_gcall.room });
+  _gcallEnd(false);
+}
+
+/* Salon (roster) : hello à l'arrivée, here en réponse — idempotent. */
+function _gcJoinRoom() {
+  const sb = window.GLG_AUTH?.getClient?.(); if (!sb || !_gcall.room) return;
+  _gcall.roomCh = sb.channel('glg:groom:' + _gcall.room);
+  _gcall.roomCh.on('broadcast', { event: 'roster' }, p => {
+    const m = p.payload || {};
+    if (!m.from || m.from === _chatMe || !_gcall.room) return;
+    if (m.k === 'hello' && _gcall.roomCh) {
+      try { _gcall.roomCh.send({ type:'broadcast', event:'roster', payload:{ k:'here', from:_chatMe, name:_gcMyName() } }); } catch (e) {}
+    }
+    _gcEnsurePeer(m.from, m.name);
+  }).subscribe(st => {
+    if (st === 'SUBSCRIBED' && _gcall.roomCh) {
+      try { _gcall.roomCh.send({ type:'broadcast', event:'roster', payload:{ k:'hello', from:_chatMe, name:_gcMyName() } }); } catch (e) {}
+    }
+  });
+}
+
+/* Ajoute un participant : canal d'émission dédié + offre si c'est mon rôle. */
+function _gcEnsurePeer(uid, name) {
+  if (!uid || uid === _chatMe || _gcall.state === 'idle') return null;
+  const cur = _gcall.peers[uid];
+  if (cur) { if (name && !cur.name) { cur.name = name; _gcRenderBar(); } return cur; }
+  if (Object.keys(_gcall.peers).length >= 7) return null;   // mesh borné (~8 joueurs)
+  const sb = window.GLG_AUTH?.getClient?.(); if (!sb) return null;
+  const P = { pc:null, name:name || '', sendCh:null, sendReady:false, sendQ:[], iceQ:[], live:false };
+  _gcall.peers[uid] = P;
+  P.sendCh = sb.channel('glg:call:' + uid);
+  P.sendCh.subscribe(st => {
+    if (st === 'SUBSCRIBED') {
+      P.sendReady = true;
+      (P.sendQ || []).forEach(pl => P.sendCh.send({ type:'broadcast', event:'sig', payload:pl }));
+      P.sendQ = [];
+    }
+  });
+  // anti-glare : le plus grand uid de la paire initie l'offre
+  if (_gcall.stream && String(_chatMe) > String(uid)) _gcOffer(uid);
+  _gcRenderBar();
+  return P;
+}
+function _gcSend(uid, payload) {
+  const P = _gcall.peers[uid]; if (!P) return;
+  if (P.sendReady && P.sendCh) P.sendCh.send({ type:'broadcast', event:'sig', payload });
+  else (P.sendQ = P.sendQ || []).push(payload);
+}
+async function _gcOffer(uid) {
+  const P = _gcall.peers[uid]; if (!P || P.pc) return;
+  try {
+    P.pc = _gcNewPC(uid);
+    const offer = await P.pc.createOffer();
+    await P.pc.setLocalDescription(offer);
+    _callTune(P.pc);
+    _gcSend(uid, { t:'goffer', from:_chatMe, name:_gcMyName(), room:_gcall.room, sdp:offer.sdp });
+  } catch (e) { _gcRemovePeer(uid); }
+}
+function _gcNewPC(uid) {
+  const pc = new RTCPeerConnection(_CALL_ICE);
+  (_gcall.stream ? _gcall.stream.getTracks() : []).forEach(tr => pc.addTrack(tr, _gcall.stream));
+  pc.onicecandidate = ev => { if (ev.candidate) _gcSend(uid, { t:'gice', from:_chatMe, room:_gcall.room, cand:ev.candidate.toJSON() }); };
+  pc.ontrack = ev => {
+    let a = document.getElementById('glg-gaudio-' + uid);
+    if (!a) {
+      a = document.createElement('audio'); a.id = 'glg-gaudio-' + uid; a.autoplay = true;
+      const av = (_userPrefs && _userPrefs.av) || {};
+      if (av.outId && a.setSinkId) { try { const p = a.setSinkId(av.outId); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+      document.body.appendChild(a);
+    }
+    a.srcObject = ev.streams[0];
+    const pr = a.play && a.play(); if (pr && pr.catch) pr.catch(() => {});
+  };
+  pc.onconnectionstatechange = () => {
+    const P = _gcall.peers[uid]; if (!P || P.pc !== pc) return;
+    if (pc.connectionState === 'connected') {
+      P.live = true;
+      clearTimeout(_gcall.ringTimeout);
+      if (_gcall.state !== 'live') { _gcall.state = 'live'; _gcall.t0 = Date.now(); _gcStartTimer(); }
+      _gcRenderBar();
+    }
+    if (pc.connectionState === 'failed' || pc.connectionState === 'closed' || pc.connectionState === 'disconnected') {
+      _gcRemovePeer(uid);
+    }
+  };
+  return pc;
+}
+function _gcRemovePeer(uid) {
+  const P = _gcall.peers[uid]; if (!P) return;
+  try { P.pc && P.pc.close(); } catch (e) {}
+  const sb = window.GLG_AUTH?.getClient?.();
+  try { P.sendCh && sb && sb.removeChannel(P.sendCh); } catch (e) {}
+  const a = document.getElementById('glg-gaudio-' + uid); if (a) { a.srcObject = null; a.remove(); }
+  delete _gcall.peers[uid];
+  // plus personne en ligne alors qu'on était en direct → fin propre
+  if (_gcall.state === 'live' && !Object.keys(_gcall.peers).length) { _gcallEnd(false); return; }
+  _gcRenderBar();
+}
+function _gcallToggleMute() {
+  if (!_gcall.stream) return;
+  _gcall.stream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
+  _gcall.muted = _gcall.stream.getAudioTracks().some(t => !t.enabled);
+  const b = document.getElementById('gcb-mute');
+  if (b) { b.classList.toggle('off', _gcall.muted); b.title = _gcall.muted ? _chT('unmute') : _chT('mute'); b.setAttribute('aria-label', b.title); }
+}
+function _gcallEnd(notify) {
+  if (notify === undefined) notify = true;
+  if (notify) Object.keys(_gcall.peers).forEach(uid => _gcSend(uid, { t:'gleave', from:_chatMe, room:_gcall.room }));
+  // laisser partir les gleave avant de fermer les canaux
+  const peers = _gcall.peers, roomCh = _gcall.roomCh;
+  setTimeout(() => {
+    const sb = window.GLG_AUTH?.getClient?.();
+    Object.keys(peers).forEach(uid => {
+      try { peers[uid].pc && peers[uid].pc.close(); } catch (e) {}
+      try { peers[uid].sendCh && sb && sb.removeChannel(peers[uid].sendCh); } catch (e) {}
+      const a = document.getElementById('glg-gaudio-' + uid); if (a) { a.srcObject = null; a.remove(); }
+    });
+    try { roomCh && sb && sb.removeChannel(roomCh); } catch (e) {}
+  }, notify ? 350 : 0);
+  try { (_gcall.stream ? _gcall.stream.getTracks() : []).forEach(t => t.stop()); } catch (e) {}
+  clearInterval(_gcall.timer); clearTimeout(_gcall.ringTimeout);
+  _gcall = _gcFresh();
+  _gcRenderBar();
+}
+function _gcStartTimer() {
+  clearInterval(_gcall.timer);
+  _gcall.timer = setInterval(() => {
+    const el = document.getElementById('gcb-timer'); if (!el) return;
+    const s = Math.floor((Date.now() - _gcall.t0) / 1000);
+    el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
+}
+
+/* Carte flottante de l'appel de groupe (survit à la navigation). */
+function _gcRenderBar() {
+  document.getElementById('glg-gcallbar')?.remove();
+  if (_gcall.state === 'idle') return;
+  const bar = document.createElement('div');
+  bar.id = 'glg-gcallbar';
+  const phoneIco = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.2 2.4 5 2.1c.4-.1.8.1 1 .5l1 2.1c.2.4.1.8-.2 1.1l-1 1c.7 1.4 1.9 2.6 3.4 3.4l1-1c.3-.3.7-.4 1.1-.2l2.1 1c.4.2.6.6.5 1l-.3 1.8c-.1.5-.5.8-1 .8C7.3 13.6 2.4 8.7 2.4 3.4c0-.5.3-.9.8-1z" fill="currentColor"/></svg>';
+  const hangIco  = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.6 9.4C3.3 7.3 5.5 6.2 8 6.2s4.7 1.1 6.4 3.2c.3.4.3.9-.1 1.2l-1.3 1.2c-.3.3-.8.3-1.1 0l-1.5-1.3c-.2-.2-.3-.5-.3-.8v-1c-1.4-.5-2.8-.5-4.2 0v1c0 .3-.1.6-.3.8l-1.5 1.3c-.3.3-.8.3-1.1 0L1.7 10.6c-.4-.3-.4-.8-.1-1.2z" fill="currentColor"/></svg>';
+  const micIco   = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="6" y="1.6" width="4" height="8" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.4 7.4a4.6 4.6 0 0 0 9.2 0M8 12v2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  const names = Object.values(_gcall.peers).filter(p => p.live).map(p => p.name || '?');
+  if (_gcall.state === 'ringing-in') {
+    bar.innerHTML = `
+    <div class="cb-card cb-card--ring">
+      <span class="cb-pulse" aria-hidden="true">${phoneIco}</span>
+      <span class="cb-id"><b>${escHtml(_gcall.gname || _chT('gcall'))}</b><small>${escHtml(_chT('gIncoming').replace('%s', _gcall.fromName || ''))}</small></span>
+      <span class="cb-actions">
+        <button class="cb-btn cb-btn--ok" onclick="_gcallAccept()" title="${_chT('accept')}" aria-label="${_chT('accept')}">${phoneIco}</button>
+        <button class="cb-btn cb-btn--no" onclick="_gcallDecline()" title="${_ft('decline')}" aria-label="${_ft('decline')}">${hangIco}</button>
+      </span>
+    </div>`;
+  } else {
+    const live = _gcall.state === 'live';
+    const status = live
+      ? `<span id="gcb-timer">0:00</span><small>${escHtml(_chT('gParts').replace('%s', String(names.length + 1)))}${names.length ? ' — ' + escHtml(names.join(', ')).slice(0, 90) : ''}</small>`
+      : `<small>${_chT(_gcall.state === 'ringing-out' ? 'calling' : 'gWaiting')}</small>`;
+    bar.innerHTML = `
+    <div class="cb-card ${live ? 'cb-card--live' : ''}">
+      <span class="${live ? 'cb-live-dot' : 'cb-pulse'}" aria-hidden="true">${phoneIco}</span>
+      <span class="cb-id"><b>${escHtml(_gcall.gname || _chT('gcall'))}</b>${status}</span>
+      <span class="cb-actions">
+        ${live ? `<button class="cb-btn cb-btn--mute ${_gcall.muted ? 'off' : ''}" id="gcb-mute" onclick="_gcallToggleMute()" title="${_chT('mute')}" aria-label="${_chT('mute')}">${micIco}</button>` : ''}
+        <button class="cb-btn cb-btn--no" onclick="_gcallEnd()" title="${_chT('hangup')}" aria-label="${_chT('hangup')}">${hangIco}</button>
       </span>
     </div>`;
   }

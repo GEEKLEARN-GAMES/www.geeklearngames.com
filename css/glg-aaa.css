@@ -4505,3 +4505,103 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   .pp--v4 .pp-actions-btns{ justify-content:flex-start; }
 }
 /* (pas d'override RTL : align-items suit l'axe inline, le miroir est automatique) */
+
+/* ═══════════════════════════════════════════════════════════════
+   §79 · WAVE « LAUNCHER SUR-MESURE » — rail bibliothèque FIXE au
+   scroll, contact web-only (launcher), ambiances de couleurs +
+   densité + zoom + marque titlebar (Options → Launcher), layout
+   Options v5 centré, barre d'appel de GROUPE, divers launcher.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── 1 · Bibliothèque : le rail ne suit plus la page — il est COLLÉ à
+   l'écran (sticky) et défile en interne si la liste s'allonge. ── */
+.lib-rail{
+  position:sticky; top:calc(var(--nav-h,64px) + var(--glg-tb,0px));
+  height:calc(100vh - var(--nav-h,64px) - var(--glg-tb,0px));
+  align-self:start;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.lib-rail-list{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; padding-bottom:20px; }
+@media (max-width:900px){
+  .lib-rail{ position:static; height:auto; display:block; overflow:visible; }
+  .lib-rail-list{ overflow-y:visible; }
+}
+
+/* ── 2 · Contact = SITE WEB : l'entrée disparaît du launcher ── */
+.glg-frameless #nl-contact, .glg-frameless #nml-contact{ display:none !important; }
+.ctc-lx-mailtxt{
+  margin:16px 0 0; font-family:var(--f-mono,monospace); font-size:.62rem;
+  letter-spacing:.14em; color:rgba(255,255,255,.45);
+}
+
+/* ── 3 · Ambiances de couleurs (launcher) : voile plein écran non
+   interactif en blend screen — teinte TOUT (titlebar comprise), zéro
+   risque de layout, aucune retouche des surfaces existantes. ── */
+#glg-ambiance{ position:fixed; inset:0; z-index:2147483000; pointer-events:none; mix-blend-mode:screen; opacity:0; transition:opacity .6s ease; }
+.glg-th-carbone #glg-ambiance{ opacity:1; background:linear-gradient(180deg, rgba(158,163,177,.075), rgba(120,126,140,.05)); }
+.glg-th-minuit  #glg-ambiance{ opacity:1; background:linear-gradient(180deg, rgba(64,96,214,.085), rgba(24,38,96,.075)); }
+.glg-th-braise  #glg-ambiance{ opacity:1; background:linear-gradient(180deg, rgba(214,102,44,.065), rgba(120,42,16,.06)); }
+
+/* ── 3b · Densité COMPACTE : rythmes resserrés sur les listes clés ── */
+.glg-compact .lib-item{ padding-top:6px; padding-bottom:6px; }
+.glg-compact .chat-conv{ padding-top:7px; padding-bottom:7px; }
+.glg-compact .chat-msgs{ padding-top:10px; padding-bottom:10px; }
+.glg-compact .chat-msg{ margin-top:1px; margin-bottom:1px; }
+.glg-compact .set-card{ padding:16px; }
+.glg-compact .pp-section{ padding-top:14px; padding-bottom:14px; }
+.glg-compact .dp-news-item{ padding-top:10px; padding-bottom:10px; }
+
+/* ── 4 · Options → Launcher : nuanciers d'ambiance + segments ── */
+.set-ambiances{ display:flex; flex-wrap:wrap; gap:10px; }
+.set-amb{
+  display:inline-flex; align-items:center; gap:9px; cursor:pointer;
+  padding:9px 14px 9px 10px; border-radius:9px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.8); font-size:.8rem;
+  transition:border-color .2s, background .2s;
+}
+.set-amb:hover{ border-color:rgba(255,255,255,.3); }
+.set-amb.on{ border-color:var(--user-accent,#fff); background:rgba(255,255,255,.06); color:#fff; }
+.set-amb-sw{
+  width:22px; height:22px; border-radius:6px; background:var(--sw,#050506);
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:inset 0 0 8px rgba(255,255,255,.06);
+}
+.set-seg{ display:inline-flex; border:1px solid rgba(255,255,255,.14); border-radius:9px; overflow:hidden; }
+.set-seg button{
+  padding:.66em 1.15em .6em; cursor:pointer; border:none; background:none;
+  color:rgba(255,255,255,.62); font-family:var(--f-mono,monospace);
+  font-size:.56rem; letter-spacing:.14em; text-transform:uppercase;
+  border-inline-start:1px solid rgba(255,255,255,.1);
+  transition:background .2s, color .2s;
+}
+.set-seg button:first-child{ border-inline-start:none; }
+.set-seg button:hover{ color:#fff; }
+.set-seg button.on{ background:rgba(255,255,255,.1); color:#fff; box-shadow:inset 0 -2px 0 var(--user-accent,#fff); }
+
+/* ── 5 · Options v5 : disposition centrée, respirante, prête pour des
+   illustrations (les cartes gardent une largeur de lecture). ── */
+.settings-page{ max-width:1120px; margin:0 auto; }
+.settings-layout{ grid-template-columns:236px minmax(0,1fr); }
+.settings-content{ max-width:760px; }
+.set-card{ border-radius:12px; }
+.set-panel .set-card + .set-card{ margin-top:18px; }
+.set-phead{ margin-bottom:22px; }
+.set-phead p{ max-width:56ch; }
+
+/* ── 6 · Titlebar : variante « Logo + nom » (Options → Launcher) ── */
+.tb-title .tb-name{
+  margin-inline-start:9px; font-family:var(--f-mono,monospace);
+  font-size:.5rem; letter-spacing:.34em; text-indent:.34em; color:rgba(255,255,255,.66);
+  transform:translateY(.5px);
+}
+
+/* ── 7 · Appels de GROUPE : même carte flottante que les appels 1:1 ── */
+#glg-gcallbar{
+  position:fixed; z-index:150000;
+  top:calc(var(--nav-h,64px) + var(--glg-tb,0px) + 14px); right:16px;
+}
+#glg-gcallbar .cb-card{ max-width:min(420px, calc(100vw - 32px)); }
+#glg-gcallbar .cb-id small{ display:block; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+[dir="rtl"] #glg-gcallbar{ right:auto; left:16px; }
+@media (max-width:640px){ #glg-gcallbar{ left:12px; right:12px; } #glg-gcallbar .cb-card{ min-width:0; } }
