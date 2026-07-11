@@ -1671,7 +1671,7 @@ async function buildLibraryPage() {
   _libData = { lib, recent };   // partagé avec le toggle favori + install (maj in-place)
 
   root.innerHTML = `
-    <div class="lib-shell">
+    <div class="lib-shell lib-shell--zen">
       <aside class="lib-rail" aria-label="${_lbt('eyebrow')}">
         <div class="lib-rail-head">
           <span>${_lbt('eyebrow')}</span>
@@ -1713,7 +1713,7 @@ function _libRailListHTML() {
   if (films.length)   groups.push(['colFilms', films]);
   return groups.map(([key, arr]) => `
           <div class="lib-col">
-            <div class="lib-col-head">${key === 'colFavs' ? `<span class="lib-col-star">${_LIB_STAR}</span>` : ''}<span>${_lbt(key)}</span><span class="lib-col-n">${arr.length}</span></div>
+            <div class="lib-col-head lib-col-head--btn" data-col="${key}" role="button" tabindex="0" title="${_lbt(key)}">${key === 'colFavs' ? `<span class="lib-col-star">${_LIB_STAR}</span>` : ''}<span>${_lbt(key)}</span><span class="lib-col-n">${arr.length}</span></div>
             ${arr.map(railItem).join('')}
           </div>`).join('');
 }
@@ -1721,6 +1721,13 @@ function _libRailListHTML() {
 /* Câblage du rail (étoiles + sélection) — rappelé après chaque re-rendu. */
 function _libWireRail(root) {
   root = root || $('page-library'); if (!root) return;
+
+  // En-têtes de collections → GRILLE de la collection (façon Steam)
+  root.querySelectorAll('[data-col]').forEach(h => {
+    const open = ev => { ev.stopPropagation(); _libShowCollection(h.dataset.col); };
+    h.addEventListener('click', open);
+    h.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') open(ev); });
+  });
 
   // Étoiles favoris : toggle in-place (les collections se regroupent)
   root.querySelectorAll('[data-fav]').forEach(s => {
@@ -2001,6 +2008,39 @@ function _libBelowHTML(w) {
       ${_libDlcSectionHTML(w.id)}
     </aside>
   </div>`;
+}
+
+/* Vue GRILLE d'une collection (clic sur son en-tête dans le rail) —
+   couvertures 2:3 cliquables, comme la grille de Steam. */
+function _libShowCollection(key) {
+  const lib = _libData.lib;
+  const favs = new Set((_userPrefs && _userPrefs.favs) || []);
+  const arr = key === 'colGames' ? lib.filter(x => x.w.type !== 'film')
+            : key === 'colFilms' ? lib.filter(x => x.w.type === 'film')
+            : lib.filter(x => favs.has(x.w.id));
+  const stage = $('lib-stage'); if (!stage || !arr.length) return;
+  document.querySelectorAll('#page-library .lib-rail [data-lib]').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-current', 'false'); });
+  stage.classList.remove('lib-stage--in');
+  stage.innerHTML = `
+    <div class="lib-gridwrap">
+      <div class="lib-grid-head">${key === 'colFavs' ? `<span class="lib-col-star">${_LIB_STAR}</span>` : ''}<h2>${_lbt(key)}</h2><span class="lib-col-n">${arr.length}</span></div>
+      <div class="lib-grid">${arr.map(x => `
+        <button class="lib-gcard" data-glib="${x.w.id}" style="--tint-rgb:${hexToRgb(x.w.tint || '#ffffff') || '255,255,255'}" aria-label="${x.w.title}">
+          <img src="${av(x.w.cover)}" alt="" loading="lazy" decoding="async">
+          <span class="lib-gcard-name">${x.w.title}</span>
+        </button>`).join('')}
+      </div>
+    </div>`;
+  stage.querySelectorAll('[data-glib]').forEach(b => b.addEventListener('click', () => {
+    _libSelected = b.dataset.glib;
+    document.querySelectorAll('#page-library .lib-rail [data-lib]').forEach(x => { const on = x.dataset.lib === _libSelected; x.classList.toggle('active', on); x.setAttribute('aria-current', on ? 'true' : 'false'); });
+    stage.classList.remove('lib-stage--in');
+    stage.innerHTML = _libStageHTML(_libData.lib.find(x => x.w.id === _libSelected), _libData.recent);
+    _scrollTopInstant(); _libFillFriendsPlayed(_libSelected); _libFillMyReview(_libSelected);
+    setTimeout(() => stage.classList.add('lib-stage--in'), 20);
+  }));
+  _scrollTopInstant();
+  setTimeout(() => stage.classList.add('lib-stage--in'), 20);
 }
 
 /* Favori on/off (étoile du rail + bouton de la barre d'outils) → prefs.favs.
@@ -2865,11 +2905,10 @@ function buildDetail(id) {
       <div class="dp-hero-tint" style="background:${item.tint}"></div>
       ${_dpHeroArtHTML(item)}
 
-      <button class="dp-back" onclick="showPage('works')" aria-label="${t('detailBack')}">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <button class="dp-back dp-back--min" onclick="showPage('works')" aria-label="${t('detailBack')}" title="${t('detailBack')}">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        ${t('detailBack')}
       </button>
 
       <div class="dp-hero-body">
@@ -2917,10 +2956,6 @@ function buildDetail(id) {
       </div>
     </div>
 
-    <!-- ──────── MARQUEE INFO STRIP ──────── -->
-    <div class="dp-marquee-strip" aria-hidden="true">
-      <div class="dp-marquee-track">${mqItems}</div>
-    </div>
 
     <!-- ──────── STORE LAYOUT — media (left) · buy panel (right) ──────── -->
     <div class="dp-store">
@@ -4541,9 +4576,11 @@ function _glgAmbApply(amb){
   _glgEnsureAmbiance();
   const el = document.getElementById('glg-ambiance'); if (!el) return;
   const bg = _glgAmbCss(amb);
-  if (!bg) { el.style.opacity = '0'; return; }
+  const de = document.documentElement;
+  if (!bg) { el.style.opacity = '0'; de.style.removeProperty('--glg-sb'); return; }
   el.style.background = bg;
   el.style.opacity = String((amb.force || 8) / 100);
+  de.style.setProperty('--glg-sb', amb.c1);   // la scrollbar suit la couleur 1
 }
 function _applyLauncherPrefs(){
   if (!IS_TAURI || !_userPrefs || !_userPrefs.launcher) return;
@@ -5580,6 +5617,13 @@ async function refreshAccountUI() {
     _wishSaveLocal();
     _applyPrefs(p.prefs);                 // applique réduction d'animations + accent dès la connexion
     if (IS_TAURI) { try { GLG_TOAST.ensure(); } catch(e){} }   // permission toasts demandée tôt
+    // Tes couleurs te suivent : le miroir LOCAL (dernier réglage sur cette
+    // machine) prime sur un serveur en retard (save débouncée coupée par une
+    // fermeture) — et on le repousse au serveur dans la foulée.
+    if (IS_TAURI) { try {
+      const Lm = JSON.parse(localStorage.getItem('glg_lprefs') || 'null');
+      if (Lm) _savePrefs({ launcher: Lm });
+    } catch(e){} }
   } else {
     _accountProfile = null;
     _wishlist = _wishLoadLocal();

@@ -492,11 +492,56 @@ const TROPHIES = {
     {code:'platinum',tier:'platinum',en:{t:'Reality Restored',d:'Earn every other trophy.'},            fr:{t:'Réalité Retrouvée',d:'Obtiens tous les autres trophées.'}},
   ],
   'soul-redemption':[
-    {code:'first_soul',tier:'bronze',en:{t:'First Soul',d:'Claim your first soul.'},                     fr:{t:'Première Âme',d:'Récupère ta première âme.'}},
-    {code:'first_blade',tier:'bronze',en:{t:'First Blade',d:'Forge your first weapon.'},                 fr:{t:'Première Lame',d:'Forge ta première arme.'}},
-    {code:'untouched',tier:'silver', en:{t:'Untouched',d:'Defeat a boss without taking a hit.'},         fr:{t:'Intouché',d:'Bats un boss sans subir de dégâts.'}},
-    {code:'redeemed', tier:'gold',   en:{t:'Redeemed',d:'Complete the path of redemption.'},             fr:{t:'Rédemption',d:'Achève la voie de la rédemption.'}},
-    {code:'platinum', tier:'platinum',en:{t:'Soulbound',d:'Earn every other trophy.'},                   fr:{t:'Lié à l’Âme',d:'Obtiens tous les autres trophées.'}},
+    {code:'push_breaks',tier:'bronze',en:{t:'Push Until It Breaks',d:'Survive the schoolyard.'}, fr:{t:'Push Until It Breaks',d:'Survis à la cour de récré.'}},
+    {code:'eagle_eye',tier:'silver',en:{t:'Eagle Eye',d:'Spot every hidden detail in Childhood.'}, fr:{t:'Eagle Eye',d:'Repère chaque détail caché de l’Enfance.'}},
+    {code:'smile_lies',tier:'bronze',en:{t:'The Smile That Lies',d:'See through the friendly mask.'}, fr:{t:'The Smile That Lies',d:'Perce le masque amical à jour.'}},
+    {code:'no_fear',tier:'silver',en:{t:'No Fear!',d:'Face the bully without flinching.'}, fr:{t:'No Fear!',d:'Affronte la brute sans trembler.'}},
+    {code:'too_cool',tier:'bronze',en:{t:'Too Cool for School',d:'Finish the School chapter.'}, fr:{t:'Too Cool for School',d:'Termine le chapitre de l’École.'}},
+    {code:'playtime',tier:'bronze',en:{t:'It’s Playtime!',d:'Enter Funland for the first time.'}, fr:{t:'It’s Playtime!',d:'Entre à Funland pour la première fois.'}},
+    {code:'good_times',tier:'bronze',en:{t:'Let the Good Times Roll',d:'Ride every attraction.'}, fr:{t:'Let the Good Times Roll',d:'Essaie toutes les attractions.'}},
+    {code:'sneaky_fox',tier:'silver',en:{t:'Sneaky as a Fox',d:'Slip past the mascots unseen.'}, fr:{t:'Sneaky as a Fox',d:'Faufile-toi sans être vu des mascottes.'}},
+    {code:'thrill_seeker',tier:'bronze',en:{t:'Thrill Seeker',d:'Take the ride nobody dares to take.'}, fr:{t:'Thrill Seeker',d:'Monte dans le manège que personne n’ose prendre.'}},
+    {code:'smashed',tier:'bronze',en:{t:'Smashed Potatoes!',d:'Win the smashing game.'}, fr:{t:'Smashed Potatoes!',d:'Gagne au jeu de massacre.'}},
+    {code:'disguise',tier:'silver',en:{t:'Master of Disguise',d:'Fool Funland in costume.'}, fr:{t:'Master of Disguise',d:'Trompe Funland sous un déguisement.'}},
+    {code:'beast_whisper',tier:'bronze',en:{t:'Beast Whisperer',d:'Calm the carousel beast.'}, fr:{t:'Beast Whisperer',d:'Apaise la bête du carrousel.'}},
+    {code:'back_future',tier:'bronze',en:{t:'Back to the Future',d:'Repair the time attraction.'}, fr:{t:'Back to the Future',d:'Répare l’attraction temporelle.'}},
+    {code:'jackpot',tier:'bronze',en:{t:'Jackpot!',d:'Hit the jackpot at the arcade booth.'}, fr:{t:'Jackpot!',d:'Décroche le jackpot au stand.'}},
+    {code:'one_down',tier:'silver',en:{t:'One Down, More to Go',d:'Close the Funland chapter.'}, fr:{t:'One Down, More to Go',d:'Referme le chapitre de Funland.'}},
+    {code:'quick_flash',tier:'silver',en:{t:'Quick as a Flash',d:'Beat the reflex challenge.'}, fr:{t:'Quick as a Flash',d:'Bats le défi de réflexes.'}},
+    {code:'tech_guru',tier:'bronze',en:{t:'Tech Guru',d:'Hack every terminal in Technotown.'}, fr:{t:'Tech Guru',d:'Pirate tous les terminaux de Technotown.'}},
+    {code:'shocking',tier:'bronze',en:{t:'Shocking, Isn’t It?',d:'Survive the surge.'}, fr:{t:'Shocking, Isn’t It?',d:'Survis à la surtension.'}},
+    {code:'oops_again',tier:'bronze',en:{t:'Oops, I Did It Again!',d:'Fail the same trap twice.'}, fr:{t:'Oops, I Did It Again!',d:'Retombe deux fois dans le même piège.'}},
+    {code:'game_over',tier:'bronze',en:{t:'Game Over, Man!',d:'See every ending of the arcade.'}, fr:{t:'Game Over, Man!',d:'Vois toutes les fins de la borne.'}},
+    {code:'victory_royale',tier:'gold',en:{t:'Victory Royale!',d:'Win the tournament of Technotown.'}, fr:{t:'Victory Royale!',d:'Gagne le tournoi de Technotown.'}},
+    {code:'no_rest',tier:'silver',en:{t:'No Rest for the Wicked',d:'Clear the Cybercafe without pausing.'}, fr:{t:'No Rest for the Wicked',d:'Nettoie le Cybercafé sans pause.'}},
+    {code:'not_grandma',tier:'bronze',en:{t:'Not My Grandma',d:'Discover who really lives here.'}, fr:{t:'Not My Grandma',d:'Découvre qui vit vraiment ici.'}},
+    {code:'hungry_wolf',tier:'silver',en:{t:'Hungry Like the Wolf',d:'Escape the hunt in the woods.'}, fr:{t:'Hungry Like the Wolf',d:'Échappe à la traque dans les bois.'}},
+    {code:'forest_calling',tier:'bronze',en:{t:'The Forest is Calling',d:'Answer the voice between the trees.'}, fr:{t:'The Forest is Calling',d:'Réponds à la voix entre les arbres.'}},
+    {code:'big_teeth',tier:'bronze',en:{t:'What Big Teeth You Have!',d:'Look the wolf in the eyes.'}, fr:{t:'What Big Teeth You Have!',d:'Regarde le loup dans les yeux.'}},
+    {code:'a_to_b',tier:'silver',en:{t:'A to B, No Detours',d:'Cross the woods without straying.'}, fr:{t:'A to B, No Detours',d:'Traverse les bois sans t’écarter.'}},
+    {code:'better_luck',tier:'bronze',en:{t:'Better Luck Next Time',d:'Lose a game you were meant to lose.'}, fr:{t:'Better Luck Next Time',d:'Perds une partie perdue d’avance.'}},
+    {code:'fears_under_sea',tier:'bronze',en:{t:'20,000 Fears Under the Sea',d:'Descend into the Deep Seas.'}, fr:{t:'20,000 Fears Under the Sea',d:'Descends dans les Abysses.'}},
+    {code:'fish_water',tier:'bronze',en:{t:'Like a Fish to Water',d:'Master the currents.'}, fr:{t:'Like a Fish to Water',d:'Maîtrise les courants.'}},
+    {code:'freeze_frame',tier:'silver',en:{t:'Freeze Frame!',d:'Stay still while it watches.'}, fr:{t:'Freeze Frame!',d:'Reste immobile pendant qu’il regarde.'}},
+    {code:'fear_deep',tier:'silver',en:{t:'Fear the Deep',d:'Reach the Sea Temple.'}, fr:{t:'Fear the Deep',d:'Atteins le Temple des Mers.'}},
+    {code:'keep_swimming',tier:'bronze',en:{t:'Just Keep Swimming',d:'Escape without looking back.'}, fr:{t:'Just Keep Swimming',d:'Fuis sans te retourner.'}},
+    {code:'sweet_tooth',tier:'bronze',en:{t:'Sweet Tooth',d:'Taste what Candyland offers.'}, fr:{t:'Sweet Tooth',d:'Goûte à ce que Candyland propose.'}},
+    {code:'no_dessert',tier:'bronze',en:{t:'No Room for Dessert',d:'Refuse the feast.'}, fr:{t:'No Room for Dessert',d:'Refuse le festin.'}},
+    {code:'piece_cake',tier:'bronze',en:{t:'Piece of Cake!',d:'Clear a trial without a single mistake.'}, fr:{t:'Piece of Cake!',d:'Réussis une épreuve sans la moindre erreur.'}},
+    {code:'gobstopper',tier:'silver',en:{t:'Everlasting Gobstopper',d:'Endure the endless trial.'}, fr:{t:'Everlasting Gobstopper',d:'Endure l’épreuve sans fin.'}},
+    {code:'sugar_rush',tier:'bronze',en:{t:'Sugar Rush!',d:'Sprint through the sugar storm.'}, fr:{t:'Sugar Rush!',d:'Sprinte à travers la tempête de sucre.'}},
+    {code:'pure_imagination',tier:'silver',en:{t:'A Land of Pure Imagination',d:'See Candyland for what it is.'}, fr:{t:'A Land of Pure Imagination',d:'Vois Candyland pour ce qu’il est vraiment.'}},
+    {code:'highway_hell',tier:'silver',en:{t:'Highway to Hell',d:'Enter the Hell Realm.'}, fr:{t:'Highway to Hell',d:'Entre dans le Royaume Infernal.'}},
+    {code:'king_underworld',tier:'gold',en:{t:'King of the Underworld',d:'Overthrow what rules below.'}, fr:{t:'King of the Underworld',d:'Renverse ce qui règne en bas.'}},
+    {code:'hollows_1',tier:'silver',hidden:true, en:{t:'Secret of the Hollows I',d:'The Hollows keep their secrets.'}, fr:{t:'Secret of the Hollows I',d:'Les Hollows gardent leurs secrets.'}},
+    {code:'hollows_2',tier:'silver',hidden:true, en:{t:'Secret of the Hollows II',d:'The Hollows keep their secrets.'}, fr:{t:'Secret of the Hollows II',d:'Les Hollows gardent leurs secrets.'}},
+    {code:'hollows_3',tier:'silver',hidden:true, en:{t:'Secret of the Hollows III',d:'The Hollows keep their secrets.'}, fr:{t:'Secret of the Hollows III',d:'Les Hollows gardent leurs secrets.'}},
+    {code:'hollows_4',tier:'silver',hidden:true, en:{t:'Secret of the Hollows IV',d:'The Hollows keep their secrets.'}, fr:{t:'Secret of the Hollows IV',d:'Les Hollows gardent leurs secrets.'}},
+    {code:'hollows_5',tier:'silver',hidden:true, en:{t:'Secret of the Hollows V',d:'The Hollows keep their secrets.'}, fr:{t:'Secret of the Hollows V',d:'Les Hollows gardent leurs secrets.'}},
+    {code:'last_goodbye',tier:'gold',en:{t:'My Last Goodbye',d:'Say the goodbye you never could.'}, fr:{t:'My Last Goodbye',d:'Fais l’adieu que tu n’as jamais pu faire.'}},
+    {code:'no_more_secrets',tier:'gold',en:{t:'No More Secrets',d:'Uncover every secret of the Hollows.'}, fr:{t:'No More Secrets',d:'Perce tous les secrets des Hollows.'}},
+    {code:'real_soldier',tier:'gold',en:{t:'A Real Soldier!',d:'Finish SOUL REDEMPTION.'}, fr:{t:'A Real Soldier!',d:'Termine SOUL REDEMPTION.'}},
+    {code:'platinum',tier:'platinum',en:{t:'Trophy Hoarder',d:'Earn every other trophy.'}, fr:{t:'Trophy Hoarder',d:'Obtiens tous les autres trophées.'}},
   ],
   'soul-redemption-frenzy-fest':[
     {code:'frenzy',  tier:'bronze', en:{t:'Frenzy',d:'Enter your first frenzy.'},                         fr:{t:'Frénésie',d:'Entre dans ta première frénésie.'}},
@@ -792,14 +837,9 @@ const WORK_EDITIONS = {
    Par œuvre : liste de contenus { id (œuvre liée du catalogue), kind }.
    kind : 'expansion' (extension du jeu de base) | 'base' (jeu requis).
    Œuvre absente = section DLC masquée proprement. */
-const GLG_DLC = {
-  'soul-redemption': [
-    { id:'soul-redemption-frenzy-fest', kind:'expansion' },
-  ],
-  'soul-redemption-frenzy-fest': [
-    { id:'soul-redemption', kind:'base' },
-  ],
-};
+/* SOUL REDEMPTION et FRENZY FEST sont deux JEUX INDÉPENDANTS (Frenzy Fest
+   est un multijoueur à part) — aucun lien DLC entre eux. */
+const GLG_DLC = {};
 
 /* ── JOURNAL DES VERSIONS (« Quoi de neuf » — Options → Mises à jour) ────
    Alimenter à chaque déploiement notable. Le launcher standalone lira la
