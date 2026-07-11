@@ -1171,83 +1171,291 @@ window.addEventListener('resize', () => {
 /* Debounce: multiple synchronous calls in the same tick (e.g. from applyTranslations
    + initSite + applyWorksPageLabels) collapse into a single actual rebuild. */
 let _buildCarouselsTimer = null;
-/* ══ ACCUEIL « ODYSSEY » — vitrine cinématique façon Rockstar/GTA VI ══
-   Un panneau PLEIN ÉCRAN par œuvre : épinglage CSS sticky (fiable avec
-   Lenis), key art qui DÉ-ZOOME, logo en parallaxe, textes en fondu — le
-   tout SCRUBBÉ par GSAP/ScrollTrigger, sortie en FONDU AU NOIR (le panneau
-   suivant émerge de l'obscurité). Sans GSAP / mouvement réduit : pile
-   sticky statique, tout reste lisible. */
+/* ══ ACCUEIL « ODYSSEY v3 » — LA TRAVERSÉE : spectacle pur ══
+   Le v1 « panneaux-réclame » (un écran + bouton Découvrir + prix par œuvre)
+   est retiré : place à TROIS ACTES scrubbés au scroll, façon rockstargames.com/VI.
+     I.   MANIFESTE — typographie monumentale REMPLIE par les key arts
+          (background-clip:text), grain argentique, lettres qui se resserrent.
+     II.  LA TRAVERSÉE — la caméra remonte un couloir de cards 3D
+          (perspective + translateZ) ; braises <canvas> teintées par l'œuvre
+          au premier plan, halo, sweep de lumière, tilt à la souris.
+          Les cards se cliquent (fiche) mais AUCUN bouton, AUCUN prix.
+     III. FINALE — les braises convergent, le monogramme s'embrase.
+          UN seul CTA sur toute la séquence.
+   Sans GSAP / mouvement réduit : bascule .od3-static (grille statique). */
 const _ODY_T = {
-  kicker: { fr:'LE CATALOGUE', en:'THE CATALOGUE', es:'EL CATÁLOGO', de:'DER KATALOG', it:'IL CATALOGO', ar:'الكتالوج', zh:'作品目录', ja:'カタログ', ru:'КАТАЛОГ', pl:'KATALOG' },
-  title:  { fr:'Huit mondes. Aucune échappatoire.', en:'Eight worlds. No way out.', es:'Ocho mundos. Sin escapatoria.', de:'Acht Welten. Kein Entkommen.', it:'Otto mondi. Nessuna via di fuga.', ar:'ثمانية عوالم. لا مهرب.', zh:'八个世界。无处可逃。', ja:'八つの世界。逃げ場はない。', ru:'Восемь миров. Выхода нет.', pl:'Osiem światów. Nie ma ucieczki.' },
-  discover:{ fr:'Découvrir', en:'Discover', es:'Descubrir', de:'Entdecken', it:'Scopri', ar:'اكتشف', zh:'了解详情', ja:'詳しく見る', ru:'Узнать больше', pl:'Odkryj' },
+  present:{ fr:'GEEKLEARN GAMES PRÉSENTE', en:'GEEKLEARN GAMES PRESENTS', es:'GEEKLEARN GAMES PRESENTA', de:'GEEKLEARN GAMES PRÄSENTIERT', it:'GEEKLEARN GAMES PRESENTA', ar:'GEEKLEARN GAMES تقدّم', zh:'GEEKLEARN GAMES 呈现', ja:'GEEKLEARN GAMES プレゼンツ', ru:'GEEKLEARN GAMES ПРЕДСТАВЛЯЕТ', pl:'GEEKLEARN GAMES PRZEDSTAWIA' },
+  m1: { fr:'HUIT MONDES', en:'EIGHT WORLDS', es:'OCHO MUNDOS', de:'ACHT WELTEN', it:'OTTO MONDI', ar:'ثمانية عوالم', zh:'八个世界', ja:'八つの世界', ru:'ВОСЕМЬ МИРОВ', pl:'OSIEM ŚWIATÓW' },
+  m2: { fr:'UNE SEULE OBSESSION', en:'ONE OBSESSION', es:'UNA SOLA OBSESIÓN', de:'EINE BESESSENHEIT', it:'UNA SOLA OSSESSIONE', ar:'هوس واحد', zh:'唯一的执念', ja:'ただひとつの執念', ru:'ОДНА ОДЕРЖИМОСТЬ', pl:'JEDNA OBSESJA' },
+  msub:{ fr:'Chaque univers est façonné à la main — pixel par pixel, cauchemar par cauchemar.', en:'Every universe is shaped by hand — pixel by pixel, nightmare by nightmare.', es:'Cada universo está moldeado a mano — píxel a píxel, pesadilla a pesadilla.', de:'Jedes Universum ist handgefertigt — Pixel für Pixel, Albtraum für Albtraum.', it:'Ogni universo è plasmato a mano — pixel dopo pixel, incubo dopo incubo.', ar:'كل عالم مصنوع يدويًا — بكسلًا بعد بكسل، وكابوسًا بعد كابوس.', zh:'每个宇宙都由双手打造——一个像素、一个梦魇地雕琢。', ja:'すべての世界は手作業で紡がれる——1ピクセルずつ、悪夢をひとつずつ。', ru:'Каждая вселенная создана вручную — пиксель за пикселем, кошмар за кошмаром.', pl:'Każdy świat tworzymy ręcznie — piksel po pikselu, koszmar po koszmarze.' },
+  cross:{ fr:'LA TRAVERSÉE', en:'THE CROSSING', es:'LA TRAVESÍA', de:'DIE ÜBERFAHRT', it:'LA TRAVERSATA', ar:'العبور', zh:'穿越', ja:'横断', ru:'ПЕРЕХОД', pl:'PRZEPRAWA' },
+  hint:{ fr:'DÉFILER', en:'SCROLL', es:'DESLIZA', de:'SCROLLEN', it:'SCORRI', ar:'مرِّر', zh:'滚动', ja:'スクロール', ru:'ЛИСТАЙТЕ', pl:'PRZEWIŃ' },
+  f1:{ fr:'La traversée ne fait que commencer.', en:'The crossing has only begun.', es:'La travesía apenas comienza.', de:'Die Überfahrt hat gerade erst begonnen.', it:'La traversata è appena iniziata.', ar:'العبور لم يبدأ إلا للتو.', zh:'穿越才刚刚开始。', ja:'横断はまだ始まったばかり。', ru:'Переход только начинается.', pl:'Przeprawa dopiero się zaczyna.' },
   explore:{ fr:'Explorer les huit mondes', en:'Explore all eight worlds', es:'Explora los ocho mundos', de:'Alle acht Welten erkunden', it:'Esplora gli otto mondi', ar:'استكشف العوالم الثمانية', zh:'探索全部八个世界', ja:'八つの世界をすべて見る', ru:'Исследовать все восемь миров', pl:'Poznaj wszystkie osiem światów' },
 };
 const _odt = k => (_ODY_T[k] && (_ODY_T[k][LANG] || _ODY_T[k].en)) || '';
 let _odyST = [];   // ScrollTriggers de l'Odyssey (tués à chaque rebuild)
 
+/* Braises sur <canvas> : un moteur par scène (voyage, finale). Coût nul
+   hors écran — IntersectionObserver + visibilitychange coupent le rAF.
+   DPR plafonné à 1.5 : sur un écran 4K on dessine moitié moins de pixels
+   sans différence visible sur des points lumineux flous. */
+function _od3Engine(canvas, opt) {
+  const o = Object.assign({ count: 100 }, opt || {});
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  let W = 2, H = 2, run = false, seen = false, raf = 0, dead = false;
+  let tint = [255, 168, 92], target = tint.slice();   // braise chaude par défaut
+  let pull = 0, mx = 0, my = 0;
+  const P = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function spawn(p, anywhere) {
+    p.d = rnd(.25, 1);                                 // profondeur → taille/vitesse/alpha
+    p.x = rnd(-20, W + 20); p.y = anywhere ? rnd(0, H) : H + rnd(6, 40);
+    p.vy = rnd(.14, .55) * p.d; p.vx = rnd(-.09, .09);
+    p.s = rnd(.6, 2.4) * p.d; p.tw = rnd(0, 6.283); p.ts = rnd(.01, .035);
+  }
+  function size() {
+    const r = canvas.getBoundingClientRect();
+    W = Math.max(2, r.width | 0); H = Math.max(2, r.height | 0);
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  function frame() {
+    if (!run || dead) return;
+    raf = requestAnimationFrame(frame);
+    for (let k = 0; k < 3; k++) tint[k] += (target[k] - tint[k]) * .045;
+    const R = tint[0] | 0, G = tint[1] | 0, B = tint[2] | 0;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    const cx = W / 2, cy = H * .46;
+    for (let i = 0; i < P.length; i++) {
+      const p = P[i];
+      p.tw += p.ts;
+      let x = p.x + mx * 52 * p.d, y = p.y + my * 30 * p.d;
+      if (pull > 0) { x += (cx - x) * pull; y += (cy - y) * pull; }
+      const a = (.1 + .42 * p.d) * (.55 + .45 * Math.sin(p.tw));
+      ctx.fillStyle = 'rgba(' + R + ',' + G + ',' + B + ',' + a.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(x, y, p.s * (1 + pull * .8), 0, 6.2832);
+      ctx.fill();
+      p.y -= p.vy; p.x += p.vx + Math.sin(p.tw) * .05;
+      if (p.y < -30 || p.x < -40 || p.x > W + 40) spawn(p);
+    }
+  }
+  function sync() {
+    const want = seen && !document.hidden && !dead;
+    if (want && !run) { run = true; size(); frame(); }
+    else if (!want && run) { run = false; cancelAnimationFrame(raf); }
+  }
+  size();                                             // jamais de 1er dessin sur le 300x150 par défaut
+  for (let i = 0; i < o.count; i++) { const p = {}; spawn(p, true); P.push(p); }
+  const io = new IntersectionObserver(es => { es.forEach(en => { seen = en.isIntersecting; }); sync(); });
+  io.observe(canvas);
+  const onVis = () => sync(), onRes = () => { if (run) size(); };
+  document.addEventListener('visibilitychange', onVis);
+  window.addEventListener('resize', onRes);
+  return {
+    setTint(rgb) { const m = String(rgb).split(','); if (m.length === 3) target = [+m[0], +m[1], +m[2]]; },
+    setPull(v) { pull = Math.max(0, Math.min(.9, v)); },
+    setMouse(x, y) { mx = x; my = y; },
+    destroy() {
+      dead = true; run = false; cancelAnimationFrame(raf); io.disconnect();
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('resize', onRes);
+    },
+  };
+}
+
 function _buildOdyssey() {
   const host = document.getElementById('glg-odyssey'); if (!host) return;
   _odyST.forEach(t => { try { t.kill(); } catch (e) {} }); _odyST = [];
+  if (window._od3Fx) { window._od3Fx.forEach(fx => { try { fx.destroy(); } catch (e) {} }); window._od3Fx = null; }
   const works = (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).filter(w => !isMatureHidden(w));
+  host.classList.remove('od3-static');
   if (!works.length) { host.innerHTML = ''; return; }
   const n = works.length;
   host.innerHTML = `
-    <div class="ody-intro">
-      <div class="ody-intro-pin">
-        <p class="ody-kicker">${_odt('kicker')}</p>
-        <h2 class="ody-title">${escHtml(_odt('title'))}</h2>
+    <div class="od3-manif">
+      <div class="od3-pin od3-mpin">
+        <p class="od3-kicker">${_odt('present')}</p>
+        <h2 class="od3-mask"><span>${escHtml(_odt('m1'))}</span><span>${escHtml(_odt('m2'))}</span></h2>
+        <p class="od3-sub">${escHtml(_odt('msub'))}</p>
+        <span class="od3-hint">${escHtml(_odt('hint'))}<i aria-hidden="true"></i></span>
+        <div class="od3-grain" aria-hidden="true"></div>
       </div>
     </div>
-    ${works.map((w, i) => `
-    <section class="ody" data-ody="${w.id}" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
-      <div class="ody-pin">
-        <div class="ody-bg" style="background-image:url('${av(w.cover)}')"></div>
-        <div class="ody-veil" aria-hidden="true"></div>
-        <div class="ody-body">
-          <span class="ody-eyebrow">${getCatLabel(w)} · ${w.year}</span>
-          ${w.logo ? `<img class="ody-logo" src="${av(w.logo)}" alt="${w.title}" loading="lazy" decoding="async">` : `<h3 class="ody-name">${w.title}</h3>`}
-          <p class="ody-tag">${getItemField(w, 'tagline') || ''}</p>
-          <div class="ody-ctas">
-            <button class="btn btn-primary btn-lg" onclick="showPage('detail','${w.id}')">${_odt('discover')}</button>
-            <span class="ody-price">${priceHTML(w, { size: 'sm' })}</span>
-          </div>
+    <div class="od3-voyage" style="height:${n * 60 + 130}vh">
+      <div class="od3-pin od3-stage">
+        <div class="od3-aura" aria-hidden="true"></div>
+        <canvas class="od3-fx" aria-hidden="true"></canvas>
+        <p class="od3-kicker od3-ck">${_odt('cross')}</p>
+        <div class="od3-world">
+          ${works.map(w => `
+          <figure class="od3-card" data-ody="${w.id}" role="link" tabindex="0" aria-label="${escHtml(w.title)}" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}">
+            <span class="od3-frame"><img src="${av(w.cover)}" alt="" loading="lazy" decoding="async"><span class="od3-sheen" aria-hidden="true"></span></span>
+            <figcaption class="od3-cap"><b>${escHtml(w.title)}</b><i>${getCatLabel(w)} · ${w.year}</i></figcaption>
+          </figure>`).join('')}
         </div>
-        <span class="ody-idx" aria-hidden="true">${String(i + 1).padStart(2, '0')} — ${String(n).padStart(2, '0')}</span>
-        <div class="ody-dim" aria-hidden="true"></div>
+        <span class="od3-count" aria-hidden="true">01 / ${String(n).padStart(2, '0')}</span>
+        <div class="od3-vig" aria-hidden="true"></div>
+        <div class="od3-grain" aria-hidden="true"></div>
       </div>
-    </section>`).join('')}
-    <div class="ody-outro">
-      <button class="btn btn-primary btn-lg" onclick="showPage('works')">${_odt('explore')} <span aria-hidden="true">${_ARR()}</span></button>
+    </div>
+    <div class="od3-finale">
+      <div class="od3-pin od3-fpin">
+        <canvas class="od3-fx od3-fx2" aria-hidden="true"></canvas>
+        <h2 class="od3-brand"><span>GEEKLEARN</span><span>GAMES</span></h2>
+        <p class="od3-sub od3-f1">${escHtml(_odt('f1'))}</p>
+        <button class="btn btn-ghost od3-cta" onclick="showPage('works')">${_odt('explore')} <span aria-hidden="true">${_ARR()}</span></button>
+        <div class="od3-grain" aria-hidden="true"></div>
+      </div>
     </div>`;
-  _odyWire(host);
+  _od3Collage(host.querySelector('.od3-mask'), works);
+  _odyWire(host, works);
 }
 
-/* Scrub GSAP : chaque panneau vit au rythme du scroll (ease:none = collé
-   au doigt/à la molette — jamais en avance, jamais en retard). */
-function _odyWire(host) {
-  const gs = window.gsap, ST = window.ScrollTrigger;
-  if (!gs || !ST || document.documentElement.classList.contains('glg-reduce-motion')) return;
-  const intro = host.querySelector('.ody-intro');
-  if (intro) {
-    const tl = gs.timeline({ scrollTrigger: { trigger: intro, start: 'top bottom', end: 'bottom top', scrub: .6 } });
-    tl.fromTo(intro.querySelector('.ody-title'), { opacity: 0, letterSpacing: '.34em', y: 40 }, { opacity: 1, letterSpacing: '.06em', y: 0, ease: 'none', duration: .5 }, .1)
-      .fromTo(intro.querySelector('.ody-kicker'), { opacity: 0 }, { opacity: 1, ease: 'none', duration: .25 }, .12)
-      .to(intro.querySelector('.ody-intro-pin'), { opacity: 0, y: -46, ease: 'none', duration: .3 }, .68);
-    _odyST.push(tl.scrollTrigger);
-  }
-  host.querySelectorAll('.ody').forEach(sec => {
-    const q = sel => sec.querySelector(sel);
-    const tl = gs.timeline({ scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: .5 } });
-    tl.fromTo(q('.ody-bg'), { scale: 1.18, yPercent: -5 }, { scale: 1.02, yPercent: 3, ease: 'none', duration: 1 }, 0)
-      .fromTo(q('.ody-logo') || q('.ody-name'), { yPercent: 46, scale: .84, opacity: 0 }, { yPercent: 0, scale: 1, opacity: 1, ease: 'power1.out', duration: .3 }, .12)
-      .fromTo(q('.ody-eyebrow'), { opacity: 0, y: 26 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .2)
-      .fromTo(q('.ody-tag'), { opacity: 0, y: 30 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .24)
-      .fromTo(q('.ody-ctas'), { opacity: 0, y: 34 }, { opacity: 1, y: 0, ease: 'none', duration: .16 }, .28)
-      .fromTo(q('.ody-idx'), { opacity: 0 }, { opacity: 1, ease: 'none', duration: .14 }, .3)
-      .to(q('.ody-dim'), { opacity: 1, ease: 'none', duration: .16 }, .84);   // fondu au noir de sortie
-    _odyST.push(tl.scrollTrigger);
+/* Le manifeste est rempli par un collage des 4 premiers key arts. PIÈGE DE
+   PERF : mettre les SVG directement en background du clip-text force leur
+   re-rasterisation À CHAQUE repaint du texte (gel de ~30s mesuré). On
+   compose donc le collage UNE fois dans un canvas hors écran, exporté en
+   JPEG data-URI : le repaint du texte redevient trivial. */
+function _od3Collage(mask, works) {
+  if (!mask) return;
+  const srcs = works.slice(0, 4).map(w => av(w.cover));
+  if (!srcs.length) return;
+  let left = srcs.length;
+  const imgs = srcs.map(s => {
+    const im = new Image();
+    im.onload = im.onerror = () => { if (--left === 0) paint(); };
+    im.src = s;
+    return im;
   });
+  function paint() {
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = 1280; cv.height = 720;
+      const cx = cv.getContext('2d'); if (!cx) return;
+      cx.fillStyle = '#3b3b44'; cx.fillRect(0, 0, 1280, 720);
+      const qw = 640, qh = 360, pos = [[0, 0], [qw, 0], [0, qh], [qw, qh]];
+      imgs.forEach((im, i) => {
+        if (!im.naturalWidth || !pos[i]) return;
+        const sc = Math.max(qw / im.naturalWidth, qh / im.naturalHeight);
+        const dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+        cx.save();
+        cx.beginPath(); cx.rect(pos[i][0], pos[i][1], qw, qh); cx.clip();
+        cx.drawImage(im, pos[i][0] + (qw - dw) / 2, pos[i][1] + (qh - dh) / 2, dw, dh);
+        cx.restore();
+      });
+      mask.style.backgroundImage = 'url(' + cv.toDataURL('image/jpeg', .82) + ')';
+    } catch (e) {}
+  }
+}
+
+/* Chorégraphie : tout est scrubbé ease:none (collé au doigt/à la molette).
+   La timeline du voyage vit en temps ABSOLU : LEAD d'entrée, une card
+   toutes les STEP unités (chevauchement volontaire → flux continu). */
+function _odyWire(host, works) {
+  const gs = window.gsap, ST = window.ScrollTrigger;
+  // Les cards restent cliquables (fiche) dans les DEUX modes
+  host.querySelectorAll('.od3-card').forEach(card => {
+    const go = () => showPage('detail', card.dataset.ody);
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  });
+  if (!gs || !ST || document.documentElement.classList.contains('glg-reduce-motion')) {
+    host.classList.add('od3-static'); return;
+  }
+  const q = s => host.querySelector(s);
+  const stage = q('.od3-stage'), world = q('.od3-world');
+  const cards = Array.from(host.querySelectorAll('.od3-card'));
+  const n = cards.length;
+  const tints = works.map(w => hexToRgb(w.tint || '#ffffff') || '255,168,92');
+  const small = matchMedia('(max-width:760px)').matches;
+  const fx1 = _od3Engine(q('.od3-fx'), { count: small ? 44 : 104 });
+  const fx2 = _od3Engine(q('.od3-fx2'), { count: small ? 34 : 64 });
+  window._od3Fx = [fx1, fx2].filter(Boolean);
+  /* — Acte I : manifeste — (opacity/scale UNIQUEMENT : tout tween qui
+     repeint le clip-text — letterSpacing, backgroundPosition — gèle la
+     frame ; le zoom léger donne déjà l'effet de resserrement) */
+  const mpin = q('.od3-mpin'), mask = q('.od3-mask');
+  const tl1 = gs.timeline({ scrollTrigger: { trigger: q('.od3-manif'), start: 'top bottom', end: 'bottom top', scrub: .6 } });
+  tl1.fromTo(q('.od3-manif .od3-kicker'), { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .12, ease: 'none' }, .16)
+     .fromTo(mask, { opacity: 0, scale: .93 }, { opacity: 1, scale: 1, duration: .3, ease: 'none' }, .18)
+     .fromTo(q('.od3-sub'), { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .14, ease: 'none' }, .32)
+     .fromTo(q('.od3-hint'), { opacity: 0 }, { opacity: .75, duration: .1, ease: 'none' }, .42)
+     .to(mpin, { opacity: 0, y: -50, duration: .2, ease: 'none' }, .78);
+  _odyST.push(tl1.scrollTrigger);
+
+  /* — Acte II : la traversée — */
+  const LANES = [
+    { x: -24, y: -6, r: -10, fx: -9 }, { x: 24, y: 5, r: 9, fx: 9 },
+    { x: -19, y: 7, r: -7, fx: -8 },  { x: 21, y: -7, r: 8, fx: 8 },
+  ];
+  const STEP = .82, DUR = 1.3, LEAD = .25;
+  const D = LEAD + (n - 1) * STEP + DUR;
+  const count = q('.od3-count'), ck = q('.od3-ck');
+  const pad2 = v => String(v).padStart(2, '0');
+  let live = -1;
+  const auraCur = tints[0].split(',').map(Number);
+  cards.forEach(c => { c.tabIndex = -1; });            // seule la card au 1er plan est tabbable
+  const tl2 = gs.timeline({ scrollTrigger: {
+    trigger: q('.od3-voyage'), start: 'top top', end: 'bottom bottom', scrub: .5,
+    onUpdate(self) {
+      const t = self.progress * D;
+      const a = Math.max(0, Math.min(n - 1, Math.round((t - LEAD - DUR * .62) / STEP)));
+      if (a !== live) {
+        live = a;
+        count.textContent = pad2(a + 1) + ' / ' + pad2(n);
+        for (let j = 0; j < n; j++) { cards[j].classList.toggle('is-live', j === a); cards[j].tabIndex = j === a ? 0 : -1; }
+        fx1 && fx1.setTint(tints[a]);
+      }
+      const tg = tints[live < 0 ? 0 : live].split(',');
+      for (let k = 0; k < 3; k++) auraCur[k] += (tg[k] - auraCur[k]) * .14;
+      stage.style.setProperty('--live-rgb', (auraCur[0] | 0) + ',' + (auraCur[1] | 0) + ',' + (auraCur[2] | 0));
+    },
+  } });
+  tl2.fromTo([ck, count], { opacity: 0 }, { opacity: 1, duration: .22, ease: 'none' }, 0)
+     .to([ck, count], { opacity: 0, duration: .25, ease: 'none' }, D - .3);
+  cards.forEach((card, i) => {
+    const L = LANES[i % 4], pos = LEAD + i * STEP;
+    const cap = card.querySelector('.od3-cap'), sheen = card.querySelector('.od3-sheen');
+    gs.set(card, { xPercent: -50, yPercent: -50, x: L.x * 1.3 + 'vw', y: L.y + 'vh', z: -1500, rotationY: L.r * 1.5, opacity: 0, force3D: true, lazy: false });
+    tl2.to(card, { keyframes: [
+      { x: L.x * 1.3 + 'vw', y: L.y + 'vh', z: -1500, rotationY: L.r * 1.5, opacity: 0, duration: .0001, ease: 'none' },
+      { x: L.x * .6 + 'vw', y: L.y * .55 + 'vh', z: -430, rotationY: L.r * .7, opacity: .92, duration: .5499, ease: 'none' },
+      { x: L.fx + 'vw', y: '0vh', z: 40, rotationY: L.r * .22, opacity: 1, duration: .45, ease: 'none' },
+      { x: (L.fx - L.x * .95) + 'vw', y: (-L.y * .6) + 'vh', z: 780, rotationY: -L.r * .55, opacity: 0, duration: .3, ease: 'none' },
+    ] }, pos);
+    tl2.fromTo(cap, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: .16, ease: 'none' }, pos + .58)
+       .to(cap, { opacity: 0, duration: .12, ease: 'none' }, pos + .93);
+    tl2.fromTo(sheen, { xPercent: -160 }, { xPercent: 160, duration: .32, ease: 'none' }, pos + .6);
+  });
+  _odyST.push(tl2.scrollTrigger);
+  // Tilt 3D à la souris (desktop uniquement) + parallaxe des braises
+  if (matchMedia('(pointer:fine)').matches) {
+    const qry = gs.quickTo(world, 'rotationY', { duration: .7, ease: 'power2.out' });
+    const qrx = gs.quickTo(world, 'rotationX', { duration: .7, ease: 'power2.out' });
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - .5, ny = (e.clientY - r.top) / r.height - .5;
+      qry(nx * 7); qrx(ny * -5);
+      fx1 && fx1.setMouse(nx, ny);
+    });
+  }
+
+  /* — Acte III : finale — */
+  const brand = q('.od3-brand');
+  const tl3 = gs.timeline({ scrollTrigger: {
+    trigger: q('.od3-finale'), start: 'top bottom', end: 'bottom bottom', scrub: .6,
+    onUpdate(self) { fx2 && fx2.setPull(Math.max(0, self.progress - .12) * .62); },
+  } });
+  tl3.fromTo(brand.children, { yPercent: 72, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: .09, duration: .3, ease: 'none' }, .16)
+     .fromTo(brand, { backgroundPosition: '130% 50%' }, { backgroundPosition: '-30% 50%', duration: .5, ease: 'none' }, .3)
+     .fromTo(q('.od3-f1'), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .15, ease: 'none' }, .48)
+     .fromTo(q('.od3-cta'), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .15, ease: 'none' }, .6);
+  _odyST.push(tl3.scrollTrigger);
   requestAnimationFrame(() => { try { ST.refresh(); } catch (e) {} });
 }
 // Revenir sur l'accueil → recalage des déclencheurs (la page était display:none)
