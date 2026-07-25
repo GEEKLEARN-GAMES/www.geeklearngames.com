@@ -1027,10 +1027,13 @@ $$;
 revoke all on function public.chat_mark_read(text) from public;
 grant execute on function public.chat_mark_read(text) to authenticated;
 
--- ── Pièces jointes : bucket public `chat-media` (25 Mo max) ──────────────
+-- ── Pièces jointes : bucket public `chat-media` (50 Mo max) ──────────────
 insert into storage.buckets (id, name, public)
 values ('chat-media', 'chat-media', true)
 on conflict (id) do nothing;
+-- 50 Mo par fichier (chat : tout type, exécutables bloqués côté client,
+-- zip inspectés). Idempotent — s'applique aussi au bucket déjà créé.
+update storage.buckets set file_size_limit = 52428800 where id = 'chat-media';
 drop policy if exists "chatmedia_read" on storage.objects;
 create policy "chatmedia_read" on storage.objects
   for select using (bucket_id = 'chat-media');

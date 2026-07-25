@@ -679,8 +679,8 @@
   /* ══════════ GLG CHAT — MP + groupes (db/schema.sql § GLG CHAT) ═══════
      Canaux : 'dm:<uuidA>:<uuidB>' (uuid triés) | 'g:<group_id>'.
      La sécurité vit côté base (RLS + chat_can_access) — le client reste
-     une simple vue. Pièces jointes : bucket public chat-media (25 Mo). */
-  const CHAT_MEDIA_MAX = 25 * 1024 * 1024;
+     une simple vue. Pièces jointes : bucket public chat-media (50 Mo). */
+  const CHAT_MEDIA_MAX = 50 * 1024 * 1024;
   function chatDmChannel(a, b) { return 'dm:' + (a < b ? a + ':' + b : b + ':' + a); }
   async function chatChannels() {
     if (!_ready) return { ok: false, code: 'notConfigured', channels: [] };

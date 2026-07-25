@@ -375,7 +375,6 @@ const GATE_GLOW = {
   it: 'linear-gradient(90deg, rgba(0,146,70,.18) 0%, rgba(255,255,255,.04) 50%, rgba(206,43,55,.18) 100%)',
 };
 
-function setGateRainFlag(code) { /* flag rain removed — ambient handled by gate-wash */ }
 
 // Wash — gradient is set directly on #gate-wash (no child slots).
 // The container's own opacity (CSS transition) handles the fade in/out.
@@ -701,7 +700,7 @@ const _CONTACT_PROMISE_T = {
   resp:   { fr:'Réponse garantie', en:'Response guaranteed', es:'Respuesta garantizada', de:'Antwort garantiert', it:'Risposta garantita', ar:'رد مضمون', zh:'保证回复', ja:'返信保証', ru:'Гарантированный ответ', pl:'Gwarantowana odpowiedź' },
   read:   { fr:'Messages lus', en:'Messages read', es:'Mensajes leídos', de:'Nachrichten gelesen', it:'Messaggi letti', ar:'الرسائل مقروءة', zh:'消息已读', ja:'メッセージ既読', ru:'Сообщения прочитаны', pl:'Wiadomości czytane' },
   titles: { fr:'Titres en production', en:'Titles in production', es:'Títulos en producción', de:'Titel in Produktion', it:'Titoli in produzione', ar:'عناوين قيد الإنتاج', zh:'制作中的作品', ja:'制作中のタイトル', ru:'Тайтлов в работе', pl:'Tytuły w produkcji' },
-  direct: { fr:'Réponse sous 48h — chaque message est lu', en:'We reply within 48h — every message is read', es:'Respondemos en 48h — cada mensaje se lee', de:'Antwort in 48 Std. — jede Nachricht wird gelesen', it:'Rispondiamo entro 48h — ogni messaggio è letto', ar:'نرد خلال 48 ساعة — كل رسالة تُقرأ', zh:'48小时内回复——每条消息都会被阅读', ja:'48時間以内に返信 — すべてのメッセージに目を通します', ru:'Отвечаем в течение 48 ч — каждое сообщение прочитано', pl:'Odpowiadamy w 48h — każda wiadomość jest czytana' },
+  direct: { fr:'Réponse sous 48 h — chaque message est lu', en:'We reply within 48h — every message is read', es:'Respondemos en 48h — cada mensaje se lee', de:'Antwort in 48 Std. — jede Nachricht wird gelesen', it:'Rispondiamo entro 48h — ogni messaggio è letto', ar:'نرد خلال 48 ساعة — كل رسالة تُقرأ', zh:'48小时内回复——每条消息都会被阅读', ja:'48時間以内に返信 — すべてのメッセージに目を通します', ru:'Отвечаем в течение 48 ч — каждое сообщение прочитано', pl:'Odpowiadamy w 48h — każda wiadomość jest czytana' },
 };
 function _cpt(k){ const m=_CONTACT_PROMISE_T[k]; if(!m) return k; return m[LANG]||m.en; }
 
@@ -1106,11 +1105,6 @@ window.addEventListener('popstate', e => {
     _scrollTopInstant();
   }
 });
-
-// Show works page
-function showWorksTab() {
-  showPage('works');
-}
 
 /* ══════════════════════════════════════════
    MARQUEE
@@ -1570,7 +1564,7 @@ const _SHOP_T = {
   eye:      { fr:'Boutique officielle', en:'Official store', es:'Tienda oficial', de:'Offizieller Store', it:'Store ufficiale', ar:'المتجر الرسمي', zh:'官方商店', ja:'公式ストア', ru:'Официальный магазин', pl:'Oficjalny sklep' },
   title:    { fr:'BOUTIQUE', en:'STORE', es:'TIENDA', de:'STORE', it:'STORE', ar:'المتجر', zh:'商店', ja:'ストア', ru:'МАГАЗИН', pl:'SKLEP' },
   sub:      { fr:'Figurines, peluches, vêtements et pièces collector à l\'effigie de nos mondes. L\'atelier prépare ses premières séries.', en:'Figurines, plushes, apparel and collector pieces from our worlds. The workshop is crafting its first runs.', es:'Figuras, peluches, ropa y piezas de coleccionista de nuestros mundos. El taller prepara sus primeras series.', de:'Figuren, Plüschtiere, Kleidung und Sammlerstücke aus unseren Welten. Die Werkstatt fertigt ihre ersten Serien.', it:'Figure, peluche, abbigliamento e pezzi da collezione dai nostri mondi. L\'atelier prepara le prime serie.', ar:'مجسّمات ودمى قطيفة وملابس وقطع للمقتنين من عوالمنا. الورشة تُعِدّ أولى سلاسلها.', zh:'来自我们世界的手办、毛绒玩具、服饰与典藏藏品。工坊正在打造第一批作品。', ja:'私たちの世界から生まれたフィギュア、ぬいぐるみ、アパレル、コレクターズアイテム。工房が最初のシリーズを製作中。', ru:'Фигурки, плюшевые игрушки, одежда и коллекционные предметы из наших миров. Мастерская готовит первые серии.', pl:'Figurki, pluszaki, odzież i przedmioty kolekcjonerskie z naszych światów. Warsztat przygotowuje pierwsze serie.' },
-  gamesNotice: { fr:'Vous cherchez nos jeux et films interactifs ?', en:'Looking for our games and interactive films?', es:'¿Buscas nuestros juegos y films interactivos?', de:'Du suchst unsere Spiele und interaktiven Filme?', it:'Cerchi i nostri giochi e film interattivi?', ar:'تبحث عن ألعابنا وأفلامنا التفاعلية؟', zh:'在找我们的游戏与互动电影？', ja:'ゲームやインタラクティブフィルムをお探しですか？', ru:'Ищете наши игры и интерактивные фильмы?', pl:'Szukasz naszych gier i filmów interaktywnych?' },
+  gamesNotice: { fr:'Tu cherches nos jeux et films interactifs ?', en:'Looking for our games and interactive films?', es:'¿Buscas nuestros juegos y films interactivos?', de:'Du suchst unsere Spiele und interaktiven Filme?', it:'Cerchi i nostri giochi e film interattivi?', ar:'تبحث عن ألعابنا وأفلامنا التفاعلية؟', zh:'在找我们的游戏与互动电影？', ja:'ゲームやインタラクティブフィルムをお探しですか？', ru:'Ищете наши игры и интерактивные фильмы?', pl:'Szukasz naszych gier i filmów interaktywnych?' },
   gamesNoticeSub: { fr:'Précommandes, offres et fiches détaillées vivent dans Nos Œuvres.', en:'Pre-orders, deals and full pages live in Our Works.', es:'Las reservas, ofertas y fichas completas están en Nuestras Obras.', de:'Vorbestellungen, Angebote und Detailseiten findest du unter Unsere Werke.', it:'Preordini, offerte e schede complete vivono in Le Nostre Opere.', ar:'الطلبات المسبقة والعروض والصفحات الكاملة في «أعمالنا».', zh:'预购、优惠与完整页面都在「我们的作品」。', ja:'予約、セール、詳細ページは「作品一覧」にあります。', ru:'Предзаказы, скидки и страницы игр — в разделе «Наши работы».', pl:'Przedsprzedaż, oferty i pełne strony znajdziesz w Naszych Dziełach.' },
   gamesCta: { fr:'Voir Nos Œuvres', en:'Browse Our Works', es:'Ver Nuestras Obras', de:'Zu unseren Werken', it:'Vai alle Opere', ar:'تصفّح أعمالنا', zh:'前往我们的作品', ja:'作品一覧へ', ru:'К нашим работам', pl:'Zobacz Nasze Dzieła' },
   figurines:{ fr:'Figurines', en:'Figurines', es:'Figuras', de:'Figuren', it:'Figurine', ar:'مجسّمات', zh:'手办', ja:'フィギュア', ru:'Фигурки', pl:'Figurki' },
@@ -1578,12 +1572,9 @@ const _SHOP_T = {
   apparel:  { fr:'Vêtements', en:'Apparel', es:'Ropa', de:'Kleidung', it:'Abbigliamento', ar:'ملابس', zh:'服饰', ja:'アパレル', ru:'Одежда', pl:'Odzież' },
   deals:    { fr:'Offres du moment', en:'Current deals', es:'Ofertas del momento', de:'Aktuelle Angebote', it:'Offerte del momento', ar:'العروض الحالية', zh:'当前优惠', ja:'開催中のセール', ru:'Текущие скидки', pl:'Aktualne oferty' },
   dealsSub: { fr:'Remises de précommande — appliquées automatiquement au panier.', en:'Pre-order discounts — applied automatically at checkout.', es:'Descuentos de reserva — aplicados automáticamente.', de:'Vorbesteller-Rabatte — automatisch angewendet.', it:'Sconti preordine — applicati automaticamente.', ar:'خصومات الطلب المسبق — تُطبَّق تلقائياً.', zh:'预购折扣——自动生效。', ja:'予約割引 — 自動的に適用されます。', ru:'Скидки за предзаказ — применяются автоматически.', pl:'Zniżki przedsprzedażowe — naliczane automatycznie.' },
-  catalog:  { fr:'Tout le catalogue', en:'Full catalogue', es:'Catálogo completo', de:'Gesamter Katalog', it:'Catalogo completo', ar:'الكتالوج الكامل', zh:'完整目录', ja:'全カタログ', ru:'Весь каталог', pl:'Pełny katalog' },
-  catalogSub:{ fr:'Huit mondes. Un seul standard : l\'intention.', en:'Eight worlds. One standard: intention.', es:'Ocho mundos. Un solo estándar: la intención.', de:'Acht Welten. Ein Standard: Intention.', it:'Otto mondi. Un solo standard: l\'intenzione.', ar:'ثمانية عوالم. معيار واحد: القصد.', zh:'八个世界。一个标准：用心。', ja:'8つの世界。基準はただひとつ、意図。', ru:'Восемь миров. Один стандарт: замысел.', pl:'Osiem światów. Jeden standard: intencja.' },
   soon:     { fr:'Prochainement', en:'Coming next', es:'Próximamente', de:'Demnächst', it:'Prossimamente', ar:'قريباً', zh:'即将推出', ja:'近日登場', ru:'Скоро', pl:'Wkrótce' },
   soonSub:  { fr:'La boutique s\'agrandira au fil des sorties.', en:'The store grows with every release.', es:'La tienda crece con cada lanzamiento.', de:'Der Store wächst mit jeder Veröffentlichung.', it:'Lo store cresce a ogni uscita.', ar:'يكبر المتجر مع كل إصدار.', zh:'商店随每次发售而成长。', ja:'ストアはリリースごとに成長します。', ru:'Магазин растёт с каждым релизом.', pl:'Sklep rośnie z każdą premierą.' },
   soonTag:  { fr:'Bientôt', en:'Coming soon', es:'Próximamente', de:'Bald', it:'Presto', ar:'قريباً', zh:'敬请期待', ja:'まもなく', ru:'Скоро', pl:'Wkrótce' },
-  merch:    { fr:'Produits dérivés', en:'Merch', es:'Merchandising', de:'Merch', it:'Merch', ar:'منتجات', zh:'周边商品', ja:'グッズ', ru:'Мерч', pl:'Gadżety' },
   artbooks: { fr:'Artbooks', en:'Art books', es:'Art books', de:'Artbooks', it:'Artbook', ar:'كتب فنية', zh:'画集', ja:'アートブック', ru:'Артбуки', pl:'Artbooki' },
   ost:      { fr:'Bandes originales', en:'Soundtracks', es:'Bandas sonoras', de:'Soundtracks', it:'Colonne sonore', ar:'الموسيقى التصويرية', zh:'原声音乐', ja:'サウンドトラック', ru:'Саундтреки', pl:'Ścieżki dźwiękowe' },
   collector:{ fr:'Éditions collector', en:'Collector editions', es:'Ediciones de coleccionista', de:'Collector-Editionen', it:'Edizioni collector', ar:'إصدارات المقتنين', zh:'典藏版', ja:'コレクターズ版', ru:'Коллекционные издания', pl:'Edycje kolekcjonerskie' },
@@ -2607,27 +2598,22 @@ function buildRoadmap() {
    de bureau qui reprendra le même compte, la même bibliothèque.
 ══════════════════════════════════════════ */
 const _LNCH_T = {
-  eyebrow: { fr:'Application de bureau · bientôt', en:'Desktop app · coming soon', es:'Aplicación de escritorio · muy pronto', de:'Desktop-App · bald verfügbar', it:'App desktop · in arrivo', ar:'تطبيق سطح المكتب · قريباً', zh:'桌面应用 · 即将推出', ja:'デスクトップアプリ · 近日公開', ru:'Настольное приложение · скоро', pl:'Aplikacja desktopowa · już wkrótce' },
-  title:   { fr:'LE LAUNCHER ARRIVE', en:'THE LAUNCHER IS COMING', es:'EL LAUNCHER LLEGA', de:'DER LAUNCHER KOMMT', it:'IL LAUNCHER STA ARRIVANDO', ar:'المشغّل قادم', zh:'启动器即将登场', ja:'ランチャーがやってくる', ru:'ЛАУНЧЕР УЖЕ БЛИЗКО', pl:'LAUNCHER NADCHODZI' },
   sub:     { fr:'Tout ce que tu utilises ici — compte, bibliothèque, amis, trophées — dans une application installée, plus rapide, avec mises à jour automatiques signées.', en:'Everything you use here — account, library, friends, trophies — in an installed app: faster, with signed automatic updates.', es:'Todo lo que usas aquí — cuenta, biblioteca, amigos, trofeos — en una aplicación instalada, más rápida y con actualizaciones automáticas firmadas.', de:'Alles, was du hier nutzt — Konto, Bibliothek, Freunde, Trophäen — in einer installierten App: schneller, mit signierten automatischen Updates.', it:'Tutto quello che usi qui — account, libreria, amici, trofei — in un\'app installata: più veloce, con aggiornamenti automatici firmati.', ar:'كل ما تستخدمه هنا — الحساب والمكتبة والأصدقاء والجوائز — في تطبيق مثبّت، أسرع، مع تحديثات تلقائية موقَّعة.', zh:'你在这里使用的一切——账户、游戏库、好友、奖杯——都将进入一款安装式应用：更快，且带有签名的自动更新。', ja:'ここで使うすべて — アカウント、ライブラリ、フレンド、トロフィー — がインストール型アプリに。より速く、署名付き自動アップデート対応。', ru:'Всё, чем вы пользуетесь здесь — аккаунт, библиотека, друзья, трофеи — в установленном приложении: быстрее, с подписанными автообновлениями.', pl:'Wszystko, czego używasz tutaj — konto, biblioteka, znajomi, trofea — w zainstalowanej aplikacji: szybszej, z podpisanymi automatycznymi aktualizacjami.' },
   f1t: { fr:'Une seule identité', en:'One identity', es:'Una sola identidad', de:'Eine Identität', it:'Un\'unica identità', ar:'هوية واحدة', zh:'同一身份', ja:'ひとつのアカウント', ru:'Единый аккаунт', pl:'Jedna tożsamość' },
   f1d: { fr:'Même compte, même bibliothèque, mêmes amis — le site et l\'app ne font qu\'un.', en:'Same account, same library, same friends — site and app are one.', es:'Misma cuenta, misma biblioteca, mismos amigos — el sitio y la app son uno.', de:'Gleiches Konto, gleiche Bibliothek, gleiche Freunde — Website und App sind eins.', it:'Stesso account, stessa libreria, stessi amici — sito e app sono una cosa sola.', ar:'الحساب نفسه والمكتبة نفسها والأصدقاء أنفسهم — الموقع والتطبيق واحد.', zh:'同一账户、同一游戏库、同样的好友——网站与应用合而为一。', ja:'同じアカウント、同じライブラリ、同じフレンド — サイトとアプリはひとつ。', ru:'Тот же аккаунт, та же библиотека, те же друзья — сайт и приложение едины.', pl:'To samo konto, ta sama biblioteka, ci sami znajomi — strona i aplikacja to jedno.' },
-  f2t: { fr:'Installation & jeu en un clic', en:'One-click install & play', es:'Instalar y jugar en un clic', de:'Installieren & Spielen mit einem Klick', it:'Installa e gioca in un clic', ar:'تثبيت ولعب بنقرة', zh:'一键安装与启动', ja:'ワンクリックでインストール&プレイ', ru:'Установка и запуск в один клик', pl:'Instalacja i gra jednym kliknięciem' },
+  f2t: { fr:'Installation et jeu en un clic', en:'One-click install & play', es:'Instalar y jugar en un clic', de:'Installieren & Spielen mit einem Klick', it:'Installa e gioca in un clic', ar:'تثبيت ولعب بنقرة', zh:'一键安装与启动', ja:'ワンクリックでインストール&プレイ', ru:'Установка и запуск в один клик', pl:'Instalacja i gra jednym kliknięciem' },
   f2d: { fr:'Le bouton Jouer du site ouvre l\'app (glg://) — elle télécharge, installe et lance.', en:'The site\'s Play button opens the app (glg://) — it downloads, installs and launches.', es:'El botón Jugar del sitio abre la app (glg://): descarga, instala y lanza.', de:'Der Spielen-Button der Website öffnet die App (glg://) — sie lädt, installiert und startet.', it:'Il pulsante Gioca del sito apre l\'app (glg://): scarica, installa e avvia.', ar:'زر اللعب في الموقع يفتح التطبيق (glg://) — فيُنزّل ويثبّت ويشغّل.', zh:'网站上的“开始游戏”按钮会打开应用（glg://）——由它完成下载、安装与启动。', ja:'サイトのプレイボタンがアプリ（glg://）を開き、ダウンロード・インストール・起動まで行います。', ru:'Кнопка «Играть» на сайте открывает приложение (glg://) — оно скачивает, устанавливает и запускает.', pl:'Przycisk Graj na stronie otwiera aplikację (glg://) — ona pobiera, instaluje i uruchamia.' },
   f3t: { fr:'Mises à jour signées', en:'Signed updates', es:'Actualizaciones firmadas', de:'Signierte Updates', it:'Aggiornamenti firmati', ar:'تحديثات موقَّعة', zh:'签名更新', ja:'署名付きアップデート', ru:'Подписанные обновления', pl:'Podpisane aktualizacje' },
   f3d: { fr:'Jeux et launcher se mettent à jour tout seuls, avec vérification cryptographique.', en:'Games and launcher update themselves, cryptographically verified.', es:'Los juegos y el launcher se actualizan solos, con verificación criptográfica.', de:'Spiele und Launcher aktualisieren sich selbst — kryptografisch verifiziert.', it:'Giochi e launcher si aggiornano da soli, con verifica crittografica.', ar:'تتحدّث الألعاب والمشغّل تلقائياً مع تحقق تشفيري.', zh:'游戏与启动器自动更新，并经过加密校验。', ja:'ゲームもランチャーも自動更新。暗号署名で検証されます。', ru:'Игры и лаунчер обновляются сами, с криптографической проверкой.', pl:'Gry i launcher aktualizują się same, z weryfikacją kryptograficzną.' },
   f4t: { fr:'Sécurité intégrale', en:'Full security', es:'Seguridad total', de:'Volle Sicherheit', it:'Sicurezza totale', ar:'أمان كامل', zh:'全面安全', ja:'万全のセキュリティ', ru:'Полная защита', pl:'Pełne bezpieczeństwo' },
   f4d: { fr:'2FA type Steam Guard, données chiffrées, vie privée respectée — déjà actifs ici.', en:'Steam Guard-style 2FA, encrypted data, privacy respected — already live here.', es:'2FA al estilo Steam Guard, datos cifrados, privacidad respetada — ya activos aquí.', de:'2FA im Steam-Guard-Stil, verschlüsselte Daten, gewahrte Privatsphäre — hier bereits aktiv.', it:'2FA in stile Steam Guard, dati cifrati, privacy rispettata — già attivi qui.', ar:'مصادقة ثنائية بأسلوب Steam Guard وبيانات مشفّرة وخصوصية محترمة — مفعّلة هنا بالفعل.', zh:'Steam 令牌式两步验证、数据加密、尊重隐私——这些已在此生效。', ja:'Steam Guard式2FA、暗号化データ、プライバシー尊重 — すでにここで稼働中。', ru:'2FA в стиле Steam Guard, шифрование данных, уважение к приватности — уже работает здесь.', pl:'2FA w stylu Steam Guard, szyfrowane dane, poszanowanie prywatności — już działa tutaj.' },
-  notify:  { fr:'Être prévenu de la sortie', en:'Get notified at launch', es:'Avísame en el lanzamiento', de:'Zum Start benachrichtigen', it:'Avvisami al lancio', ar:'أعلمني عند الصدور', zh:'发布时通知我', ja:'リリース時に通知を受け取る', ru:'Сообщить о выходе', pl:'Powiadom mnie o premierze' },
-  version: { fr:'V1.0.0 · Windows & macOS', en:'V1.0.0 · Windows & macOS', es:'V1.0.0 · Windows y macOS', de:'V1.0.0 · Windows & macOS', it:'V1.0.0 · Windows e macOS', ar:'V1.0.0 · Windows وmacOS', zh:'V1.0.0 · Windows 与 macOS', ja:'V1.0.0 · Windows & macOS', ru:'V1.0.0 · Windows и macOS', pl:'V1.0.0 · Windows i macOS' },
   eyebrowDl:{ fr:'Application de bureau · V%s disponible', en:'Desktop app · V%s available', es:'Aplicación de escritorio · V%s disponible', de:'Desktop-App · V%s verfügbar', it:'App desktop · V%s disponibile', ar:'تطبيق سطح المكتب · V%s متاح الآن', zh:'桌面应用 · V%s 现已推出', ja:'デスクトップアプリ · V%s 配信中', ru:'Настольное приложение · доступна V%s', pl:'Aplikacja desktopowa · V%s dostępna' },
   titleDl: { fr:'TÉLÉCHARGE LE LAUNCHER', en:'DOWNLOAD THE LAUNCHER', es:'DESCARGA EL LAUNCHER', de:'LADE DEN LAUNCHER', it:'SCARICA IL LAUNCHER', ar:'حمّل المشغّل', zh:'下载启动器', ja:'ランチャーをダウンロード', ru:'СКАЧАЙ ЛАУНЧЕР', pl:'POBIERZ LAUNCHER' },
   dlWin:   { fr:'Télécharger pour Windows', en:'Download for Windows', es:'Descargar para Windows', de:'Für Windows herunterladen', it:'Scarica per Windows', ar:'تنزيل لويندوز', zh:'下载 Windows 版', ja:'Windows版をダウンロード', ru:'Скачать для Windows', pl:'Pobierz dla Windows' },
   dlMeta:  { fr:'%s Mo · installation en un clic · mises à jour automatiques signées', en:'%s MB · one-click install · signed auto-updates', es:'%s MB · instalación en un clic · actualizaciones automáticas firmadas', de:'%s MB · Ein-Klick-Installation · signierte Auto-Updates', it:'%s MB · installazione in un clic · aggiornamenti automatici firmati', ar:'%s م.ب · تثبيت بنقرة · تحديثات تلقائية موقَّعة', zh:'%s MB · 一键安装 · 签名自动更新', ja:'%s MB · ワンクリックインストール · 署名付き自動更新', ru:'%s МБ · установка в один клик · подписанные автообновления', pl:'%s MB · instalacja jednym kliknięciem · podpisane autoaktualizacje' },
   dlSoon:  { fr:'bientôt', en:'soon', es:'pronto', de:'bald', it:'presto', ar:'قريباً', zh:'即将推出', ja:'近日', ru:'скоро', pl:'wkrótce' },
-  dl:      { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
-  allVer:  { fr:'Toutes les versions & notes de release', en:'All versions & release notes', es:'Todas las versiones y notas de la versión', de:'Alle Versionen & Release-Notes', it:'Tutte le versioni e note di rilascio', ar:'كل الإصدارات وملاحظات النسخة', zh:'全部版本与发行说明', ja:'すべてのバージョンとリリースノート', ru:'Все версии и примечания к выпуску', pl:'Wszystkie wersje i informacje o wydaniu' },
-  dlSha:   { fr:'Empreinte SHA-256 de l’installeur', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
+  allVer:  { fr:'Toutes les versions et notes de version', en:'All versions & release notes', es:'Todas las versiones y notas de la versión', de:'Alle Versionen & Release-Notes', it:'Tutte le versioni e note di rilascio', ar:'كل الإصدارات وملاحظات النسخة', zh:'全部版本与发行说明', ja:'すべてのバージョンとリリースノート', ru:'Все версии и примечания к выпуску', pl:'Wszystkie wersje i informacje o wydaniu' },
+  dlSha:   { fr:'Empreinte SHA-256 du programme d’installation', en:'Installer SHA-256 checksum', es:'Huella SHA-256 del instalador', de:'SHA-256-Prüfsumme des Installers', it:'Impronta SHA-256 dell’installer', ar:'بصمة SHA-256 للمثبّت', zh:'安装包 SHA-256 校验值', ja:'インストーラのSHA-256チェックサム', ru:'Контрольная сумма SHA-256 установщика', pl:'Suma kontrolna SHA-256 instalatora' },
 };
 const _lnt = k => (_LNCH_T[k] && (_LNCH_T[k][LANG] || _LNCH_T[k].en)) || '';
 
@@ -2794,11 +2780,11 @@ const _VALUES = {
   heading: { fr:'Nos valeurs', en:'What we stand for', es:'Lo que defendemos', de:'Wofür wir stehen', ar:'ما نؤمن به', zh:'我们的信念', ja:'私たちの信条', ru:'Наши ценности', pl:'Nasze wartości', it:'I nostri valori' },
   eyebrow: { fr:'Le studio', en:'The Studio', es:'El estudio', de:'Das Studio', ar:'الأستوديو', zh:'工作室', ja:'スタジオ', ru:'Студия', pl:'Studio', it:'Lo studio' },
   items: [
-    { k:'teach', t:{ fr:'TEACH', en:'TEACH', es:'ENSEÑAR', de:'LEHREN', ar:'نُعلّم', zh:'启迪', ja:'学び', ru:'УЧИТЬ', pl:'UCZYĆ', it:'INSEGNARE' },
+    { k:'teach', t:{ fr:'ENSEIGNER', en:'TEACH', es:'ENSEÑAR', de:'LEHREN', ar:'نُعلّم', zh:'启迪', ja:'学び', ru:'УЧИТЬ', pl:'UCZYĆ', it:'INSEGNARE' },
       d:{ fr:'Chaque monde transmet quelque chose de vrai — sans jamais sacrifier le plaisir de jouer.', en:'Every world teaches something true — without ever sacrificing the joy of play.', es:'Cada mundo enseña algo verdadero, sin sacrificar nunca el placer de jugar.', de:'Jede Welt lehrt etwas Wahres — ohne je den Spielspaß zu opfern.', ar:'كل عالم يُعلّم شيئاً حقيقياً — دون التضحية بمتعة اللعب.', zh:'每个世界都传递真实之物——绝不牺牲游戏的乐趣。', ja:'すべての世界は本物の何かを伝える——遊ぶ喜びを犠牲にせずに。', ru:'Каждый мир учит чему-то настоящему — не жертвуя радостью игры.', pl:'Każdy świat uczy czegoś prawdziwego — nigdy nie kosztem radości z gry.', it:'Ogni mondo insegna qualcosa di vero — senza mai sacrificare il piacere del gioco.' } },
-    { k:'move', t:{ fr:'MOVE', en:'MOVE', es:'EMOCIONAR', de:'BEWEGEN', ar:'نُحرّك', zh:'触动', ja:'動かす', ru:'ТРОГАТЬ', pl:'PORUSZAĆ', it:'EMOZIONARE' },
+    { k:'move', t:{ fr:'ÉMOUVOIR', en:'MOVE', es:'EMOCIONAR', de:'BEWEGEN', ar:'نُحرّك', zh:'触动', ja:'動かす', ru:'ТРОГАТЬ', pl:'PORUSZAĆ', it:'EMOZIONARE' },
       d:{ fr:'On vise l\'émotion réelle : la chair de poule, les larmes, le cœur qui s\'emballe.', en:'We aim for real emotion: the chills, the tears, the racing heart.', es:'Buscamos emoción real: los escalofríos, las lágrimas, el corazón acelerado.', de:'Wir zielen auf echte Emotion: Gänsehaut, Tränen, rasendes Herz.', ar:'نسعى إلى عاطفة حقيقية: القشعريرة، الدموع، تسارع القلب.', zh:'我们追求真实的情感：战栗、泪水、心跳加速。', ja:'本物の感情を目指す——震え、涙、高鳴る鼓動。', ru:'Мы стремимся к настоящим эмоциям: мурашки, слёзы, бешеное сердце.', pl:'Dążymy do prawdziwych emocji: dreszcze, łzy, przyspieszone bicie serca.', it:'Puntiamo all\'emozione vera: i brividi, le lacrime, il cuore in corsa.' } },
-    { k:'haunt', t:{ fr:'HAUNT', en:'HAUNT', es:'PERDURAR', de:'NACHHALLEN', ar:'نبقى', zh:'萦绕', ja:'刻む', ru:'ПРЕСЛЕДОВАТЬ', pl:'NAWIEDZAĆ', it:'RESTARE' },
+    { k:'haunt', t:{ fr:'HANTER', en:'HAUNT', es:'PERDURAR', de:'NACHHALLEN', ar:'نبقى', zh:'萦绕', ja:'刻む', ru:'ПРЕСЛЕДОВАТЬ', pl:'NAWIEDZAĆ', it:'RESTARE' },
       d:{ fr:'Nos histoires restent. Longtemps après l\'écran noir, elles continuent de vous habiter.', en:'Our stories linger. Long after the screen goes dark, they stay with you.', es:'Nuestras historias perduran. Mucho después de apagarse la pantalla, siguen contigo.', de:'Unsere Geschichten bleiben. Lange nach dem schwarzen Bildschirm wirken sie nach.', ar:'قصصنا تبقى. بعد انطفاء الشاشة بوقت طويل، تظل معك.', zh:'我们的故事会留下。屏幕熄灭很久之后，依然萦绕于心。', ja:'物語は残る。画面が暗くなった後も、ずっと心に。', ru:'Наши истории остаются. Долго после того, как экран гаснет, они с вами.', pl:'Nasze historie zostają. Długo po wygaśnięciu ekranu wciąż w tobie trwają.', it:'Le nostre storie restano. Molto dopo lo schermo nero, rimangono con te.' } },
   ],
 };
@@ -4019,7 +4005,7 @@ document.addEventListener('click', e => {
 
 const _CTC_LX = {
   title: { fr:'LE CONTACT VIT SUR LE SITE WEB', en:'CONTACT LIVES ON THE WEBSITE', es:'EL CONTACTO VIVE EN LA WEB', de:'DER KONTAKT LEBT AUF DER WEBSITE', it:'IL CONTATTO VIVE SUL SITO WEB', ar:'التواصل يتم عبر الموقع الإلكتروني', zh:'联系我们请前往官网', ja:'お問い合わせはウェブサイトで', ru:'КОНТАКТЫ ЖИВУТ НА САЙТЕ', pl:'KONTAKT ŻYJE NA STRONIE WWW' },
-  sub:   { fr:'Éditeurs, presse, joueurs — le formulaire et les réseaux du studio s’ouvrent dans ton navigateur. Ton launcher, lui, reste ta salle de jeu.', en:'Publishers, press, players — the form and the studio’s socials open in your browser. Your launcher stays your game room.', es:'Editores, prensa, jugadores — el formulario y las redes del estudio se abren en tu navegador. Tu launcher sigue siendo tu sala de juego.', de:'Publisher, Presse, Spieler — Formular und Studio-Kanäle öffnen sich in deinem Browser. Dein Launcher bleibt dein Spielzimmer.', it:'Editori, stampa, giocatori — il modulo e i social dello studio si aprono nel tuo browser. Il launcher resta la tua sala giochi.', ar:'الناشرون والصحافة واللاعبون — يُفتح النموذج وقنوات الأستوديو في متصفحك، ويبقى المشغّل غرفة ألعابك.', zh:'发行商、媒体、玩家——表单与工作室社交渠道会在浏览器中打开。启动器依然是你的游戏空间。', ja:'パブリッシャー・プレス・プレイヤーの皆さま — フォームとSNSはブラウザで開きます。ランチャーはあなたのゲームルームのままです。', ru:'Издатели, пресса, игроки — форма и соцсети студии открываются в браузере. Лаунчер остаётся вашей игровой комнатой.', pl:'Wydawcy, prasa, gracze — formularz i kanały studia otwierają się w przeglądarce. Launcher pozostaje twoją salą gier.' },
+  sub:   { fr:'Éditeurs, presse, joueurs — le formulaire et les réseaux du studio s’ouvrent dans ton navigateur. Ton launcher, lui, reste ta salle de jeux.', en:'Publishers, press, players — the form and the studio’s socials open in your browser. Your launcher stays your game room.', es:'Editores, prensa, jugadores — el formulario y las redes del estudio se abren en tu navegador. Tu launcher sigue siendo tu sala de juego.', de:'Publisher, Presse, Spieler — Formular und Studio-Kanäle öffnen sich in deinem Browser. Dein Launcher bleibt dein Spielzimmer.', it:'Editori, stampa, giocatori — il modulo e i social dello studio si aprono nel tuo browser. Il launcher resta la tua sala giochi.', ar:'الناشرون والصحافة واللاعبون — يُفتح النموذج وقنوات الأستوديو في متصفحك، ويبقى المشغّل غرفة ألعابك.', zh:'发行商、媒体、玩家——表单与工作室社交渠道会在浏览器中打开。启动器依然是你的游戏空间。', ja:'パブリッシャー・プレス・プレイヤーの皆さま — フォームとSNSはブラウザで開きます。ランチャーはあなたのゲームルームのままです。', ru:'Издатели, пресса, игроки — форма и соцсети студии открываются в браузере. Лаунчер остаётся вашей игровой комнатой.', pl:'Wydawcy, prasa, gracze — formularz i kanały studia otwierają się w przeglądarce. Launcher pozostaje twoją salą gier.' },
   open:  { fr:'Ouvrir la page contact', en:'Open the contact page', es:'Abrir la página de contacto', de:'Kontaktseite öffnen', it:'Apri la pagina contatti', ar:'فتح صفحة التواصل', zh:'打开联系页面', ja:'お問い合わせページを開く', ru:'Открыть страницу контактов', pl:'Otwórz stronę kontaktu' },
   mail:  { fr:'Copier l’e-mail', en:'Copy the email', es:'Copiar el correo', de:'E-Mail kopieren', it:'Copia l’e-mail', ar:'نسخ البريد الإلكتروني', zh:'复制邮箱地址', ja:'メールアドレスをコピー', ru:'Скопировать e-mail', pl:'Skopiuj e-mail' },
   copied:{ fr:'E-mail copié ✓', en:'Email copied ✓', es:'Correo copiado ✓', de:'E-Mail kopiert ✓', it:'E-mail copiata ✓', ar:'تم نسخ البريد ✓', zh:'已复制 ✓', ja:'コピーしました ✓', ru:'Скопировано ✓', pl:'Skopiowano ✓' },
@@ -4162,7 +4148,6 @@ const _AUTH_T = {
   haveAccount:{fr:'Déjà un compte ?',en:'Already have an account?',es:'¿Ya tienes una cuenta?',de:'Schon ein Konto?',ar:'لديك حساب بالفعل؟',zh:'已有账号？',ja:'すでにアカウントをお持ちですか？',ru:'Уже есть аккаунт?',pl:'Masz już konto?',it:'Hai già un account?'},
   noAccount:{fr:'Pas encore de compte ?',en:'No account yet?',es:'¿Aún no tienes cuenta?',de:'Noch kein Konto?',ar:'ليس لديك حساب بعد؟',zh:'还没有账号？',ja:'アカウントをお持ちでない方',ru:'Ещё нет аккаунта?',pl:'Nie masz jeszcze konta?',it:'Non hai ancora un account?'},
   checkEmail:{fr:'Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.',en:'Account created! Check your inbox to confirm your email.',es:'¡Cuenta creada! Revisa tu correo para confirmar tu dirección.',de:'Konto erstellt! Prüfe dein Postfach, um deine E-Mail zu bestätigen.',ar:'تم إنشاء الحساب! تحقق من بريدك لتأكيد عنوانك.',zh:'账号已创建！请查收邮件以确认你的邮箱。',ja:'アカウントを作成しました！メールを確認してアドレスを認証してください。',ru:'Аккаунт создан! Проверьте почту, чтобы подтвердить адрес.',pl:'Konto utworzone! Sprawdź skrzynkę, aby potwierdzić adres e-mail.',it:"Account creato! Controlla la tua casella per confermare l'indirizzo."},
-  welcome:{fr:'Connecté ✓',en:'Signed in ✓',es:'Sesión iniciada ✓',de:'Angemeldet ✓',ar:'تم تسجيل الدخول ✓',zh:'已登录 ✓',ja:'サインインしました ✓',ru:'Вы вошли ✓',pl:'Zalogowano ✓',it:'Accesso effettuato ✓'},
   pwWeak:{fr:'Mot de passe trop faible (8+ caractères, mélange maj/min/chiffre/symbole).',en:'Password too weak (8+ chars, mix upper/lower/digit/symbol).',es:'Contraseña demasiado débil (8+ caracteres, mezcla mayús/minús/dígito/símbolo).',de:'Passwort zu schwach (8+ Zeichen, Mix aus Groß-/Kleinbuchstaben/Ziffer/Symbol).',ar:'كلمة المرور ضعيفة جدًا (8 أحرف على الأقل، مزيج من حروف كبيرة وصغيرة ورقم ورمز).',zh:'密码太弱（至少8位，需含大小写字母、数字和符号）。',ja:'パスワードが弱すぎます（8文字以上、大小英字・数字・記号の混在）。',ru:'Слишком слабый пароль (8+ символов, смесь заглавных/строчных/цифр/символов).',pl:'Hasło zbyt słabe (min. 8 znaków, duże/małe litery, cyfra, symbol).',it:'Password troppo debole (8+ caratteri, mix maiusc/minusc/cifra/simbolo).'},
   pwStrength:{fr:['Très faible','Faible','Correct','Bon','Excellent'],en:['Very weak','Weak','Fair','Good','Strong'],es:['Muy débil','Débil','Aceptable','Buena','Excelente'],de:['Sehr schwach','Schwach','Mittel','Gut','Stark'],ar:['ضعيفة جدًا','ضعيفة','مقبولة','جيدة','قوية'],zh:['非常弱','弱','一般','良好','很强'],ja:['非常に弱い','弱い','普通','良い','強い'],ru:['Очень слабый','Слабый','Средний','Хороший','Надёжный'],pl:['Bardzo słabe','Słabe','Średnie','Dobre','Mocne'],it:['Molto debole','Debole','Discreta','Buona','Forte']},
   uTaken:{fr:'Ce pseudo est déjà pris.',en:'This username is taken.',es:'Este nombre de usuario ya está en uso.',de:'Dieser Benutzername ist bereits vergeben.',ar:'اسم المستخدم هذا مأخوذ بالفعل.',zh:'该用户名已被使用。',ja:'このユーザー名は既に使われています。',ru:'Этот никнейм уже занят.',pl:'Ta nazwa użytkownika jest już zajęta.',it:'Questo nome utente è già in uso.'},
@@ -4188,11 +4173,8 @@ const _AUTH_T = {
   customLabel:{fr:'Image personnelle',en:'Custom image',es:'Imagen personal',de:'Eigenes Bild',ar:'صورة شخصية',zh:'自定义图片',ja:'カスタム画像',ru:'Своё изображение',pl:'Własny obraz',it:'Immagine personale'},
   uploadBtn:{fr:'Téléverser une image',en:'Upload an image',es:'Subir una imagen',de:'Bild hochladen',ar:'رفع صورة',zh:'上传图片',ja:'画像をアップロード',ru:'Загрузить изображение',pl:'Prześlij obraz',it:"Carica un'immagine"},
   back:{fr:'Retour',en:'Back',es:'Volver',de:'Zurück',ar:'رجوع',zh:'返回',ja:'戻る',ru:'Назад',pl:'Wstecz',it:'Indietro'},
-  modOff:{fr:"Upload perso bientôt disponible (modération requise). Choisis un personnage pour l'instant.",en:'Custom upload coming soon (moderation required). Pick a character for now.',es:'La subida personalizada llegará pronto (requiere moderación). Elige un personaje por ahora.',de:'Eigener Upload kommt bald (Moderation erforderlich). Wähle vorerst einen Charakter.',ar:'رفع الصور المخصصة قريبًا (يتطلب إشرافًا). اختر شخصية الآن.',zh:'自定义上传即将推出（需审核）。请暂时选择一个角色。',ja:'カスタムアップロードは近日対応（要モデレーション）。今はキャラクターを選んでください。',ru:'Загрузка своих изображений скоро (нужна модерация). Пока выберите персонажа.',pl:'Własny upload wkrótce (wymaga moderacji). Na razie wybierz postać.',it:'Caricamento personalizzato in arrivo (richiede moderazione). Per ora scegli un personaggio.'},
   imgType:{fr:'Format non supporté (PNG, JPG, WEBP).',en:'Unsupported format (PNG, JPG, WEBP).',es:'Formato no admitido (PNG, JPG, WEBP).',de:'Format nicht unterstützt (PNG, JPG, WEBP).',ar:'صيغة غير مدعومة (PNG، JPG، WEBP).',zh:'不支持的格式（PNG、JPG、WEBP）。',ja:'対応していない形式です（PNG, JPG, WEBP）。',ru:'Формат не поддерживается (PNG, JPG, WEBP).',pl:'Nieobsługiwany format (PNG, JPG, WEBP).',it:'Formato non supportato (PNG, JPG, WEBP).'},
   imgSize:{fr:'Image trop lourde (max 2 Mo).',en:'Image too large (max 2 MB).',es:'Imagen demasiado grande (máx. 2 MB).',de:'Bild zu groß (max. 2 MB).',ar:'الصورة كبيرة جدًا (الحد الأقصى 2 ميغابايت).',zh:'图片过大（最大2 MB）。',ja:'画像が大きすぎます（最大2 MB）。',ru:'Изображение слишком большое (макс. 2 МБ).',pl:'Obraz zbyt duży (maks. 2 MB).',it:'Immagine troppo pesante (max 2 MB).'},
-  imgRejected:{fr:'Image refusée par la modération.',en:'Image rejected by moderation.',es:'Imagen rechazada por moderación.',de:'Bild von der Moderation abgelehnt.',ar:'تم رفض الصورة من قبل الإشراف.',zh:'图片被审核拒绝。',ja:'画像がモデレーションにより拒否されました。',ru:'Изображение отклонено модерацией.',pl:'Obraz odrzucony przez moderację.',it:'Immagine rifiutata dalla moderazione.'},
-  imgUploaded:{fr:'Avatar mis à jour ✓',en:'Avatar updated ✓',es:'Avatar actualizado ✓',de:'Avatar aktualisiert ✓',ar:'تم تحديث الصورة الرمزية ✓',zh:'头像已更新 ✓',ja:'アバターを更新しました ✓',ru:'Аватар обновлён ✓',pl:'Awatar zaktualizowany ✓',it:'Avatar aggiornato ✓'},
   dobLbl:{fr:'Date de naissance',en:'Date of birth',es:'Fecha de nacimiento',de:'Geburtsdatum',ar:'تاريخ الميلاد',zh:'出生日期',ja:'生年月日',ru:'Дата рождения',pl:'Data urodzenia',it:'Data di nascita'},
   dayLbl:{fr:'Jour',en:'Day',es:'Día',de:'Tag',ar:'اليوم',zh:'日',ja:'日',ru:'День',pl:'Dzień',it:'Giorno'}, monthLbl:{fr:'Mois',en:'Month',es:'Mes',de:'Monat',ar:'الشهر',zh:'月',ja:'月',ru:'Месяц',pl:'Miesiąc',it:'Mese'}, yearLbl:{fr:'Année',en:'Year',es:'Año',de:'Jahr',ar:'السنة',zh:'年',ja:'年',ru:'Год',pl:'Rok',it:'Anno'},
   showPw:{fr:'Afficher le mot de passe',en:'Show password',es:'Mostrar contraseña',de:'Passwort anzeigen',ar:'إظهار كلمة المرور',zh:'显示密码',ja:'パスワードを表示',ru:'Показать пароль',pl:'Pokaż hasło',it:'Mostra password'}, hidePw:{fr:'Masquer le mot de passe',en:'Hide password',es:'Ocultar contraseña',de:'Passwort verbergen',ar:'إخفاء كلمة المرور',zh:'隐藏密码',ja:'パスワードを隠す',ru:'Скрыть пароль',pl:'Ukryj hasło',it:'Nascondi password'},
@@ -4624,7 +4606,6 @@ const _MFA_T = {
 const _mt = k => (_MFA_T[k] && (_MFA_T[k][LANG] || _MFA_T[k].en)) || '';
 
 const _OPT_T = {
-  settings:{fr:'Paramètres',en:'Settings',es:'Ajustes',de:'Einstellungen',it:'Impostazioni',ar:'الإعدادات',zh:'设置',ja:'設定',ru:'Настройки',pl:'Ustawienia'},
   descProfile:{fr:'Ton identité publique — pseudo, genre, âge, bio et bannière.',en:'Your public identity — username, gender, age, bio and banner.',es:'Tu identidad pública — usuario, género, edad, bio y portada.',de:'Deine öffentliche Identität — Name, Geschlecht, Alter, Bio und Banner.',it:'La tua identità pubblica — nome, genere, età, bio e banner.',ar:'هويتك العامة — الاسم والجنس والعمر والنبذة والغلاف.',zh:'你的公开身份——用户名、性别、年龄、简介与横幅。',ja:'あなたの公開プロフィール — 名前・性別・年齢・自己紹介・バナー。',ru:'Ваша публичная личность — имя, пол, возраст, био и баннер.',pl:'Twoja publiczna tożsamość — nazwa, płeć, wiek, bio i baner.'},
   descPerso:{fr:'L’apparence et le ressenti du launcher — couleur d’accent, animations, sons.',en:'How the launcher looks and feels — accent color, motion, sounds.',es:'La apariencia del launcher — color de acento, animaciones, sonidos.',de:'Aussehen und Verhalten des Launchers — Akzentfarbe, Animationen, Sounds.',it:'Aspetto e feeling del launcher — colore d’accento, animazioni, suoni.',ar:'مظهر المشغّل وإحساسه — لون التمييز والحركة والأصوات.',zh:'启动器的外观与手感——强调色、动效、音效。',ja:'ランチャーの見た目と手触り — アクセントカラー・アニメーション・サウンド。',ru:'Внешний вид лаунчера — акцентный цвет, анимации, звуки.',pl:'Wygląd i odczucia launchera — kolor akcentu, animacje, dźwięki.'},
   descNotif:{fr:'Choisis ce qui mérite de te prévenir — le reste se tait.',en:'Choose what deserves to notify you — the rest stays quiet.',es:'Elige qué merece avisarte — el resto guarda silencio.',de:'Wähle, was dich benachrichtigen darf — der Rest bleibt still.',it:'Scegli cosa merita di avvisarti — il resto tace.',ar:'اختر ما يستحق تنبيهك — ويصمت الباقي.',zh:'选择值得提醒你的内容——其余保持安静。',ja:'通知する価値のあるものだけを選ぼう — あとは静かに。',ru:'Выберите, что достойно уведомления — остальное молчит.',pl:'Wybierz, co zasługuje na powiadomienie — reszta milczy.'},
@@ -4710,14 +4691,12 @@ const _OPT_T = {
   dirR:{fr:'Radial',en:'Radial',es:'Radial',de:'Radial',it:'Radiale',ar:'شعاعي',zh:'径向',ja:'放射状',ru:'Радиально',pl:'Promieniście'},
   privShowFavs:{fr:'Afficher mes jeux favoris',en:'Show my favorite games',es:'Mostrar mis juegos favoritos',de:'Meine Lieblingsspiele zeigen',it:'Mostra i miei giochi preferiti',ar:'إظهار ألعابي المفضلة',zh:'展示我的收藏游戏',ja:'お気に入りのゲームを表示',ru:'Показывать любимые игры',pl:'Pokazuj ulubione gry'},
   privShowFavsD:{fr:'Ta vitrine « Favoris » apparaît sur ton profil public.',en:'Your “Favorites” showcase appears on your public profile.',es:'Tu vitrina de «Favoritos» aparece en tu perfil público.',de:'Deine „Favoriten“-Vitrine erscheint auf deinem öffentlichen Profil.',it:'La tua vetrina «Preferiti» appare sul tuo profilo pubblico.',ar:'تظهر واجهة «المفضلة» في ملفك العام.',zh:'你的“收藏”橱窗会显示在公开个人资料上。',ja:'「お気に入り」ショーケースが公開プロフィールに表示されます。',ru:'Витрина «Избранное» видна в вашем публичном профиле.',pl:'Twoja gablota „Ulubione” pojawia się na profilu publicznym.'},
-  settingsSub:{fr:'Gère ton compte, ton apparence, ta confidentialité et les mises à jour.',en:'Manage your account, appearance, privacy and updates.',es:'Gestiona tu cuenta, apariencia, privacidad y actualizaciones.',de:'Verwalte Konto, Aussehen, Datenschutz und Updates.',it:'Gestisci account, aspetto, privacy e aggiornamenti.',ar:'أدر حسابك ومظهرك وخصوصيتك والتحديثات.',zh:'管理账户、外观、隐私与更新。',ja:'アカウント・外観・プライバシー・更新を管理。',ru:'Управление аккаунтом, оформлением, приватностью и обновлениями.',pl:'Zarządzaj kontem, wyglądem, prywatnością i aktualizacjami.'},
   tabUpdates:{fr:'Mises à jour',en:'Updates',es:'Actualizaciones',de:'Updates',it:'Aggiornamenti',ar:'التحديثات',zh:'更新',ja:'更新',ru:'Обновления',pl:'Aktualizacje'},
   appVersion:{fr:'Version installée',en:'Installed version',es:'Versión instalada',de:'Installierte Version',it:'Versione installata',ar:'الإصدار المثبت',zh:'已安装版本',ja:'インストール済みバージョン',ru:'Установленная версия',pl:'Zainstalowana wersja'},
   upToDate:{fr:'Tu utilises la dernière version. ✓',en:'You’re on the latest version. ✓',es:'Estás en la última versión. ✓',de:'Du nutzt die neueste Version. ✓',it:'Hai l’ultima versione. ✓',ar:'أنت تستخدم أحدث إصدار. ✓',zh:'已是最新版本。✓',ja:'最新バージョンです。✓',ru:'У вас последняя версия. ✓',pl:'Masz najnowszą wersję. ✓'},
   checkUpdates:{fr:'Vérifier les mises à jour',en:'Check for updates',es:'Buscar actualizaciones',de:'Nach Updates suchen',it:'Cerca aggiornamenti',ar:'التحقق من التحديثات',zh:'检查更新',ja:'更新を確認',ru:'Проверить обновления',pl:'Sprawdź aktualizacje'},
   checking:{fr:'Vérification…',en:'Checking…',es:'Comprobando…',de:'Wird geprüft…',it:'Controllo…',ar:'جارٍ التحقق…',zh:'检查中…',ja:'確認中…',ru:'Проверка…',pl:'Sprawdzanie…'},
   launcherNote:{fr:'Dans l’application téléchargeable (launcher), les mises à jour s’installeront automatiquement depuis cette page.',en:'In the downloadable app (launcher), updates will install automatically from this page.',es:'En la app descargable (launcher), las actualizaciones se instalarán desde esta página.',de:'In der herunterladbaren App (Launcher) werden Updates über diese Seite installiert.',it:'Nell’app scaricabile (launcher), gli aggiornamenti si installeranno da questa pagina.',ar:'في التطبيق القابل للتنزيل، ستُثبَّت التحديثات من هذه الصفحة.',zh:'在可下载的客户端中，更新将从此页面自动安装。',ja:'ダウンロード版（ランチャー）では、更新はこのページから自動インストールされます。',ru:'В загружаемом приложении (лаунчере) обновления будут устанавливаться с этой страницы.',pl:'W aplikacji do pobrania (launcher) aktualizacje będą instalowane z tej strony.'},
-  releaseNotes:{fr:'Notes de version',en:'Release notes',es:'Notas de versión',de:'Versionshinweise',it:'Note di rilascio',ar:'ملاحظات الإصدار',zh:'更新日志',ja:'リリースノート',ru:'Список изменений',pl:'Lista zmian'},
 };
 function _ot(k){ const m=_OPT_T[k]; return m ? (m[LANG]||m.en) : k; }
 const GLG_VERSION = '1.0.0';
@@ -5538,13 +5517,11 @@ const _NOTIF_T = {
   empty:{fr:'Aucune notification pour le moment.',en:'No notifications yet.',es:'No hay notificaciones por ahora.',de:'Noch keine Benachrichtigungen.',ar:'لا توجد إشعارات بعد.',zh:'暂无通知。',ja:'通知はまだありません。',ru:'Пока нет уведомлений.',pl:'Brak powiadomień.',it:'Nessuna notifica per ora.'},
   markAll:{fr:'Tout marquer comme lu',en:'Mark all as read',es:'Marcar todo como leído',de:'Alle als gelesen markieren',ar:'تعليم الكل كمقروء',zh:'全部标记为已读',ja:'すべて既読にする',ru:'Отметить все как прочитанные',pl:'Oznacz wszystkie jako przeczytane',it:'Segna tutto come letto'},
   friendReq:{fr:'Nouvelle demande d’ami',en:'New friend request',es:'Nueva solicitud de amistad',de:'Neue Freundschaftsanfrage',ar:'طلب صداقة جديد',zh:'新的好友请求',ja:'新しいフレンド申請',ru:'Новый запрос в друзья',pl:'Nowe zaproszenie do znajomych',it:'Nuova richiesta di amicizia'},
-  friendReqB:{fr:'%s souhaite vous ajouter.',en:'%s wants to add you.',es:'%s quiere añadirte.',de:'%s möchte dich hinzufügen.',ar:'يريد %s إضافتك.',zh:'%s 想添加你为好友。',ja:'%s さんがあなたを追加したがっています。',ru:'%s хочет добавить вас.',pl:'%s chce Cię dodać.',it:'%s vuole aggiungerti.'},
+  friendReqB:{fr:'%s souhaite t’ajouter.',en:'%s wants to add you.',es:'%s quiere añadirte.',de:'%s möchte dich hinzufügen.',ar:'يريد %s إضافتك.',zh:'%s 想添加你为好友。',ja:'%s さんがあなたを追加したがっています。',ru:'%s хочет добавить вас.',pl:'%s chce Cię dodać.',it:'%s vuole aggiungerti.'},
   friendOk:{fr:'Demande d’ami acceptée',en:'Friend request accepted',es:'Solicitud de amistad aceptada',de:'Freundschaftsanfrage angenommen',ar:'تم قبول طلب الصداقة',zh:'好友请求已接受',ja:'フレンド申請が承認されました',ru:'Запрос в друзья принят',pl:'Zaproszenie przyjęte',it:'Richiesta di amicizia accettata'},
   friendOkB:{fr:'%s et vous êtes maintenant amis.',en:'%s and you are now friends.',es:'%s y tú ahora sois amigos.',de:'%s und du seid jetzt Freunde.',ar:'أنت و%s أصبحتما صديقين الآن.',zh:'你和 %s 现在是好友了。',ja:'%s さんとフレンドになりました。',ru:'Теперь вы и %s друзья.',pl:'Ty i %s jesteście teraz znajomymi.',it:'Tu e %s ora siete amici.'},
   release:{fr:'Disponible !',en:'Out now!',es:'¡Ya disponible!',de:'Jetzt verfügbar!',ar:'متاح الآن!',zh:'现已推出！',ja:'配信開始！',ru:'Уже доступно!',pl:'Już dostępne!',it:'Ora disponibile!'},
-  releaseB:{fr:'%s de votre liste de souhaits est sorti.',en:'%s from your wishlist is out.',es:'%s de tu lista de deseos ya está disponible.',de:'%s aus deiner Wunschliste ist erschienen.',ar:'صدر %s من قائمة رغباتك.',zh:'心愿单中的 %s 已发布。',ja:'ウィッシュリストの %s が配信されました。',ru:'%s из вашего списка желаемого вышел.',pl:'%s z Twojej listy życzeń jest już dostępny.',it:'%s dalla tua lista dei desideri è uscito.'},
-  welcome:{fr:'Bienvenue sur GEEKLEARN GAMES',en:'Welcome to GEEKLEARN GAMES',es:'Bienvenido a GEEKLEARN GAMES',de:'Willkommen bei GEEKLEARN GAMES',ar:'مرحبًا بك في GEEKLEARN GAMES',zh:'欢迎来到 GEEKLEARN GAMES',ja:'GEEKLEARN GAMES へようこそ',ru:'Добро пожаловать в GEEKLEARN GAMES',pl:'Witaj w GEEKLEARN GAMES',it:'Benvenuto su GEEKLEARN GAMES'},
-  welcomeB:{fr:'Votre espace membre est prêt. Liez vos comptes et ajoutez des amis.',en:'Your member space is ready. Link your accounts and add friends.',es:'Tu espacio de miembro está listo. Vincula tus cuentas y añade amigos.',de:'Dein Mitgliedsbereich ist bereit. Verknüpfe deine Konten und füge Freunde hinzu.',ar:'مساحة العضوية الخاصة بك جاهزة. اربط حساباتك وأضِف أصدقاء.',zh:'你的会员空间已就绪。关联账号并添加好友吧。',ja:'メンバースペースの準備ができました。アカウントを連携してフレンドを追加しましょう。',ru:'Ваш профиль готов. Привяжите аккаунты и добавьте друзей.',pl:'Twoja przestrzeń członkowska jest gotowa. Połącz konta i dodaj znajomych.',it:'Il tuo spazio membro è pronto. Collega i tuoi account e aggiungi amici.'},
+  releaseB:{fr:'%s de ta liste de souhaits est sorti.',en:'%s from your wishlist is out.',es:'%s de tu lista de deseos ya está disponible.',de:'%s aus deiner Wunschliste ist erschienen.',ar:'صدر %s من قائمة رغباتك.',zh:'心愿单中的 %s 已发布。',ja:'ウィッシュリストの %s が配信されました。',ru:'%s из вашего списка желаемого вышел.',pl:'%s z Twojej listy życzeń jest już dostępny.',it:'%s dalla tua lista dei desideri è uscito.'},
   now:{fr:'à l’instant',en:'just now',es:'ahora mismo',de:'gerade eben',ar:'الآن',zh:'刚刚',ja:'たった今',ru:'только что',pl:'przed chwilą',it:'proprio ora'},
 };
 function _nt(k){ const m=_NOTIF_T[k]; return m ? (m[LANG]||m.en) : k; }
@@ -5933,8 +5910,6 @@ const _PP_T = {
   statWish:{fr:'Souhaits',en:'Wishlist',es:'Deseos',de:'Wunschliste',ar:'الرغبات',zh:'心愿单',ja:'ウィッシュリスト',ru:'Желаемое',pl:'Życzenia',it:'Desideri'},
   statGames:{fr:'Jeux',en:'Games',es:'Juegos',de:'Spiele',ar:'الألعاب',zh:'游戏',ja:'ゲーム',ru:'Игры',pl:'Gry',it:'Giochi'},
   statMember:{fr:'Membre depuis',en:'Member since',es:'Miembro desde',de:'Mitglied seit',ar:'عضو منذ',zh:'注册于',ja:'登録日',ru:'В сообществе с',pl:'Członek od',it:'Membro dal'},
-  statLib:{fr:'Bibliothèque',en:'Library',es:'Biblioteca',de:'Bibliothek',ar:'المكتبة',zh:'库',ja:'ライブラリ',ru:'Библиотека',pl:'Biblioteka',it:'Libreria'},
-  soon:{fr:'Bientôt',en:'Soon',es:'Pronto',de:'Bald',ar:'قريبًا',zh:'即将推出',ja:'近日',ru:'Скоро',pl:'Wkrótce',it:'Presto'},
   defaultBanner:{fr:'Par défaut',en:'Default',es:'Por defecto',de:'Standard',ar:'افتراضي',zh:'默认',ja:'デフォルト',ru:'По умолчанию',pl:'Domyślny',it:'Predefinito'},
   pickBanner:{fr:'Choisir une bannière',en:'Choose a banner',es:'Elegir una portada',de:'Banner auswählen',ar:'اختر غلافًا',zh:'选择横幅',ja:'バナーを選ぶ',ru:'Выбрать баннер',pl:'Wybierz baner',it:'Scegli un banner'},
   years:{fr:'ans',en:'yrs',es:'años',de:'J.',ar:'سنة',zh:'岁',ja:'歳',ru:'лет',pl:'lat',it:'anni'},
@@ -6482,15 +6457,11 @@ async function friendAdd(id, btn){
    ami (jamais sur le sien — on ne se retire pas soi-même).
 ══════════════════════════════════════════════════════════ */
 const _UP_T = {
-  member:   { fr:'Membre depuis', en:'Member since', es:'Miembro desde', de:'Mitglied seit', it:'Membro dal', ar:'عضو منذ', zh:'加入于', ja:'登録日', ru:'Участник с', pl:'Członek od' },
-  friendsN: { fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
-  trophiesN:{ fr:'Trophées', en:'Trophies', es:'Trofeos', de:'Trophäen', it:'Trofei', ar:'الجوائز', zh:'奖杯', ja:'トロフィー', ru:'Трофеи', pl:'Trofea' },
   add:      { fr:'Ajouter en ami', en:'Add friend', es:'Añadir amigo', de:'Freund hinzufügen', it:'Aggiungi amico', ar:'إضافة صديق', zh:'添加好友', ja:'フレンド追加', ru:'Добавить в друзья', pl:'Dodaj znajomego' },
   accept:   { fr:'Accepter la demande', en:'Accept request', es:'Aceptar solicitud', de:'Anfrage annehmen', it:'Accetta richiesta', ar:'قبول الطلب', zh:'接受请求', ja:'リクエストを承認', ru:'Принять заявку', pl:'Przyjmij zaproszenie' },
   pending:  { fr:'Demande envoyée', en:'Request sent', es:'Solicitud enviada', de:'Anfrage gesendet', it:'Richiesta inviata', ar:'تم إرسال الطلب', zh:'请求已发送', ja:'リクエスト送信済み', ru:'Заявка отправлена', pl:'Wysłano zaproszenie' },
   remove:   { fr:'Retirer des amis', en:'Remove friend', es:'Eliminar amigo', de:'Freund entfernen', it:'Rimuovi amico', ar:'إزالة الصديق', zh:'移除好友', ja:'フレンド解除', ru:'Удалить из друзей', pl:'Usuń znajomego' },
-  removeQ:  { fr:'Retirer cette personne de vos amis ?', en:'Remove this person from your friends?', es:'¿Eliminar a esta persona de tus amigos?', de:'Diese Person aus deinen Freunden entfernen?', it:'Rimuovere questa persona dai tuoi amici?', ar:'إزالة هذا الشخص من أصدقائك؟', zh:'将此人从好友中移除？', ja:'この人をフレンドから外しますか？', ru:'Удалить этого человека из друзей?', pl:'Usunąć tę osobę ze znajomych?' },
-  mine:     { fr:'Mon espace', en:'My space', es:'Mi espacio', de:'Mein Bereich', it:'Il mio spazio', ar:'مساحتي', zh:'我的空间', ja:'マイスペース', ru:'Мой профиль', pl:'Mój profil' },
+  removeQ:  { fr:'Retirer cette personne de tes amis ?', en:'Remove this person from your friends?', es:'¿Eliminar a esta persona de tus amigos?', de:'Diese Person aus deinen Freunden entfernen?', it:'Rimuovere questa persona dai tuoi amici?', ar:'إزالة هذا الشخص من أصدقائك؟', zh:'将此人从好友中移除？', ja:'この人をフレンドから外しますか？', ru:'Удалить этого человека из друзей?', pl:'Usunąć tę osobę ze znajomych?' },
   noBio:    { fr:'Ce joueur n’a pas encore de bio.', en:'This player hasn’t added a bio yet.', es:'Este jugador aún no tiene biografía.', de:'Dieser Spieler hat noch keine Bio.', it:'Questo giocatore non ha ancora una bio.', ar:'لم يضف هذا اللاعب نبذة بعد.', zh:'该玩家尚未填写简介。', ja:'このプレイヤーはまだ自己紹介がありません。', ru:'Игрок ещё не добавил описание.', pl:'Ten gracz nie dodał jeszcze bio.' },
   founder:  { fr:'Fondateur du studio', en:'Studio founder', es:'Fundador del estudio', de:'Studio-Gründer', it:'Fondatore dello studio', ar:'مؤسس الأستوديو', zh:'工作室创始人', ja:'スタジオ創設者', ru:'Основатель студии', pl:'Założyciel studia' },
   favShowcase:{ fr:'Jeux favoris', en:'Favorite games', es:'Juegos favoritos', de:'Lieblingsspiele', it:'Giochi preferiti', ar:'الألعاب المفضلة', zh:'收藏的游戏', ja:'お気に入りのゲーム', ru:'Любимые игры', pl:'Ulubione gry' },
@@ -7497,10 +7468,6 @@ function escRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 }
 
-/* CAROUSEL TOUCH — superseded by buildWorksGrid(); the old carousel tracks
-   (.carousel-track.films-t/.games-t) no longer exist. Kept as a real no-op so
-   any lingering call site doesn't throw. */
-function initCarouselTouch() { /* no-op */ }
 
 /* ════════════════════════════════════════════════════════
    ★  GLG — CINEMATIC ANIMATION SYSTEM v2
@@ -7769,14 +7736,14 @@ const _STUDIO_THEMES = {
 };
 
 const _STUDIO_EYEBROWS = {
-  fr: '— Univers Créatifs', en: '— Creative Universes', es: '— Universos Creativos',
+  fr: '— Univers créatifs', en: '— Creative Universes', es: '— Universos Creativos',
   de: '— Kreative Welten',  ar: '— العوالم الإبداعية', zh: '— 创意世界',
   ja: '— クリエイティブな世界', ru: '— Творческие Миры', pl: '— Kreatywne Światy',
   it: '— Universi Creativi',
 };
 
 const _STUDIO_FOOTERS = {
-  fr: 'Films interactifs & Jeux vidéo · Est. 2026',
+  fr: 'Films interactifs et jeux vidéo · Est. 2026',
   en: 'Interactive Films & Video Games · Est. 2026',
   es: 'Films Interactivos & Videojuegos · Est. 2026',
   de: 'Interaktive Filme & Videospiele · Est. 2026',
@@ -8030,13 +7997,95 @@ if ('serviceWorker' in navigator && !IS_TAURI && /(^|\.)geeklearngames\.com$/.te
   });
 }
 
+/* ══ MENU CONTEXTUEL DU LAUNCHER (clic droit) ══
+   Le menu NATIF de la WebView exposait « Enregistrer sous / Imprimer »
+   (fuite du HTML et des assets du launcher). Remplacé par un menu GLG
+   minimal façon Steam : uniquement des actions contextuelles utiles
+   (couper/copier/coller, lien, image, actualiser). Le SITE WEB garde le
+   menu natif du navigateur — bloquer le clic droit sur le web est hostile
+   et ne protège rien (Ctrl+U, DevTools, curl…). */
+const _CTX_T = {
+  copy:    { fr:'Copier', en:'Copy', es:'Copiar', de:'Kopieren', it:'Copia', ar:'نسخ', zh:'复制', ja:'コピー', ru:'Копировать', pl:'Kopiuj' },
+  cut:     { fr:'Couper', en:'Cut', es:'Cortar', de:'Ausschneiden', it:'Taglia', ar:'قص', zh:'剪切', ja:'切り取り', ru:'Вырезать', pl:'Wytnij' },
+  paste:   { fr:'Coller', en:'Paste', es:'Pegar', de:'Einfügen', it:'Incolla', ar:'لصق', zh:'粘贴', ja:'貼り付け', ru:'Вставить', pl:'Wklej' },
+  selAll:  { fr:'Tout sélectionner', en:'Select all', es:'Seleccionar todo', de:'Alles auswählen', it:'Seleziona tutto', ar:'تحديد الكل', zh:'全选', ja:'すべて選択', ru:'Выделить всё', pl:'Zaznacz wszystko' },
+  copyLink:{ fr:'Copier le lien', en:'Copy link', es:'Copiar enlace', de:'Link kopieren', it:'Copia link', ar:'نسخ الرابط', zh:'复制链接', ja:'リンクをコピー', ru:'Копировать ссылку', pl:'Kopiuj link' },
+  openExt: { fr:'Ouvrir dans le navigateur', en:'Open in browser', es:'Abrir en el navegador', de:'Im Browser öffnen', it:'Apri nel browser', ar:'فتح في المتصفح', zh:'在浏览器中打开', ja:'ブラウザで開く', ru:'Открыть в браузере', pl:'Otwórz w przeglądarce' },
+  copyImg: { fr:"Copier l'adresse de l'image", en:'Copy image address', es:'Copiar dirección de la imagen', de:'Bildadresse kopieren', it:'Copia indirizzo immagine', ar:'نسخ عنوان الصورة', zh:'复制图片地址', ja:'画像アドレスをコピー', ru:'Копировать адрес изображения', pl:'Kopiuj adres obrazu' },
+  reload:  { fr:'Actualiser', en:'Refresh', es:'Actualizar', de:'Aktualisieren', it:'Aggiorna', ar:'تحديث', zh:'刷新', ja:'更新', ru:'Обновить', pl:'Odśwież' },
+};
+const _ctxT = k => (_CTX_T[k] && (_CTX_T[k][LANG] || _CTX_T[k].en)) || '';
+function _glgCtxClose() { document.getElementById('glg-ctx')?.remove(); }
+function _glgCtxOpen(e) {
+  _glgCtxClose();
+  const t = e.target, items = [];
+  const ed = t.closest && t.closest('input,textarea,[contenteditable="true"]');
+  const isInput = !!(ed && (ed.tagName === 'INPUT' || ed.tagName === 'TEXTAREA'));
+  const sel = isInput
+    ? String(ed.value).slice(ed.selectionStart ?? 0, ed.selectionEnd ?? 0)
+    : String(window.getSelection() || '');
+  if (ed) {
+    if (sel && isInput && !ed.readOnly) items.push(['cut', () => {
+      navigator.clipboard.writeText(sel).catch(() => {});
+      ed.setRangeText('', ed.selectionStart, ed.selectionEnd, 'end');
+      ed.dispatchEvent(new Event('input', { bubbles: true }));
+    }]);
+    if (sel) items.push(['copy', () => navigator.clipboard.writeText(sel).catch(() => {})]);
+    items.push(['paste', async () => {
+      try {
+        const txt = await navigator.clipboard.readText();
+        if (txt && isInput && !ed.readOnly) {
+          ed.setRangeText(txt, ed.selectionStart ?? ed.value.length, ed.selectionEnd ?? ed.value.length, 'end');
+          ed.dispatchEvent(new Event('input', { bubbles: true }));
+          ed.focus();
+        }
+      } catch (err) {}   // lecture presse-papiers refusée → Ctrl+V reste possible
+    }]);
+    items.push(['selAll', () => { if (isInput) ed.select(); }]);
+  } else if (sel) {
+    items.push(['copy', () => navigator.clipboard.writeText(sel).catch(() => {})]);
+  }
+  const a = t.closest && t.closest('a[href]');
+  if (a && /^https?:/i.test(a.href)) {
+    items.push(['copyLink', () => navigator.clipboard.writeText(a.href).catch(() => {})]);
+    items.push(['openExt', () => glgOpenExternal(a.href)]);
+  }
+  const im = t.closest && t.closest('img');
+  if (im && /^https?:/i.test(im.src || '')) items.push(['copyImg', () => navigator.clipboard.writeText(im.src).catch(() => {})]);
+  const menu = document.createElement('div');
+  menu.id = 'glg-ctx'; menu.setAttribute('role', 'menu');
+  menu.innerHTML = items.map(([k]) => `<button role="menuitem" data-k="${k}">${_ctxT(k)}</button>`).join('')
+    + (items.length ? '<hr>' : '')
+    + `<button role="menuitem" data-k="reload">${_ctxT('reload')}</button>`;
+  const acts = Object.fromEntries(items);
+  acts.reload = () => location.reload();
+  menu.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-k]'); if (!b) return;
+    ev.stopPropagation(); _glgCtxClose();
+    const fn = acts[b.dataset.k]; if (fn) fn();
+  });
+  document.body.appendChild(menu);
+  const r = menu.getBoundingClientRect();
+  menu.style.left = Math.max(4, Math.min(e.clientX, innerWidth - r.width - 8)) + 'px';
+  menu.style.top = Math.max(4, Math.min(e.clientY, innerHeight - r.height - 8)) + 'px';
+}
+document.addEventListener('contextmenu', e => {
+  if (!IS_TAURI) return;                       // évalué au clic : pas de piège TDZ
+  e.preventDefault();
+  _glgCtxOpen(e);
+});
+document.addEventListener('click', _glgCtxClose);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') _glgCtxClose(); });
+window.addEventListener('scroll', _glgCtxClose, true);
+
 /* ══════════════════════════════════════════
    GLG CHAT — messagerie (MP entre amis + groupes « serveurs »)
    ──────────────────────────────────────────
    Backend : db/schema.sql § GLG CHAT (RLS + chat_can_access + realtime).
    MP disponibles PARTOUT (site + launcher) ; les GROUPES sont une
    exclusivité du launcher (le web affiche une invitation à l'installer).
-   Pièces jointes : images / vidéos / audios (bucket chat-media, 25 Mo) +
+   Pièces jointes : tout type de fichier (bucket chat-media, 50 Mo,
+   garde-fous _glgFileGuard : exécutables bloqués, zip inspectés) +
    notes vocales enregistrées au micro (MediaRecorder, opt-in navigateur).
 ══════════════════════════════════════════ */
 const _CHAT_T = {
@@ -8051,9 +8100,8 @@ const _CHAT_T = {
   members:   { fr:'%s membres', en:'%s members', es:'%s miembros', de:'%s Mitglieder', it:'%s membri', ar:'%s أعضاء', zh:'%s 位成员', ja:'%s人のメンバー', ru:'Участников: %s', pl:'%s członków' },
   ph:        { fr:'Écris un message…', en:'Write a message…', es:'Escribe un mensaje…', de:'Nachricht schreiben…', it:'Scrivi un messaggio…', ar:'اكتب رسالة…', zh:'输入消息……', ja:'メッセージを入力…', ru:'Напишите сообщение…', pl:'Napisz wiadomość…' },
   send:      { fr:'Envoyer', en:'Send', es:'Enviar', de:'Senden', it:'Invia', ar:'إرسال', zh:'发送', ja:'送信', ru:'Отправить', pl:'Wyślij' },
-  attach:    { fr:'Joindre une image, vidéo ou audio', en:'Attach an image, video or audio', es:'Adjuntar imagen, vídeo o audio', de:'Bild, Video oder Audio anhängen', it:'Allega immagine, video o audio', ar:'إرفاق صورة أو فيديو أو صوت', zh:'附加图片、视频或音频', ja:'画像・動画・音声を添付', ru:'Прикрепить фото, видео или аудио', pl:'Załącz obraz, wideo lub audio' },
+  attach:    { fr:'Joindre un fichier (50 Mo max)', en:'Attach a file (50 MB max)', es:'Adjuntar un archivo (máx. 50 MB)', de:'Datei anhängen (max. 50 MB)', it:'Allega un file (max 50 MB)', ar:'إرفاق ملف (بحد أقصى 50 م.ب)', zh:'附加文件（最大 50 MB）', ja:'ファイルを添付（最大50MB）', ru:'Прикрепить файл (макс. 50 МБ)', pl:'Załącz plik (maks. 50 MB)' },
   record:    { fr:'Note vocale', en:'Voice note', es:'Nota de voz', de:'Sprachnotiz', it:'Nota vocale', ar:'رسالة صوتية', zh:'语音消息', ja:'ボイスメモ', ru:'Голосовое сообщение', pl:'Notatka głosowa' },
-  recStop:   { fr:'Terminer et envoyer', en:'Finish & send', es:'Terminar y enviar', de:'Beenden & senden', it:'Termina e invia', ar:'إنهاء وإرسال', zh:'结束并发送', ja:'終了して送信', ru:'Завершить и отправить', pl:'Zakończ i wyślij' },
   recCancel: { fr:'Annuler', en:'Cancel', es:'Cancelar', de:'Abbrechen', it:'Annulla', ar:'إلغاء', zh:'取消', ja:'キャンセル', ru:'Отмена', pl:'Anuluj' },
   recDenied: { fr:'Micro refusé — autorise-le pour envoyer des notes vocales.', en:'Microphone denied — allow it to send voice notes.', es:'Micrófono denegado — permítelo para enviar notas de voz.', de:'Mikrofon verweigert — erlaube es für Sprachnotizen.', it:'Microfono negato — consentilo per inviare note vocali.', ar:'رُفض الميكروفون — اسمح به لإرسال الرسائل الصوتية.', zh:'麦克风被拒绝——允许后才能发送语音。', ja:'マイクが拒否されました — ボイスメモには許可が必要です。', ru:'Микрофон запрещён — разрешите его для голосовых.', pl:'Mikrofon odrzucony — zezwól, aby wysyłać notatki głosowe.' },
   typing:    { fr:'%s écrit…', en:'%s is typing…', es:'%s está escribiendo…', de:'%s schreibt…', it:'%s sta scrivendo…', ar:'%s يكتب…', zh:'%s 正在输入……', ja:'%sが入力中…', ru:'%s печатает…', pl:'%s pisze…' },
@@ -8067,7 +8115,7 @@ const _CHAT_T = {
   noFriends: { fr:'Ajoute des amis depuis ton profil pour discuter en privé.', en:'Add friends from your profile to chat privately.', es:'Añade amigos desde tu perfil para chatear en privado.', de:'Füge im Profil Freunde hinzu, um privat zu chatten.', it:'Aggiungi amici dal profilo per chattare in privato.', ar:'أضف أصدقاء من ملفك للدردشة الخاصة.', zh:'在个人资料中添加好友即可私聊。', ja:'プロフィールからフレンドを追加してプライベートチャット。', ru:'Добавьте друзей в профиле, чтобы переписываться.', pl:'Dodaj znajomych w profilu, aby rozmawiać prywatnie.' },
   groupsWeb: { fr:'Les groupes sont une exclusivité du launcher — télécharge-le pour créer tes serveurs.', en:'Groups are a launcher exclusive — download it to create your servers.', es:'Los grupos son exclusivos del launcher — descárgalo para crear tus servidores.', de:'Gruppen gibt es nur im Launcher — lade ihn herunter, um Server zu erstellen.', it:'I gruppi sono un\'esclusiva del launcher — scaricalo per creare i tuoi server.', ar:'المجموعات حصرية للمشغّل — حمّله لإنشاء خوادمك.', zh:'群组为启动器专属——下载后即可创建你的服务器。', ja:'グループはランチャー限定 — ダウンロードしてサーバーを作ろう。', ru:'Группы — эксклюзив лаунчера. Скачай его, чтобы создавать серверы.', pl:'Grupy są ekskluzywne dla launchera — pobierz go, aby tworzyć serwery.' },
   signedOut: { fr:'Connecte-toi pour retrouver tes messages privés et tes groupes — synchronisés entre le site et le launcher.', en:'Sign in to find your direct messages and groups — synced between the site and the launcher.', es:'Inicia sesión para ver tus mensajes y grupos — sincronizados entre el sitio y el launcher.', de:'Melde dich an für deine Nachrichten und Gruppen — synchron zwischen Website und Launcher.', it:'Accedi per ritrovare messaggi e gruppi — sincronizzati tra sito e launcher.', ar:'سجّل الدخول لرؤية رسائلك ومجموعاتك — متزامنة بين الموقع والمشغّل.', zh:'登录即可查看你的私信和群组——在网站与启动器间同步。', ja:'サインインしてDMとグループへ — サイトとランチャーで同期。', ru:'Войдите, чтобы увидеть сообщения и группы — синхронизированы между сайтом и лаунчером.', pl:'Zaloguj się, aby zobaczyć wiadomości i grupy — zsynchronizowane między stroną a launcherem.' },
-  tooBig:    { fr:'Fichier trop lourd (25 Mo max).', en:'File too large (25 MB max).', es:'Archivo demasiado grande (máx. 25 MB).', de:'Datei zu groß (max. 25 MB).', it:'File troppo grande (max 25 MB).', ar:'الملف كبير جداً (25 م.ب كحد أقصى).', zh:'文件过大（最大 25 MB）。', ja:'ファイルが大きすぎます（最大25MB）。', ru:'Файл слишком большой (макс. 25 МБ).', pl:'Plik jest za duży (maks. 25 MB).' },
+  tooBig:    { fr:'Fichier trop lourd (50 Mo max).', en:'File too large (50 MB max).', es:'Archivo demasiado grande (máx. 50 MB).', de:'Datei zu groß (max. 50 MB).', it:'File troppo grande (max 50 MB).', ar:'الملف كبير جداً (50 م.ب كحد أقصى).', zh:'文件过大（最大 50 MB）。', ja:'ファイルが大きすぎます（最大50MB）。', ru:'Файл слишком большой (макс. 50 МБ).', pl:'Plik jest za duży (maks. 50 MB).' },
   attImg:    { fr:'Image', en:'Image', es:'Imagen', de:'Bild', it:'Immagine', ar:'صورة', zh:'图片', ja:'画像', ru:'Изображение', pl:'Obraz' },
   attVid:    { fr:'Vidéo', en:'Video', es:'Vídeo', de:'Video', it:'Video', ar:'فيديو', zh:'视频', ja:'動画', ru:'Видео', pl:'Wideo' },
   attAud:    { fr:'Audio', en:'Audio', es:'Audio', de:'Audio', it:'Audio', ar:'صوت', zh:'音频', ja:'音声', ru:'Аудио', pl:'Audio' },
@@ -8095,6 +8143,11 @@ const _CHAT_T = {
   stickerT:  { fr:'Stickers', en:'Stickers', es:'Stickers', de:'Sticker', it:'Sticker', ar:'الملصقات', zh:'贴纸', ja:'スタンプ', ru:'Стикеры', pl:'Naklejki' },
   reactT:    { fr:'Réagir', en:'React', es:'Reaccionar', de:'Reagieren', it:'Reagisci', ar:'تفاعل', zh:'回应', ja:'リアクション', ru:'Отреагировать', pl:'Zareaguj' },
   playA:     { fr:'Écouter', en:'Play', es:'Reproducir', de:'Abspielen', it:'Riproduci', ar:'تشغيل', zh:'播放', ja:'再生', ru:'Слушать', pl:'Odtwórz' },
+  attFile:   { fr:'Fichier', en:'File', es:'Archivo', de:'Datei', it:'File', ar:'ملف', zh:'文件', ja:'ファイル', ru:'Файл', pl:'Plik' },
+  dl:        { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
+  fileBlocked:{ fr:'Type de fichier bloqué pour ta sécurité (exécutables et scripts interdits).', en:'File type blocked for your safety (executables and scripts are not allowed).', es:'Tipo de archivo bloqueado por tu seguridad (ejecutables y scripts prohibidos).', de:'Dateityp aus Sicherheitsgründen blockiert (ausführbare Dateien und Skripte verboten).', it:'Tipo di file bloccato per la tua sicurezza (eseguibili e script vietati).', ar:'نوع الملف محظور لحمايتك (الملفات التنفيذية والنصوص البرمجية ممنوعة).', zh:'为了你的安全，该文件类型已被拦截（禁止可执行文件和脚本）。', ja:'安全のためブロックされたファイル形式です（実行ファイル・スクリプトは禁止）。', ru:'Тип файла заблокирован ради вашей безопасности (исполняемые файлы и скрипты запрещены).', pl:'Typ pliku zablokowany dla twojego bezpieczeństwa (pliki wykonywalne i skrypty są zabronione).' },
+  zipOnly:   { fr:'Archives : .zip uniquement — les .rar/.7z ne peuvent pas être inspectés.', en:"Archives: .zip only — .rar/.7z can't be inspected.", es:'Archivos comprimidos: solo .zip — los .rar/.7z no se pueden inspeccionar.', de:'Archive: nur .zip — .rar/.7z können nicht geprüft werden.', it:'Archivi: solo .zip — i .rar/.7z non possono essere ispezionati.', ar:'الأرشيفات: ‎.zip فقط — لا يمكن فحص ‎.rar/.7z.', zh:'压缩包仅支持 .zip——无法检查 .rar/.7z。', ja:'アーカイブは .zip のみ — .rar/.7z は検査できません。', ru:'Архивы: только .zip — .rar/.7z нельзя проверить.', pl:'Archiwa: tylko .zip — .rar/.7z nie można sprawdzić.' },
+  zipBad:    { fr:'Archive refusée : contenu chiffré, exécutable caché ou taille déclarée suspecte.', en:'Archive rejected: encrypted content, hidden executable or suspicious declared size.', es:'Archivo rechazado: contenido cifrado, ejecutable oculto o tamaño declarado sospechoso.', de:'Archiv abgelehnt: verschlüsselter Inhalt, verstecktes Programm oder verdächtige Größe.', it:'Archivio rifiutato: contenuto cifrato, eseguibile nascosto o dimensione dichiarata sospetta.', ar:'رُفض الأرشيف: محتوى مشفّر أو ملف تنفيذي مخفي أو حجم معلن مريب.', zh:'压缩包被拒绝：加密内容、隐藏的可执行文件或声明大小可疑。', ja:'アーカイブを拒否：暗号化された内容、隠れた実行ファイル、または不審な宣言サイズ。', ru:'Архив отклонён: зашифрованное содержимое, скрытый исполняемый файл или подозрительный заявленный размер.', pl:'Archiwum odrzucone: zaszyfrowana zawartość, ukryty plik wykonywalny lub podejrzany deklarowany rozmiar.' },
   pauseA:    { fr:'Pause', en:'Pause', es:'Pausa', de:'Pause', it:'Pausa', ar:'إيقاف مؤقت', zh:'暂停', ja:'一時停止', ru:'Пауза', pl:'Pauza' },
 };
 const _chT = k => (_CHAT_T[k] && (_CHAT_T[k][LANG] || _CHAT_T[k].en)) || '';
@@ -8340,7 +8393,7 @@ async function _chatOpen(channel) {
       <button class="chat-send" id="chat-send" title="${_chT('send')}" aria-label="${_chT('send')}">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.8 8 14 2 11 14 7.6 9.6 1.8 8zM7.6 9.6 14 2" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
       </button>
-      <input type="file" id="chat-file" hidden accept="image/*,video/*,audio/*">
+      <input type="file" id="chat-file" hidden>
       <input type="file" id="chat-gif" hidden accept="image/gif">
     </div>`;
   // Composer : Entrée = envoyer (Maj+Entrée = retour ligne) + auto-hauteur + typing
@@ -8375,6 +8428,72 @@ async function _chatOpen(channel) {
   inp.focus();
 }
 
+/* ── ENVOI DE FICHIERS : garde-fous sécurité (côté client) ──────────────
+   Réalité d'ingénierie : sans backend, PAS de vrai antivirus — ce qu'on
+   bloque ici, c'est le vecteur d'infection classique du chat :
+     • exécutables/scripts (extension FINALE décisive sous Windows),
+     • noms piégés par caractères bidi (photo[U+202E]gnp.exe),
+     • archives NON inspectables (.rar/.7z → refusées, .zip exigé),
+     • .zip : lecture du répertoire central EN LOCAL → refus si entrée
+       chiffrée, exécutable embarqué, nom bidi, zip64 exotique ou taille
+       décompressée déclarée > 2 Go (bombe).
+   Les fichiers reçus restent INERTES : simple téléchargement, jamais
+   d'exécution par le launcher. Un scan serveur (VirusTotal/ClamAV via
+   Worker) pourra s'ajouter plus tard sans changer ce flux. */
+const _GLG_BAD_EXT = ['exe','msi','msix','appx','application','bat','cmd','com','scr','pif','cpl','msc','jar','js','jse','mjs','vbs','vbe','wsf','wsh','ps1','psm1','reg','hta','lnk','dll','sys','drv','xll','apk','app','dmg','pkg','deb','rpm','sh','bash','run','gadget','iso','img','vhd','vhdx','vb','py'];
+const _GLG_OPAQUE_ARCH = ['rar','7z','tar','gz','tgz','bz2','xz','cab','arj','lzh','ace'];
+function _glgExt(name) {
+  const m = String(name || '').toLowerCase().match(/\.([a-z0-9]{1,8})$/);
+  return m ? m[1] : '';
+}
+function _glgFmtBytes(n) {
+  n = +n || 0;
+  const mb = LANG === 'fr' ? 'Mo' : 'MB', kb = LANG === 'fr' ? 'Ko' : 'KB';
+  if (n >= 1048576) return (n / 1048576).toFixed(1).replace(/\.0$/, '') + ' ' + mb;
+  if (n >= 1024) return Math.round(n / 1024) + ' ' + kb;
+  return n + ' o';
+}
+async function _glgFileGuard(f) {
+  const name = String(f.name || '');
+  if (/[\u202A-\u202E\u2066-\u2069]/.test(name)) return { ok: false, code: 'fileBlocked' };
+  const ext = _glgExt(name);
+  if (_GLG_BAD_EXT.indexOf(ext) >= 0) return { ok: false, code: 'fileBlocked' };
+  if (_GLG_OPAQUE_ARCH.indexOf(ext) >= 0) return { ok: false, code: 'zipOnly' };
+  if (ext === 'zip') return _glgZipInspect(f);
+  return { ok: true };
+}
+async function _glgZipInspect(f) {
+  try {
+    const tailSz = Math.min(f.size, 128 * 1024);
+    const tail = new Uint8Array(await f.slice(f.size - tailSz).arrayBuffer());
+    let e = -1;      // signature EOCD 50 4B 05 06, cherchée depuis la fin
+    for (let i = tail.length - 22; i >= 0; i--) {
+      if (tail[i] === 0x50 && tail[i + 1] === 0x4b && tail[i + 2] === 0x05 && tail[i + 3] === 0x06) { e = i; break; }
+    }
+    if (e < 0) return { ok: false, code: 'zipBad' };
+    const dv = new DataView(tail.buffer, tail.byteOffset + e);
+    const count = dv.getUint16(10, true), cdSize = dv.getUint32(12, true), cdOff = dv.getUint32(16, true);
+    if (count === 0xFFFF || cdOff === 0xFFFFFFFF || cdSize > 8 * 1024 * 1024) return { ok: false, code: 'zipBad' };   // zip64/anormal : refus prudent
+    const cd = new Uint8Array(await f.slice(cdOff, cdOff + cdSize).arrayBuffer());
+    const cdv = new DataView(cd.buffer);
+    const td = new TextDecoder();
+    let p = 0, total = 0;
+    for (let n = 0; n < count; n++) {
+      if (p + 46 > cd.length || cdv.getUint32(p, true) !== 0x02014b50) return { ok: false, code: 'zipBad' };
+      const flags = cdv.getUint16(p + 8, true);
+      if (flags & 0x1) return { ok: false, code: 'zipBad' };                    // entrée chiffrée
+      total += cdv.getUint32(p + 24, true);
+      const nlen = cdv.getUint16(p + 28, true), elen = cdv.getUint16(p + 30, true), clen = cdv.getUint16(p + 32, true);
+      const nm = td.decode(cd.subarray(p + 46, p + 46 + nlen));
+      if (_GLG_BAD_EXT.indexOf(_glgExt(nm)) >= 0) return { ok: false, code: 'zipBad' };
+      if (/[\u202A-\u202E\u2066-\u2069]/.test(nm)) return { ok: false, code: 'zipBad' };
+      p += 46 + nlen + elen + clen;
+    }
+    if (total > 2 * 1024 * 1024 * 1024) return { ok: false, code: 'zipBad' };   // bombe déclarée
+    return { ok: true };
+  } catch (err) { return { ok: false, code: 'zipBad' }; }
+}
+
 function _chatAttachmentHTML(att, mid) {
   if (!att || !att.url) return '';
   const url = safeMediaUrl(att.url); if (!url) return '';
@@ -8395,7 +8514,15 @@ function _chatAttachmentHTML(att, mid) {
     <button class="chat-att chat-att--sticker" onclick="_chatMediaOpen(${mid})" title="${escHtml(att.name || '')}">
       <img src="${url}" alt="${escHtml(att.name || '')}" loading="lazy">
     </button>`;
-  return `<a class="chat-att chat-att--file" href="${url}" target="_blank" rel="noopener">📎 ${escHtml(att.name || 'fichier')}</a>`;
+  const fext = _glgExt(att.name);
+  const fic = fext === 'zip' ? '🗜️'
+            : ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].indexOf(fext) >= 0 ? '📄'
+            : ['xls', 'xlsx', 'csv', 'ods'].indexOf(fext) >= 0 ? '📊'
+            : ['ppt', 'pptx', 'odp'].indexOf(fext) >= 0 ? '📽️' : '📎';
+  return `<a class="chat-att chat-att--file" href="${url}" download="${escHtml(att.name || 'fichier')}" target="_blank" rel="noopener" title="${_chT('dl')}">
+    <span class="chat-file-ic" aria-hidden="true">${fic}</span>
+    <span class="chat-file-meta"><b>${escHtml(att.name || _chT('attFile'))}</b><small>${_glgFmtBytes(att.size)}${fext ? ' · ' + fext.toUpperCase() : ''}</small></span>
+    <span class="chat-file-dl" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0 3.2-3.2M8 10 4.8 6.8M2.8 13.2h10.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>`;
 }
 
 /* Visionneuse plein écran (image agrandie / vidéo lecture) — Échap ou clic
@@ -8423,6 +8550,19 @@ function _chatMediaOpen(mid) {
   setTimeout(() => ov.classList.add('open'), 20);
 }
 
+/* Message composé UNIQUEMENT d'émojis (≤ 8) → affichage géant façon
+   Discord (bulle transparente, taille selon le nombre). Gère ZWJ,
+   variantes FE0F, tons de peau, drapeaux (indicateurs régionaux) et
+   keycaps — le moindre autre caractère annule le jumbo. */
+function _chatEmojiOnly(s) {
+  const t = String(s || '').replace(/\s+/g, '');
+  if (!t || t.length > 160) return 0;
+  const re = /(\p{Extended_Pictographic}[\u{1F3FB}-\u{1F3FF}]?\uFE0F?(?:\u200D\p{Extended_Pictographic}[\u{1F3FB}-\u{1F3FF}]?\uFE0F?)*|\p{Regional_Indicator}{2}|[0-9#*]\uFE0F?\u20E3)/gu;
+  if (t.replace(re, '')) return 0;
+  const n = (t.match(re) || []).length;
+  return (n > 0 && n <= 8) ? n : 0;
+}
+
 function _chatMsgHTML(m, prev) {
   const own = m.sender === _chatMe;
   const c = _chat.channels.find(x => x.channel === _chat.current);
@@ -8431,6 +8571,7 @@ function _chatMsgHTML(m, prev) {
   try { time = new Date(m.created_at).toLocaleTimeString(LANG_LOCALE[LANG] || 'en-US', { hour: '2-digit', minute: '2-digit' }); } catch (e) {}
   const compact = prev && prev.sender === m.sender && (new Date(m.created_at) - new Date(prev.created_at)) < 300000;
   const bodyHTML = m.body ? escHtml(m.body).replace(/\n/g, '<br>') : '';
+  const jumbo = (!m.attachment && m.body) ? _chatEmojiOnly(m.body) : 0;
   // Réactions : chips { émoji: [uids] } — clic = toggle (optimiste + realtime)
   const rx = m.reactions && Object.keys(m.reactions).length ? `
     <div class="chat-rx">${Object.entries(m.reactions).map(([e, u]) => `
@@ -8440,7 +8581,7 @@ function _chatMsgHTML(m, prev) {
   return `
   <div class="chat-msg ${own ? 'chat-msg--own' : ''} ${compact ? 'chat-msg--compact' : ''}" data-mid="${m.id}">
     ${!compact ? `<div class="chat-msg-meta"><b>${escHtml(name)}</b><time>${time}</time></div>` : ''}
-    <div class="chat-bubble ${!bodyHTML && m.attachment ? 'chat-bubble--media' : ''}">
+    <div class="chat-bubble ${!bodyHTML && m.attachment ? 'chat-bubble--media' : ''} ${jumbo ? 'chat-bubble--jumbo ' + (jumbo <= 2 ? 'chat-jumbo--xl' : jumbo <= 4 ? 'chat-jumbo--lg' : 'chat-jumbo--md') : ''}">
       ${bodyHTML ? `<span class="chat-msg-body" id="chat-body-${m.id}">${bodyHTML}</span>` : ''}
       ${_chatAttachmentHTML(m.attachment, m.id)}
       ${m.edited_at ? `<span class="chat-edited">${_chT('edited')}</span>` : ''}
@@ -8508,7 +8649,9 @@ async function _chatFilePicked(inputId) {
   const inp = $(inputId || 'chat-file');
   const f = inp?.files?.[0]; if (!f || !_chat.current) return;
   inp.value = '';
-  if (f.size > 25 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
+  if (f.size > 50 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
+  const guard = await _glgFileGuard(f);
+  if (!guard.ok) { _chatNote(_chT(guard.code)); return; }
   _chatNote('⬆ …');
   const up = await GLG_AUTH.chatUpload(f);
   _chatNote('');
@@ -9622,7 +9765,7 @@ function _chatEmojiToggle() {
 /* ── PANNEAU GIF : mèmes proposés + imports personnels ──────────────────
    Mèmes : 20 classiques servis par le CDN Giphy (i.giphy.com, autorisé
    par la CSP img-src) — chaque URL a été VÉRIFIÉE (200 + image/gif).
-   Imports : .gif ≤25 Mo → bucket chat-media → historique prefs.gifs
+   Imports : .gif ≤50 Mo → bucket chat-media → historique prefs.gifs
    (synchronisé entre appareils), conservé jusqu'à suppression manuelle.
    Un mème envoyé rejoint aussi « Tes GIFs » (récemment utilisés). ── */
 const _GLG_MEMES = [
@@ -9715,7 +9858,7 @@ async function _chatGifImported() {
   const f = inp?.files?.[0]; if (!f) return;
   inp.value = '';
   if (!/image\/gif/i.test(f.type || '')) { _chatNote('✕'); return; }
-  if (f.size > 25 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
+  if (f.size > 50 * 1024 * 1024) { _chatNote(_chT('tooBig')); return; }
   _chatNote('⬆ …');
   const up = await GLG_AUTH.chatUpload(f);
   _chatNote('');

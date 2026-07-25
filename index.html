@@ -120,13 +120,13 @@
   <link rel="stylesheet" href="css/fonts.css?v=1">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
-  <link rel="stylesheet" href="css/main.css?v=51">
+  <link rel="stylesheet" href="css/main.css?v=52">
   <!-- Premium visual layer & animations -->
-  <link rel="stylesheet" href="css/glg-premium.css?v=7">
+  <link rel="stylesheet" href="css/glg-premium.css?v=8">
   <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=70">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=71">
   <!-- Protection: loaded synchronously so it fires before any user action -->
-  <script src="js/protection.js?v=2"></script>
+  <script src="js/protection.js?v=3"></script>
 </head>
 <body>
 
@@ -221,11 +221,7 @@
       <span class="nav-logo-name">GEEKLEARN GAMES</span>
     </div>
   </div>
-  <!-- Language flag: stays right of the logo (left side). Click → language gate -->
-  <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
-    <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
-  </button>
-  <!-- Right cluster (pushed far right): search · section links · notifications · account -->
+  <!-- Right cluster (pushed far right): search · section links · notifications · language · account -->
   <div class="nav-right">
     <!-- Desktop search: first item of the right group -->
     <button class="nav-search-btn" onclick="openSearch()" aria-label="Search" title="Search a title">
@@ -267,6 +263,10 @@
     </button>
     <button class="nav-burger" id="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-mobile">
       <span></span><span></span><span></span>
+    </button>
+    <!-- Language flag: right utility cluster, just before the account chip -->
+    <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
+      <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
     </button>
     <!-- Account button injected into .nav-right by app.js (far right) -->
   </div>
@@ -377,7 +377,7 @@
       <div class="studio-themes">
 
         <div class="studio-themes-eyebrow">
-          <span>— Univers Créatifs</span>
+          <span>— Univers créatifs</span>
         </div>
 
         <div class="studio-theme-item reveal rd1">
@@ -398,7 +398,7 @@
         </div>
 
         <div class="studio-themes-footer">
-          Films interactifs &amp; Jeux vidéo · Est. 2026
+          Films interactifs et jeux vidéo · Est. 2026
         </div>
 
       </div>
@@ -726,16 +726,16 @@
 
 <!-- ══════════ SCRIPTS ══════════ -->
 <!-- Site data + core app -->
-<script src="js/data.js?v=14"></script>
+<script src="js/data.js?v=15"></script>
 <!-- Language-gate flag field (canvas) — defines window.GLG_GATE_FIELD before buildGate() runs -->
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=120"></script>
+<script src="js/app.js?v=121"></script>
 <!-- Accounts (Supabase) — self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>
-<script src="js/auth.js?v=19" defer></script>
+<script src="js/auth.js?v=20" defer></script>
 <!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
 <script src="js/vendor/gsap.min.js?v=1" defer></script>
 <script src="js/vendor/ScrollTrigger.min.js?v=1" defer></script>

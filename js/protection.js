@@ -65,15 +65,6 @@
     _save(log);
     return { ok: true };
   };
-
-  /* Sanitise a string for safe textContent insertion */
-  window._glgSanitize = function (str) {
-    if (typeof str !== 'string') return '';
-    return str
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;').replace(/\//g, '&#x2F;');
-  };
 }());
 
 /* ═══════════════════════════════════════════════════════════

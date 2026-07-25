@@ -80,21 +80,6 @@
 .nav-link::after { background: #fff !important; }
 .nav-link { transition: color .2s !important; }
 
-/* Contact CTA button in nav */
-.nav-cta {
-  border: 1px solid rgba(255,255,255,.22) !important;
-  padding: 6px 20px;
-  transition: background .22s, border-color .22s !important;
-}
-.nav-cta:hover {
-  background: rgba(255,255,255,.05) !important;
-  border-color: rgba(255,255,255,.5) !important;
-}
-.nav-cta.active {
-  background: rgba(255,255,255,.06) !important;
-  border-color: rgba(255,255,255,.3) !important;
-}
-
 /* Mobile nav */
 .nav-mobile { background: #080808 !important; border-top-color: rgba(255,255,255,.07) !important; }
 
@@ -424,10 +409,6 @@
   margin: 14px auto 0;
 }
 
-/* Carousel arrows */
-.carousel-btn { border-color: rgba(255,255,255,.16) !important; }
-.carousel-btn:hover { background: rgba(255,255,255,.06) !important; border-color: rgba(255,255,255,.35) !important; }
-
 /* ────────────────────────────────────────────────────────────
    §12  CTA BAND
 ──────────────────────────────────────────────────────────────*/
@@ -608,13 +589,6 @@
 .c-main-email:hover { opacity: .65 !important; color: #fff !important; }
 .contact-direct-promise { color: rgba(255,255,255,.35) !important; }
 
-/* Topics grid */
-.contact-topics { border-color: rgba(255,255,255,.07) !important; }
-.c-info-block { border-color: rgba(255,255,255,.07) !important; transition: background .2s !important; }
-.c-info-block:hover { background: rgba(255,255,255,.025) !important; }
-.c-info-lbl { color: rgba(255,255,255,.82) !important; letter-spacing: .22em !important; }
-.c-info-sub { color: rgba(255,255,255,.38) !important; }
-
 /* Socials */
 .socials-row { border-top: 1px solid rgba(255,255,255,.06) !important; padding-top: 28px !important; margin-top: 28px !important; }
 .soc-icon { opacity: .32 !important; filter: brightness(0) invert(1) !important; transition: opacity .22s !important; }
@@ -635,17 +609,6 @@
 .dp-feat-num { color: rgba(255,255,255,.14) !important; opacity: 1 !important; }
 .dp-feat-item:hover .dp-feat-num { color: rgba(255,255,255,.35) !important; }
 
-/* Platform buttons */
-.dp-plat-btn {
-  border-color: rgba(255,255,255,.08) !important;
-  transition: all .22s var(--ease) !important;
-}
-.dp-plat-btn:hover {
-  border-color: rgba(255,255,255,.22) !important;
-  background: rgba(255,255,255,.04) !important;
-  transform: translateX(4px) !important;
-}
-
 /* Buy button */
 .dp-buy-btn {
   background: #fff !important;
@@ -665,16 +628,8 @@
   transition: background .22s !important;
 }
 .dp-sticky-buy:hover { background: rgba(255,255,255,.07) !important; }
-
-/* Marquee strip */
-.dp-marquee-dot { color: rgba(255,255,255,.15) !important; }
 .dp-mq-item { color: rgba(255,255,255,.38) !important; }
 .dp-mq-item b { color: rgba(255,255,255,.72) !important; }
-
-/* ────────────────────────────────────────────────────────────
-   §17  SHOP PAGE (WIP)
-──────────────────────────────────────────────────────────────*/
-.shop-wip-dash { background: rgba(255,255,255,.4) !important; box-shadow: none !important; }
 
 /* ────────────────────────────────────────────────────────────
    §18  LANGUAGE GATE
@@ -749,7 +704,6 @@ footer::before {
 @media (prefers-reduced-motion: reduce) {
   .hero-bg,
   .hero-bg::after { animation: none !important; opacity: 1; }
-  .pGlowBreathe { animation: none !important; }
 }
 
 /* ────────────────────────────────────────────────────────────

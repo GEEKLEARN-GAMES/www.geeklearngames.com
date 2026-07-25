@@ -93,7 +93,6 @@
 .works-cat-section.wcat-hidden{
   display:none;
 }
-.works-cat-section.wcat-fade{ opacity:0; transform:translateY(14px); }
 
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -353,15 +352,6 @@
   .fhero-slide.active .fhero-bg{ animation:none; transform:scale(1.04); }
   .fhero-slide{ transition:none; }
 }
-
-
-/* ───────────────────────────────────────────────────────────────────────
-   §7 · SHOP — teasers de catégories (coming-soon premium, monochrome)
-   ─────────────────────────────────────────────────────────────────────── */
-.shop-teasers{
-  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px; width:100%; max-width:680px; margin:clamp(24px,4vw,40px) auto 0;
-}
 .shop-teaser{
   display:flex; flex-direction:column; align-items:center; gap:10px;
   padding:22px 12px; border:1px solid var(--border,rgba(255,255,255,.08));
@@ -369,18 +359,6 @@
   transition:transform .4s var(--ease,cubic-bezier(.16,1,.3,1)), border-color .4s, background .4s;
 }
 .shop-teaser:hover{ transform:translateY(-5px); border-color:var(--bhi,rgba(255,255,255,.22)); background:rgba(255,255,255,.04); }
-.shop-teaser-ico{ width:30px; height:30px; color:rgba(255,255,255,.85); }
-.shop-teaser-ico svg{ width:100%; height:100%; }
-.shop-teaser-name{
-  font-family:var(--f-body,sans-serif); font-weight:600; font-size:.82rem; color:#fff; letter-spacing:.02em;
-}
-.shop-teaser-soon{
-  font-family:var(--f-mono,monospace); font-size:.46rem; letter-spacing:.22em;
-  text-transform:uppercase; color:rgba(255,255,255,.38);
-}
-@media(max-width:620px){
-  .shop-teasers{ grid-template-columns:repeat(2,1fr); max-width:340px; }
-}
 
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -428,32 +406,12 @@
 }
 @media(max-width:760px){ .sv-grid{ grid-template-columns:1fr; } }
 
-
-/* ───────────────────────────────────────────────────────────────────────
-   §9 · CONTACT — cartes topics cliquables + flash de champ
-   ─────────────────────────────────────────────────────────────────────── */
-.c-info-block--clickable{ cursor:pointer; }
-.c-info-block--clickable:hover{
-  border-color:var(--bhi,rgba(255,255,255,.22)) !important;
-  background:rgba(255,255,255,.04) !important;
-  transform:translateY(-2px);
-}
-.c-info-block--clickable::after{
-  content:'→'; position:absolute; top:12px; right:14px;
-  color:rgba(255,255,255,.3); font-size:.8rem;
-  opacity:0; transform:translateX(-4px); transition:opacity .25s, transform .25s, color .25s;
-}
-.c-info-block{ position:relative; }
-.c-info-block--clickable:hover::after{ opacity:1; transform:translateX(0); color:#fff; }
-.c-info-block--clickable:focus-visible{ outline:2px solid rgba(255,255,255,.4); outline-offset:3px; }
-
 /* Flash quand un sujet est auto-rempli depuis une carte topic */
 @keyframes glgFieldFlash{
   0%   { box-shadow:0 0 0 0 rgba(255,255,255,.0); border-color:rgba(255,255,255,.5); }
   40%  { box-shadow:0 0 0 3px rgba(255,255,255,.18); border-color:#fff; }
   100% { box-shadow:0 0 0 0 rgba(255,255,255,0); }
 }
-.field-flash{ animation:glgFieldFlash .7s var(--ease,ease); }
 
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -569,17 +527,11 @@
 .auth-link{ background:none; border:none; color:#fff; cursor:pointer; text-decoration:underline; font-size:.72rem; font-family:inherit; }
 .auth-link--danger{ color:#e5746e; text-decoration:none; }
 .auth-link--danger:hover{ text-decoration:underline; }
-
-/* Profil */
-.auth-box--profile{ text-align:center; }
 .auth-avatar{
   width:72px; height:72px; border-radius:50%; margin:0 auto 14px;
   display:flex; align-items:center; justify-content:center;
   background:#fff; color:#000; font-family:var(--f-disp,sans-serif); font-size:2rem;
 }
-.auth-profile-name{ font-family:var(--f-disp,sans-serif); font-size:1.8rem; color:#fff; letter-spacing:.02em; }
-.auth-profile-meta{ font-family:var(--f-mono,monospace); font-size:.58rem; letter-spacing:.08em; color:rgba(255,255,255,.45); margin:6px 0 22px; }
-.auth-box--profile form{ text-align:left; }
 .auth-profile-actions{ display:flex; justify-content:space-between; margin-top:18px; padding-top:16px; border-top:1px solid var(--border,rgba(255,255,255,.08)); }
 
 
@@ -917,7 +869,6 @@ input[type="number"], textarea{ cursor:text; }
 .pp-stat{ background:#0a0a0b; padding:clamp(18px,3vw,28px) 16px; text-align:center; }
 .pp-stat b{ display:block; font-family:var(--f-disp,sans-serif); font-size:clamp(1.5rem,3.5vw,2.6rem); color:#fff; line-height:1; }
 .pp-stat span{ display:block; margin-top:8px; font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.45); }
-.pp-stat--soon b{ color:rgba(255,255,255,.3); }
 
 .pp-section{ margin-top:clamp(20px,3vw,30px); }
 .pp-sec-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:22px; padding-bottom:14px; border-bottom:1px solid var(--border,rgba(255,255,255,.08)); }
@@ -1200,16 +1151,6 @@ input[type="number"], textarea{ cursor:text; }
   background:#3a3a3e; border:2px solid #0a0a0b;   /* gris = hors-ligne (présence temps réel = étape launcher) */
 }
 .pp-friend-name{ font-family:var(--f-body,sans-serif); font-weight:600; font-size:.86rem; color:#fff; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.pp-friend-remove{
-  position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center; padding:0;
-  background:rgba(8,8,8,.7); border:1px solid rgba(255,255,255,.18); color:#fff; cursor:pointer;
-  opacity:0; transform:scale(.9); transition:opacity .2s, transform .2s, background .2s, border-color .2s;
-  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
-}
-.pp-friend-card:hover .pp-friend-remove, .pp-friend-remove:focus-visible{ opacity:1; transform:none; }
-.pp-friend-remove:hover{ background:#e5564e; border-color:#e5564e; }
-@media(hover:none){ .pp-friend-remove{ opacity:1; transform:none; } }
 
 /* Modale recherche d'amis */
 .fr-modal .auth-picker-title{ margin-bottom:16px; }
@@ -1902,38 +1843,6 @@ input[type="number"], textarea{ cursor:text; }
 .footer-brand .footer-logo{ display:flex; justify-content:center; margin-bottom:18px; }
 .footer-brand .footer-logo img{ height:38px; width:auto; margin:0 auto; }
 .footer-brand .footer-brand-desc{ margin:0 auto; max-width:34ch; line-height:1.7; }
-
-
-/* ───────────────────────────────────────────────────────────────────────
-   §42 · PROFIL PUBLIC (autre joueur) — modale style Steam + cartes cliquables
-─────────────────────────────────────────────────────────────────────── */
-.up-modal{ padding:0 !important; overflow:hidden; max-width:420px; text-align:center; }
-.up-loading{ padding:60px 0; color:rgba(255,255,255,.5); font-family:var(--f-mono,monospace); letter-spacing:.2em; }
-.up-banner{
-  position:relative; height:120px; background:
-    radial-gradient(ellipse 70% 130% at 20% -10%, rgba(150,178,255,.18), transparent 60%),
-    radial-gradient(ellipse 60% 130% at 85% 0%, rgba(150,178,255,.10), transparent 58%),
-    linear-gradient(120deg,#0c0c0f,#161619 55%,#0a0a0c);
-  background-size:cover; background-position:center;
-}
-.up-banner-scrim{ position:absolute; inset:0; background:linear-gradient(0deg,#101012 2%,transparent 70%); }
-.up-head{ position:relative; margin-top:-46px; padding:0 28px; display:flex; flex-direction:column; align-items:center; }
-.up-avatar{
-  width:88px; height:88px; border-radius:50%; overflow:hidden; position:relative; background:#161618;
-  box-shadow:0 0 0 4px #101012, 0 0 0 5px rgba(255,255,255,.18), 0 0 28px -4px rgba(150,178,255,.4);
-}
-.up-avatar .ava-img{ width:100%; height:100%; object-fit:cover; }
-.up-avatar .ava-init{ display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-family:var(--f-disp,sans-serif); font-size:2rem; color:#fff; background:linear-gradient(135deg,#2a2a2e,#161618); }
-.up-name{ font-family:var(--f-disp,sans-serif); font-size:1.5rem; letter-spacing:.02em; color:#fff; margin-top:12px; display:inline-flex; align-items:center; gap:.3em; }
-.up-since{ font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.42); margin-top:6px; }
-.up-stats{ display:flex; justify-content:center; gap:0; margin:20px 28px 0; border:1px solid var(--border,rgba(255,255,255,.08)); }
-.up-stat{ flex:1; padding:14px 10px; }
-.up-stat + .up-stat{ border-left:1px solid var(--border,rgba(255,255,255,.08)); }
-.up-stat b{ display:block; font-family:var(--f-disp,sans-serif); font-size:1.5rem; color:#fff; line-height:1; }
-.up-stat span{ display:block; margin-top:6px; font-family:var(--f-mono,monospace); font-size:.46rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.45); }
-.up-bio{ padding:18px 28px 0; font-family:var(--f-body,sans-serif); font-size:.86rem; line-height:1.6; color:rgba(255,255,255,.72); }
-.up-bio--empty{ color:rgba(255,255,255,.34); font-style:italic; }
-.up-actions{ padding:22px 28px 28px; }
 .up-action{ width:100%; }
 .up-action--remove{ border-color:rgba(229,86,78,.5) !important; color:#ff8b84 !important; }
 .up-action--remove:hover{ background:rgba(229,86,78,.14) !important; border-color:#e5564e !important; color:#fff !important; }
@@ -1961,18 +1870,6 @@ input[type="number"], textarea{ cursor:text; }
 .pp-actions--public .up-action--remove:hover{ background:rgba(229,86,78,.14) !important; border-color:#e5564e !important; color:#fff !important; }
 .pp-actions--public .up-pending{ text-align:center; padding:11px; border:1px dashed var(--bmd,rgba(255,255,255,.18)); color:rgba(255,255,255,.5); font-family:var(--f-mono,monospace); font-size:.54rem; letter-spacing:.14em; text-transform:uppercase; }
 @media(max-width:760px){ .pp-actions--public{ width:100%; min-width:0; } }
-
-
-/* ───────────────────────────────────────────────────────────────────────
-   §44 · PARAMÈTRES — panneau d'options élargi (onglets + interrupteurs)
-   + couleur d'accent perso (--user-accent) + classe réduction d'animations.
-─────────────────────────────────────────────────────────────────────── */
-.auth-box--settings{ max-width:480px; text-align:left; }
-.set-head{ display:flex; align-items:center; gap:14px; margin-bottom:18px; }
-.set-head-ava{ flex-shrink:0; }
-.set-head-id{ min-width:0; }
-.set-head-id .auth-profile-name{ margin:0; font-size:1.2rem; display:inline-flex; align-items:center; gap:.3em; }
-.set-head-id .auth-profile-meta{ margin:2px 0 0; }
 
 /* Onglets */
 .set-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--border,rgba(255,255,255,.08)); margin-bottom:20px; overflow-x:auto; scrollbar-width:none; }
@@ -2025,8 +1922,6 @@ html.glg-reduce-motion *, html.glg-reduce-motion *::before, html.glg-reduce-moti
 }
 html.glg-reduce-motion #glg-veil, html.glg-reduce-motion .gate-aura::before{ display:none !important; }
 
-@media(max-width:480px){ .auth-box--settings{ max-width:none; } }
-
 
 /* ───────────────────────────────────────────────────────────────────────
    §45 · PAGE PARAMÈTRES dédiée (#page-settings) — onglets en colonne, confort,
@@ -2034,11 +1929,6 @@ html.glg-reduce-motion #glg-veil, html.glg-reduce-motion .gate-aura::before{ dis
 ─────────────────────────────────────────────────────────────────────── */
 .settings-page{ max-width:1080px; margin:0 auto; padding:calc(var(--nav-h,80px) + clamp(24px,5vw,56px)) clamp(16px,5vw,72px) clamp(60px,8vw,110px); }
 .settings-page-head{ display:flex; align-items:center; gap:18px; margin-bottom:clamp(26px,4vw,42px); padding-bottom:clamp(20px,3vw,30px); border-bottom:1px solid var(--border,rgba(255,255,255,.08)); }
-.settings-head-ava{ flex-shrink:0; width:84px; height:84px; }
-.settings-head-id{ min-width:0; }
-.settings-eyebrow{ font-family:var(--f-mono,monospace); font-size:.52rem; letter-spacing:.3em; text-transform:uppercase; color:rgba(255,255,255,.4); }
-.settings-page-title{ font-family:var(--f-disp,sans-serif); font-size:clamp(1.8rem,4vw,3rem); line-height:1; margin:6px 0; display:inline-flex; align-items:center; gap:.3em; color:#fff; }
-.settings-page-sub{ font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.4); }
 .settings-layout{ display:grid; grid-template-columns:220px 1fr; gap:clamp(24px,4vw,56px); align-items:start; }
 /* Onglets en COLONNE dans la page (sidebar launcher) */
 .settings-nav.set-tabs{ flex-direction:column; border-bottom:none; gap:3px; overflow:visible; position:sticky; top:calc(var(--nav-h,80px) + 20px); }
@@ -2057,7 +1947,6 @@ html.glg-reduce-motion #glg-veil, html.glg-reduce-motion .gate-aura::before{ dis
   .settings-nav.set-tabs{ flex-direction:row; position:static; border-bottom:1px solid var(--border,rgba(255,255,255,.08)); overflow-x:auto; }
   .settings-nav .set-tab.active::after{ left:10px; right:10px; top:auto; bottom:-1px; width:auto; height:2px; }
   .settings-content{ max-width:none; }
-  .settings-head-ava{ width:64px; height:64px; }
 }
 
 
@@ -2193,10 +2082,6 @@ body::after{
   transition:border-color .24s, color .24s;
 }
 .c-main-email:hover{ border-bottom-color:rgba(255,255,255,.9); color:#fff !important; }
-
-/* — Topics : réaction douce au survol — */
-.c-info-block{ transition:background .24s; }
-.c-info-block:hover{ background:rgba(255,255,255,.025); }
 
 /* — Réseaux : cibles généreuses, hairline, lift — */
 #page-contact .socials-row{ gap:10px; }
@@ -2448,12 +2333,6 @@ body::after{
   text-transform:uppercase; color:#7fd39a;
 }
 .pp-fr-online:empty{ display:none; }
-.pp-badge--online{ color:#7fd39a !important; border-color:rgba(127,211,154,.35) !important; }
-.pp-badge--online::before{
-  content:''; display:inline-block; width:6px; height:6px; border-radius:50%;
-  background:#7fd39a; margin-right:6px; vertical-align:middle;
-  box-shadow:0 0 6px rgba(127,211,154,.5);
-}
 .pp-invite-btn{
   display:inline-flex; align-items:center; gap:7px; margin-top:12px;
   background:none; border:1px dashed rgba(255,255,255,.18); padding:8px 14px;
@@ -2905,35 +2784,6 @@ body::after{
   .pp-recent-cover{ width:44px; height:58px; }
   .pp-recent-meta{ white-space:normal; letter-spacing:.1em; }
 }
-
-/* ════════════════════════════════════════════════════════════════════════
-   §62 · OPTIONS v2 — héro adossé à la bannière du joueur, onglets iconés,
-   panneaux carte, textarea sombre (le BIO blanc était un trou de thème).
-════════════════════════════════════════════════════════════════════════ */
-/* Héro */
-.settings-page-head--v2{
-  position:relative; overflow:hidden; border-radius:10px;
-  padding:clamp(22px,3.4vw,34px) clamp(18px,3vw,30px);
-  border:1px solid rgba(255,255,255,.09);
-  background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,0));
-  margin-bottom:clamp(22px,3vw,34px);
-}
-.settings-head-bg{
-  position:absolute; inset:0; z-index:0; background-size:cover; background-position:center;
-  opacity:.22; filter:saturate(.9) brightness(.9);
-  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,.9),rgba(0,0,0,.25) 70%,transparent);
-          mask-image:linear-gradient(90deg,rgba(0,0,0,.9),rgba(0,0,0,.25) 70%,transparent);
-}
-[dir="rtl"] .settings-head-bg{
-  -webkit-mask-image:linear-gradient(270deg,rgba(0,0,0,.9),rgba(0,0,0,.25) 70%,transparent);
-          mask-image:linear-gradient(270deg,rgba(0,0,0,.9),rgba(0,0,0,.25) 70%,transparent);
-}
-.settings-page-head--v2::after{
-  content:''; position:absolute; left:0; right:0; bottom:0; height:1px; z-index:1;
-  background:linear-gradient(90deg,rgba(255,255,255,.25),transparent 65%);
-}
-.settings-page-head--v2 .settings-head-ava,
-.settings-page-head--v2 .settings-head-id{ position:relative; z-index:2; }
 /* Onglets iconés */
 .set-tab{ display:flex; align-items:center; gap:10px; }
 .set-tab-ico{ display:inline-flex; width:15px; height:15px; flex:none; opacity:.65; transition:opacity .25s; }
@@ -3019,36 +2869,13 @@ body::after{
   position:relative; z-index:2; padding:clamp(26px,4vw,56px);
   max-width:640px; display:flex; flex-direction:column; align-items:flex-start; gap:14px;
 }
-.lib-eyebrow{
-  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.26em;
-  text-transform:uppercase; color:rgba(255,255,255,.6);
-}
 .lib-title{
   margin:0; font-family:var(--f-disp,sans-serif); font-size:clamp(2.2rem,4.6vw,4rem);
   line-height:.95; letter-spacing:.02em; text-transform:uppercase; color:#fff;
   text-shadow:0 12px 44px rgba(0,0,0,.8);
 }
 .lib-logo{ max-width:min(380px,70%); height:auto; filter:drop-shadow(0 12px 34px rgba(0,0,0,.8)); }
-.lib-tagline{
-  margin:0; font-family:var(--f-serif,Georgia,serif); font-style:italic;
-  font-size:clamp(.92rem,1.5vw,1.08rem); line-height:1.55; color:rgba(255,255,255,.72);
-}
 .lib-ctas{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
-.lib-meta{
-  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
-  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.14em;
-  text-transform:uppercase; color:rgba(255,255,255,.5);
-}
-.lib-meta-dot{ opacity:.5; }
-.lib-links{ display:flex; gap:20px; flex-wrap:wrap; margin-top:2px; }
-.lib-link{
-  background:none; border:none; padding:0; cursor:pointer;
-  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.18em;
-  text-transform:uppercase; color:rgba(255,255,255,.55);
-  border-bottom:1px solid rgba(255,255,255,.18); padding-bottom:3px;
-  transition:color .25s, border-color .25s;
-}
-.lib-link:hover{ color:#fff; border-color:rgba(255,255,255,.6); }
 /* Responsive : rail horizontal au-dessus de la vitrine */
 @media (max-width:900px){
   .lib-shell{ grid-template-columns:1fr; }
@@ -3116,10 +2943,6 @@ body::after{
 .lt-feat-txt b{ font-size:.85rem; font-weight:700; color:#fff; letter-spacing:.02em; }
 .lt-feat-txt span{ font-size:.76rem; line-height:1.6; color:rgba(255,255,255,.5); }
 .lt-actions{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-.lt-version{
-  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.2em;
-  text-transform:uppercase; color:rgba(255,255,255,.45);
-}
 /* Fenêtre stylisée */
 .lt-visual{ display:flex; justify-content:center; }
 .lt-window{
@@ -3193,10 +3016,6 @@ body::after{
     linear-gradient(0deg, rgba(5,5,6,.96) 0%, rgba(5,5,6,.55) 34%, rgba(5,5,6,.15) 62%, rgba(5,5,6,.35) 100%),
     radial-gradient(90% 70% at 82% 88%, rgba(var(--tint-rgb,255,255,255),.13), transparent 60%);
 }
-/* Hairline du héro Options : extrémité lumineuse côté début de lecture */
-[dir="rtl"] .settings-page-head--v2::after{
-  background:linear-gradient(270deg,rgba(255,255,255,.25),transparent 65%);
-}
 /* Jeux récents : padding logique miroir (16px côté chevron) */
 [dir="rtl"] .pp-recent{ padding:12px 12px 12px 16px; }
 /* Cartes d'offres mobile RTL : réserve wishlist alignée sur la valeur mobile */
@@ -3268,19 +3087,10 @@ body:not(.glg-authed) .footer-lib{ display:none !important; }
    §67 · TÉLÉCHARGEMENT DU LAUNCHER (accueil) — bouton OS, plateformes, SHA.
 ════════════════════════════════════════════════════════════════════════ */
 .lt-actions .btn{ display:inline-flex; align-items:center; gap:9px; }
-.lt-dl-soon{ cursor:default; opacity:.6; }
 .lt-dl-meta{
   margin:12px 0 0; font-family:var(--f-mono,monospace); font-size:.56rem;
   letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.5);
 }
-.lt-platforms{ display:flex; gap:9px; flex-wrap:wrap; margin-top:14px; }
-.lt-plat{
-  font-family:var(--f-mono,monospace); font-size:.5rem; letter-spacing:.18em;
-  text-transform:uppercase; color:rgba(255,255,255,.42);
-  border:1px solid rgba(255,255,255,.12); border-radius:2px; padding:.45em .7em .38em;
-}
-.lt-plat--on{ color:rgba(255,255,255,.85); border-color:rgba(255,255,255,.3); }
-.lt-plat--on::before{ content:'● '; color:#4cc38a; font-size:.8em; }
 .lt-sha{
   margin:16px 0 0; font-family:var(--f-mono,monospace); font-size:.5rem;
   letter-spacing:.08em; color:rgba(255,255,255,.3); max-width:64ch; word-break:break-all;
@@ -3859,16 +3669,6 @@ html.glg-frameless #nav{ top:var(--glg-tb); }
   transition:transform .2s, opacity .2s;
 }
 .chat-send:hover{ transform:translateY(-1px); }
-.chat-recbar{
-  display:flex; align-items:center; gap:14px;
-  padding:10px 18px; border-top:1px solid rgba(255,255,255,.07); background:#0d0d0f;
-  font-family:var(--f-mono,monospace); font-size:.62rem; color:rgba(255,255,255,.8);
-}
-.chat-recbar .lib-sec-btn{ margin-top:0; }
-.chat-rec-dot{
-  width:9px; height:9px; border-radius:50%; background:#e81123;
-  animation:ppPulse 1.2s ease-in-out infinite;
-}
 /* ── Modale groupe : liste des amis (cases à cocher) ── */
 .chat-gm-list{ max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
 .chat-gm-row{
@@ -4262,8 +4062,6 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 .lib-shell--zen .lib-item-fav{ opacity:0 !important; }
 .lib-shell--zen:has(.lib-rail:hover) .lib-item:hover .lib-item-fav,
 .lib-shell--zen:has(.lib-rail:hover) .lib-item-fav.on{ opacity:1 !important; }
-/* Lien favori du héro */
-.lib-link-fav.on{ color:#fff; border-color:rgba(255,255,255,.6); }
 
 /* ════════════════════════════════════════════════════════════════════════
    §77 · MOBILE / TABLETTE PARFAITS — corrections de l'audit multi-agents
@@ -4278,7 +4076,6 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 .hero{ height:100svh; }
 .dp-hero{ height:100svh; }
 .page{ min-height:100svh; }
-.shop-wip{ min-height:100svh; }
 /* ── 5 · lang-gate ≤480px : -webkit-fill-available écrasait le 100dvh
    voulu (ordre inversé dans main.css) — on ré-affirme dvh en couche finale */
 @media (max-width:480px){
@@ -4550,23 +4347,6 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 .glg-compact .set-card{ padding:16px; }
 .glg-compact .pp-section{ padding-top:14px; padding-bottom:14px; }
 .glg-compact .dp-news-item{ padding-top:10px; padding-bottom:10px; }
-
-/* ── 4 · Options → Launcher : nuanciers d'ambiance + segments ── */
-.set-ambiances{ display:flex; flex-wrap:wrap; gap:10px; }
-.set-amb{
-  display:inline-flex; align-items:center; gap:9px; cursor:pointer;
-  padding:9px 14px 9px 10px; border-radius:9px;
-  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12);
-  color:rgba(255,255,255,.8); font-size:.8rem;
-  transition:border-color .2s, background .2s;
-}
-.set-amb:hover{ border-color:rgba(255,255,255,.3); }
-.set-amb.on{ border-color:var(--user-accent,#fff); background:rgba(255,255,255,.06); color:#fff; }
-.set-amb-sw{
-  width:22px; height:22px; border-radius:6px; background:var(--sw,#050506);
-  border:1px solid rgba(255,255,255,.22);
-  box-shadow:inset 0 0 8px rgba(255,255,255,.06);
-}
 .set-seg{ display:inline-flex; border:1px solid rgba(255,255,255,.14); border-radius:9px; overflow:hidden; }
 .set-seg button{
   padding:.66em 1.15em .6em; cursor:pointer; border:none; background:none;
@@ -4874,3 +4654,49 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 /* — Scrollbar aux couleurs de l'ambiance (—glg-sb posé par _glgAmbApply) — */
 ::-webkit-scrollbar-thumb{ background:var(--glg-sb, #2c2c31); border-radius:8px; }
 ::-webkit-scrollbar-thumb:hover{ background:var(--glg-sb, #3a3a41); filter:brightness(1.25); }
+
+/* ═══════════════════════════════════════════════════════════════
+   §83 · CHAT : JUMBO ÉMOJIS + CARTES FICHIERS + MENU CONTEXTUEL
+   launcher (clic droit custom façon Steam)
+═══════════════════════════════════════════════════════════════ */
+/* — Émojis seuls → géants, bulle invisible (façon Discord) — */
+.chat-bubble--jumbo{ background:transparent !important; border-color:transparent !important; box-shadow:none !important; }
+.chat-bubble--jumbo .chat-msg-body{ display:block; line-height:1.22; }
+.chat-jumbo--xl .chat-msg-body{ font-size:3rem; }
+.chat-jumbo--lg .chat-msg-body{ font-size:2.3rem; }
+.chat-jumbo--md .chat-msg-body{ font-size:1.75rem; }
+
+/* — Carte fichier : icône + nom + taille + flèche de téléchargement — */
+.chat-att--file{
+  display:inline-flex; align-items:center; gap:12px;
+  padding:10px 14px; min-width:230px; max-width:340px;
+  background:#151518; border:1px solid rgba(255,255,255,.14); border-radius:12px;
+  text-decoration:none; color:#eaeaea;
+}
+.chat-att--file:hover{ border-color:rgba(255,255,255,.4); color:#fff; }
+.chat-file-ic{ font-size:1.5rem; line-height:1; }
+.chat-file-meta{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.chat-file-meta b{
+  font-size:.82rem; font-weight:600; max-width:210px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chat-file-meta small{
+  font-size:.6rem; color:rgba(255,255,255,.5);
+  font-family:var(--f-mono,monospace); letter-spacing:.06em;
+}
+.chat-file-dl{ margin-inline-start:auto; opacity:.55; transition:opacity .2s; }
+.chat-att--file:hover .chat-file-dl{ opacity:1; }
+
+/* — Menu contextuel GLG (launcher uniquement) — */
+#glg-ctx{
+  position:fixed; z-index:100000; min-width:200px; padding:6px;
+  background:#141417; border:1px solid rgba(255,255,255,.12); border-radius:10px;
+  box-shadow:0 18px 50px -12px rgba(0,0,0,.85);
+}
+#glg-ctx button{
+  display:flex; width:100%; align-items:center; gap:10px;
+  padding:8px 12px; background:none; border:none; border-radius:7px;
+  color:#ddd; font-size:.8rem; cursor:pointer; text-align:start;
+}
+#glg-ctx button:hover{ background:rgba(255,255,255,.08); color:#fff; }
+#glg-ctx hr{ border:none; border-top:1px solid rgba(255,255,255,.08); margin:5px 8px; }
