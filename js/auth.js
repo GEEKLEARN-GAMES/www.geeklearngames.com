@@ -722,6 +722,15 @@
     const { error } = await _client.from('chat_messages').delete().eq('id', id);
     return error ? { ok: false, code: 'network', error } : { ok: true };
   }
+  /* Récompenses GLG : points/badges calculés PAR LE SERVEUR (anti-triche,
+     liste blanche glg_trophy_tiers). target absent = soi-même. */
+  async function glgProgress(target) {
+    if (!_ready) return { ok: false, code: 'notConfigured' };
+    const { data, error } = await _client.rpc('glg_progress', target ? { target } : {});
+    if (error) return { ok: false, code: 'network', error };
+    return data ? { ok: true, progress: data } : { ok: false, code: 'empty' };
+  }
+
   async function chatUpload(file) {
     if (!_ready) return { ok: false, code: 'notConfigured' };
     if (!file) return { ok: false, code: 'noFile' };
@@ -808,7 +817,7 @@
     mfaFactors, mfaEnroll, mfaVerifyEnroll, mfaUnenroll, mfaAal, mfaChallengeVerify,
     listScreenshots, uploadScreenshot, deleteScreenshot,
     chatDmChannel, chatChannels, chatMessages, chatSend, chatEdit, chatDelete,
-    chatUpload, chatMarkRead, chatReact, chatGroupCreate, chatGroupAdd, chatGroupLeave,
+    chatUpload, glgProgress, chatMarkRead, chatReact, chatGroupCreate, chatGroupAdd, chatGroupLeave,
     chatGroupMembers, chatSubscribe,
     onChange,
   };

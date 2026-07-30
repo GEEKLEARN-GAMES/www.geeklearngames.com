@@ -4854,6 +4854,11 @@ const _AMB_PRESETS = [
   { k:'violet',    n:'Violet',    a:{ on:true,  c1:'#a06bff', c2:'#3b1a80', dir:'v', force:9 } },
   { k:'lime',      n:'Neon Lime', a:{ on:true,  c1:'#c8ff3e', c2:'#2c8a12', dir:'d', force:9 } },
   { k:'ocean',     n:'Ocean',     a:{ on:true,  c1:'#38b6ff', c2:'#062e64', dir:'v', force:9 } },
+  // Exclusifs Récompenses GLG — verrouillés par points (rpc glg_progress)
+  { k:'aube',      n:'Aube dorée',    lock:300,  a:{ on:true, c1:'#ffd9a0', c2:'#c2571b', dir:'r', force:9 } },
+  { k:'nebula',    n:'Nébuleuse',     lock:900,  a:{ on:true, c1:'#7df9ff', c2:'#7b2bff', dir:'r', force:10 } },
+  { k:'royal',     n:'Pourpre royal', lock:1800, a:{ on:true, c1:'#ff2e88', c2:'#4a0a2e', dir:'d', force:10 } },
+  { k:'legende',   n:'Légende',       lock:3000, a:{ on:true, c1:'#f4f4ff', c2:'#6a5bff', dir:'r', force:11 } },
 ];
 const _ambEq = (a, b) => !!a && !!b && a.on === b.on && (!a.on || (a.c1 === b.c1 && (a.c2 || null) === (b.c2 || null) && a.dir === b.dir && +a.force === +b.force));
 
@@ -4920,9 +4925,9 @@ function _settingsPanels(p, u, pr){
             <div class="set-group-label">${_ot('ambiance')}</div>
             <div class="set-amb2-grid" id="ap-amb-presets">
               ${_AMB_PRESETS.map(ps => `
-              <button type="button" class="set-amb2 ${_ambEq(pr.launcher.amb, ps.a) ? 'on' : ''}" data-k="${ps.k}"
-                title="${ps.t ? _ot(ps.t) : ps.n}" aria-label="${ps.t ? _ot(ps.t) : ps.n}"
-                style="background:${ps.a.on ? _glgAmbCss(ps.a) : '#050506'}"></button>`).join('')}
+              <button type="button" class="set-amb2 ${_ambEq(pr.launcher.amb, ps.a) ? 'on' : ''} ${ps.lock && !_rwdHas(ps.lock) ? 'set-amb2--locked' : ''}" data-k="${ps.k}" ${ps.lock ? `data-lock="${ps.lock}"` : ''}
+                title="${ps.t ? _ot(ps.t) : ps.n}${ps.lock && !_rwdHas(ps.lock) ? ' — ' + _rwt('lockAt').replace('%s', ps.lock) : ''}" aria-label="${ps.t ? _ot(ps.t) : ps.n}"
+                style="background:${ps.a.on ? _glgAmbCss(ps.a) : '#050506'}">${ps.lock ? `<span class="set-amb2-lock" aria-hidden="true">${_LOCK_SVG}</span>` : ''}</button>`).join('')}
             </div>
             <div class="set-group-label" style="margin-top:22px">${_ot('ambCustom')}</div>
             <div class="set-amb-custom">
@@ -5216,10 +5221,33 @@ function _wireSettings(root) {
   };
   root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(b => b.addEventListener('click', () => {
     const ps = _AMB_PRESETS.find(x => x.k === b.dataset.k); if (!ps) return;
+    if (ps.lock && !_rwdHas(ps.lock)) {               // verrouillé : refus animé
+      b.classList.add('deny'); setTimeout(() => b.classList.remove('deny'), 450); return;
+    }
     root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(x => x.classList.toggle('on', x === b));
     ambReflect(ps.a);
     ambSave(Object.assign({}, ps.a));
   }));
+  // Aperçu au survol : l'ambiance s'ESSAIE avant de s'adopter (déverrouillés)
+  root.querySelectorAll('#ap-amb-presets .set-amb2').forEach(b => {
+    b.addEventListener('mouseenter', () => {
+      const ps = _AMB_PRESETS.find(x => x.k === b.dataset.k);
+      if (!ps || (ps.lock && !_rwdHas(ps.lock))) return;
+      _glgAmbApply(ps.a);
+    });
+    b.addEventListener('mouseleave', () => {
+      _glgAmbApply((_userPrefs && _userPrefs.launcher && _userPrefs.launcher.amb) || { on: false });
+    });
+  });
+  // Points GLG frais → lève les cadenas mérités (sans reconstruire la page)
+  _rwdEnsure().then(() => {
+    root.querySelectorAll('#ap-amb-presets [data-lock]').forEach(b => {
+      const ok = _rwdHas(+b.dataset.lock);
+      b.classList.toggle('set-amb2--locked', !ok);
+      const ps = _AMB_PRESETS.find(x => x.k === b.dataset.k);
+      if (ps) b.title = (ps.t ? _ot(ps.t) : ps.n) + (ok ? '' : ' — ' + _rwt('lockAt').replace('%s', ps.lock));
+    });
+  });
   let _ambT = 0;
   const ambCustom = () => {
     const grad = $('ap-amb-grad') && $('ap-amb-grad').checked;
@@ -6013,6 +6041,8 @@ async function buildProfilePage(){
             ${_recentGamesHTML(p.recent_games, { owner: true })}
           </div>
 
+          <div class="pp-section" id="pp-rewards" hidden></div>
+
           ${pr.privacy.showTrophies ? `
           <div class="pp-section pp-trophy-section">
             <div class="pp-sec-head"><h2 class="pp-sec-title" data-idx="02 /">${_tt('section')}</h2></div>
@@ -6571,6 +6601,7 @@ async function buildPublicProfilePage(viewId){
         <button class="pp-stat" onclick="document.querySelector('.pp-rev-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
         <button class="pp-stat" onclick="document.querySelector('.pp-wish-grid')?.scrollIntoView({behavior:'smooth'})"><b>${wWorks.length}</b><span>${_wt('title')}</span></button>
       </div>
+      <div class="pp-section" id="pp-rewards" hidden></div>
       ${(() => { /* numérotation continue même quand « Jeux récents » est absent */
         let _pi = 0; const nidx = () => `${String(++_pi).padStart(2, '0')} /`;
         const rg = _recentGamesHTML(prof.recent_games);
@@ -6612,6 +6643,7 @@ async function buildPublicProfilePage(viewId){
     </section>
     ${footerHTML()}`;
   _renderProfileReviews(viewId);
+  _renderRewards(viewId);
   _initProfileShots(viewId, { readOnly: true });
 
   // FIX : câbler TOUS les boutons d'action (avant : querySelector ne prenait
@@ -6747,6 +6779,7 @@ async function refreshTrophiesUI(){
   // Anneau de niveau façon Steam (plaque d'identité, progression conique)
   const ring = document.getElementById('pp-level-ring');
   if (ring) ring.innerHTML = `<span class="pp-ring-track" style="--pct:${d.nextPct}"><span class="pp-ring-in"><b>${d.level}</b><small>${_tt('levelShort')}</small></span></span>`;
+  _renderRewards();                                  // couche Points GLG (serveur)
 }
 
 /* ── Section "Évaluations" du profil (perso + public) — via user_reviews ── */
@@ -7995,6 +8028,398 @@ if ('serviceWorker' in navigator && !IS_TAURI && /(^|\.)geeklearngames\.com$/.te
       });
     }).catch(() => {});
   });
+}
+
+/* ══ MOTION GLG — la couche « sensation » ══
+   1) Entrée de page chorégraphiée : à chaque navigation, la page active
+      rejoue une montée douce (sous le voile de cross-fade existant) et
+      ses grilles connues cascadent (§87, nth-child plafonné).
+   2) Tilt 3D des cards au pointeur (œuvres + bibliothèque) — souris
+      uniquement, coupé en mouvement réduit, transform inline nettoyée
+      à la sortie pour rendre la main au :hover CSS. */
+if (!window._glgMotionHook) {
+  window._glgMotionHook = true;
+  document.addEventListener('glg:page-changed', () => {
+    const pg = document.querySelector('.page.active'); if (!pg) return;
+    pg.classList.remove('page-in');
+    void pg.offsetWidth;                       // redémarre l'animation
+    pg.classList.add('page-in');
+    clearTimeout(pg._pinT);
+    pg._pinT = setTimeout(() => pg.classList.remove('page-in'), 800);
+  });
+}
+const _GLG_TILT = { el: null };
+if (matchMedia('(pointer:fine)').matches) {
+  document.addEventListener('pointermove', e => {
+    if (document.documentElement.classList.contains('glg-reduce-motion')) return;
+    const card = e.target.closest && e.target.closest('.c-card, .lib-gcard');
+    if (_GLG_TILT.el && _GLG_TILT.el !== card) { _GLG_TILT.el.style.transform = ''; _GLG_TILT.el = null; }
+    if (!card) return;
+    const r = card.getBoundingClientRect();
+    const nx = (e.clientX - r.left) / r.width - .5;
+    const ny = (e.clientY - r.top) / r.height - .5;
+    card.style.transform = 'perspective(900px) rotateX(' + (-ny * 5).toFixed(2) + 'deg) rotateY(' + (nx * 6).toFixed(2) + 'deg) translateY(-4px)';
+    _GLG_TILT.el = card;
+  }, { passive: true });
+  document.addEventListener('pointerout', e => {
+    if (_GLG_TILT.el && !(e.relatedTarget && _GLG_TILT.el.contains(e.relatedTarget))) {
+      _GLG_TILT.el.style.transform = ''; _GLG_TILT.el = null;
+    }
+  }, { passive: true });
+}
+
+/* ══ MODE MANETTE (tâche #60) ══
+   Navigation SPATIALE au gamepad, partout : croix/stick = focus dirigé
+   (score distance + pénalité transverse), A = valider, B = retour
+   (palette → visionneuse → fiche → accueil), LB/RB = sections du header,
+   gâchettes = défilement (via Lenis, jamais window.scrollTo : désync).
+   Barre d'aide en bas tant qu'une manette est connectée. Aucun coût
+   manette débranchée : la boucle rAF ne tourne qu'entre connected et
+   disconnected. */
+const _PAD_T = {
+  ok:      { fr:'Valider', en:'Select', es:'Aceptar', de:'Auswählen', it:'Conferma', ar:'تأكيد', zh:'确认', ja:'決定', ru:'Выбрать', pl:'Wybierz' },
+  back:    { fr:'Retour', en:'Back', es:'Atrás', de:'Zurück', it:'Indietro', ar:'رجوع', zh:'返回', ja:'戻る', ru:'Назад', pl:'Wstecz' },
+  sections:{ fr:'Sections', en:'Sections', es:'Secciones', de:'Bereiche', it:'Sezioni', ar:'الأقسام', zh:'栏目', ja:'セクション', ru:'Разделы', pl:'Sekcje' },
+  on:      { fr:'Manette connectée — navigation au pad active', en:'Controller connected — pad navigation on', es:'Mando conectado — navegación con mando activa', de:'Controller verbunden — Pad-Navigation aktiv', it:'Controller collegato — navigazione col pad attiva', ar:'تم توصيل يد التحكم — التنقل باليد مفعّل', zh:'手柄已连接——手柄导航已开启', ja:'コントローラー接続 — パッド操作が有効', ru:'Геймпад подключён — навигация активна', pl:'Pad podłączony — nawigacja padem włączona' },
+};
+const _pdt = k => (_PAD_T[k] && (_PAD_T[k][LANG] || _PAD_T[k].en)) || '';
+function _padBar(show) {
+  let bar = document.getElementById('glg-padbar');
+  if (!show) { bar?.remove(); return; }
+  if (bar) return;
+  bar = document.createElement('div');
+  bar.id = 'glg-padbar';
+  bar.setAttribute('aria-hidden', 'true');
+  bar.innerHTML = `
+    <span><i class="pb-btn pb-a">A</i>${_pdt('ok')}</span>
+    <span><i class="pb-btn pb-b">B</i>${_pdt('back')}</span>
+    <span><i class="pb-btn pb-w">LB</i><i class="pb-btn pb-w">RB</i>${_pdt('sections')}</span>`;
+  document.body.appendChild(bar);
+}
+const _GLG_PAD = (() => {
+  let raf = 0, on = false, focusEl = null;
+  let prevB = [], lastDir = '', lastMove = 0, firstAt = 0;
+  const AXIS = .55, REP0 = 320, REP = 130;
+  function focusables() {
+    const page = document.querySelector('.page.active') || document.body;
+    const scopes = [page, document.getElementById('nav'), document.getElementById('glg-cmdk'),
+                    document.getElementById('glg-mediaview'), document.getElementById('glg-titlebar')].filter(Boolean);
+    const sel = 'button, a[href], input, select, textarea, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"])';
+    const out = [];
+    scopes.forEach(s => s.querySelectorAll(sel).forEach(el => {
+      if (el.disabled || el.getAttribute('aria-hidden') === 'true') return;
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) return;
+      if (r.bottom < -420 || r.top > innerHeight + 420) return;    // fenêtre ± écran
+      out.push({ el, r });
+    }));
+    return out;
+  }
+  function setFocus(el) {
+    if (focusEl && focusEl !== el) focusEl.classList.remove('glg-pad-focus');
+    focusEl = el; if (!el) return;
+    el.classList.add('glg-pad-focus');
+    try { el.focus({ preventScroll: true }); } catch (e) {}
+    const r = el.getBoundingClientRect();
+    if (r.top < 96 || r.bottom > innerHeight - 96) {
+      const L = window.glgLenis || window._lenis;
+      const y = Math.max(0, (window.scrollY || 0) + r.top - innerHeight / 2 + r.height / 2);
+      if (L && L.scrollTo) L.scrollTo(y, { duration: .45 }); else window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }
+  function move(dir) {
+    const cands = focusables(); if (!cands.length) return;
+    if (!focusEl || !document.contains(focusEl)) {
+      setFocus((cands.find(c => c.r.top > 90 && c.r.top < innerHeight) || cands[0]).el);
+      return;
+    }
+    const fr = focusEl.getBoundingClientRect();
+    const fx = fr.left + fr.width / 2, fy = fr.top + fr.height / 2;
+    let best = null, bestScore = Infinity;
+    cands.forEach(c => {
+      if (c.el === focusEl) return;
+      const dx = (c.r.left + c.r.width / 2) - fx, dy = (c.r.top + c.r.height / 2) - fy;
+      let main, cross;
+      if (dir === 'left') { if (dx > -4) return; main = -dx; cross = Math.abs(dy); }
+      else if (dir === 'right') { if (dx < 4) return; main = dx; cross = Math.abs(dy); }
+      else if (dir === 'up') { if (dy > -4) return; main = -dy; cross = Math.abs(dx); }
+      else { if (dy < 4) return; main = dy; cross = Math.abs(dx); }
+      const score = main + cross * 2.2;
+      if (score < bestScore) { bestScore = score; best = c.el; }
+    });
+    if (best) setFocus(best);
+  }
+  function press() {
+    const el = focusEl && document.contains(focusEl) ? focusEl : null;
+    if (!el) { move('down'); return; }
+    el.classList.add('glg-pad-press');
+    setTimeout(() => el.classList.remove('glg-pad-press'), 160);
+    el.click();
+  }
+  function back() {
+    if (document.getElementById('glg-cmdk')) { _ckClose(); return; }
+    const mv = document.querySelector('#glg-mediaview .mv-close'); if (mv) { mv.click(); return; }
+    const bk = document.querySelector('.page.active .dp-back--min, .page.active .pp-back-btn');
+    if (bk) { bk.click(); return; }
+    showPage('home');
+  }
+  function cycle(dirn) {
+    const links = Array.from(document.querySelectorAll('#nav .nav-link')).filter(b => b.offsetParent);
+    if (!links.length) return;
+    const cur = Math.max(0, links.findIndex(b => b.classList.contains('active')));
+    links[(cur + dirn + links.length) % links.length].click();
+  }
+  function loop() {
+    if (!on) return;
+    raf = requestAnimationFrame(loop);
+    const gp = (navigator.getGamepads ? Array.from(navigator.getGamepads()) : []).find(g => g && g.connected);
+    if (!gp) return;
+    const b = gp.buttons.map(x => !!x.pressed);
+    const edge = i => b[i] && !prevB[i];
+    let dir = '';
+    if (b[12] || gp.axes[1] < -AXIS) dir = 'up';
+    else if (b[13] || gp.axes[1] > AXIS) dir = 'down';
+    else if (b[14] || gp.axes[0] < -AXIS) dir = 'left';
+    else if (b[15] || gp.axes[0] > AXIS) dir = 'right';
+    const now = performance.now();
+    if (dir) {
+      if (dir !== lastDir) { move(dir); firstAt = now; lastMove = now; }
+      else if (now - lastMove >= (lastMove === firstAt ? REP0 : REP)) { move(dir); lastMove = now; }
+      lastDir = dir;
+    } else lastDir = '';
+    if (edge(0)) press();
+    if (edge(1)) back();
+    if (edge(4)) cycle(-1);
+    if (edge(5)) cycle(1);
+    const tr = ((gp.buttons[7] && gp.buttons[7].value) || 0) - ((gp.buttons[6] && gp.buttons[6].value) || 0);
+    if (Math.abs(tr) > .12) {
+      const L = window.glgLenis || window._lenis;
+      const y = Math.max(0, (L && L.scroll != null ? L.scroll : window.scrollY) + tr * 30);
+      if (L && L.scrollTo) L.scrollTo(y, { immediate: true });
+    }
+    prevB = b;
+  }
+  function start() {
+    if (on) return;
+    on = true;
+    document.body.classList.add('glg-pad-on');
+    _padBar(true);
+    prevB = []; lastDir = '';
+    raf = requestAnimationFrame(loop);
+  }
+  function stop() {
+    if (!on) return;
+    on = false;
+    cancelAnimationFrame(raf);
+    document.body.classList.remove('glg-pad-on');
+    if (focusEl) focusEl.classList.remove('glg-pad-focus');
+    focusEl = null;
+    _padBar(false);
+  }
+  window.addEventListener('gamepadconnected', start);
+  window.addEventListener('gamepaddisconnected', () => {
+    const any = (navigator.getGamepads ? Array.from(navigator.getGamepads()) : []).some(g => g && g.connected);
+    if (!any) stop();
+  });
+  return { start, stop, move, setFocus, get on() { return on; } };
+})();
+
+/* ══ PALETTE UNIVERSELLE Ctrl+K (tâche #62) ══
+   Pages (labels du header, donc déjà localisés) + œuvres (age-gating
+   respecté) + actions. Clavier complet : ↑↓ naviguer, ↵ ouvrir, Échap
+   fermer. Recherche insensible aux accents. */
+const _CK_T = {
+  ph:     { fr:'Rechercher une page, une œuvre, une action…', en:'Search a page, a work, an action…', es:'Busca una página, una obra, una acción…', de:'Seite, Werk oder Aktion suchen…', it:'Cerca una pagina, un\u2019opera, un\u2019azione…', ar:'ابحث عن صفحة أو عمل أو إجراء…', zh:'搜索页面、作品或操作……', ja:'ページ・作品・アクションを検索…', ru:'Найдите страницу, работу или действие…', pl:'Szukaj strony, dzieła lub akcji…' },
+  pages:  { fr:'Pages', en:'Pages', es:'Páginas', de:'Seiten', it:'Pagine', ar:'الصفحات', zh:'页面', ja:'ページ', ru:'Страницы', pl:'Strony' },
+  works:  { fr:'Œuvres', en:'Works', es:'Obras', de:'Werke', it:'Opere', ar:'الأعمال', zh:'作品', ja:'作品', ru:'Работы', pl:'Dzieła' },
+  actions:{ fr:'Actions', en:'Actions', es:'Acciones', de:'Aktionen', it:'Azioni', ar:'إجراءات', zh:'操作', ja:'アクション', ru:'Действия', pl:'Akcje' },
+  aSearch:{ fr:'Rechercher un titre', en:'Search a title', es:'Buscar un título', de:'Titel suchen', it:'Cerca un titolo', ar:'ابحث عن عنوان', zh:'搜索标题', ja:'タイトルを検索', ru:'Найти игру', pl:'Szukaj tytułu' },
+  aLang:  { fr:'Changer de langue', en:'Change language', es:'Cambiar idioma', de:'Sprache ändern', it:'Cambia lingua', ar:'تغيير اللغة', zh:'更改语言', ja:'言語を変更', ru:'Сменить язык', pl:'Zmień język' },
+  aDl:    { fr:'Télécharger le launcher', en:'Download the launcher', es:'Descargar el launcher', de:'Launcher herunterladen', it:'Scarica il launcher', ar:'تنزيل المشغّل', zh:'下载启动器', ja:'ランチャーをダウンロード', ru:'Скачать лаунчер', pl:'Pobierz launcher' },
+  empty:  { fr:'Aucun résultat', en:'No results', es:'Sin resultados', de:'Keine Ergebnisse', it:'Nessun risultato', ar:'لا نتائج', zh:'无结果', ja:'該当なし', ru:'Ничего не найдено', pl:'Brak wyników' },
+  hOpen:  { fr:'Ouvrir', en:'Open', es:'Abrir', de:'Öffnen', it:'Apri', ar:'فتح', zh:'打开', ja:'開く', ru:'Открыть', pl:'Otwórz' },
+  hNav:   { fr:'Naviguer', en:'Navigate', es:'Navegar', de:'Navigieren', it:'Naviga', ar:'تنقّل', zh:'切换', ja:'移動', ru:'Навигация', pl:'Nawiguj' },
+  hClose: { fr:'Fermer', en:'Close', es:'Cerrar', de:'Schließen', it:'Chiudi', ar:'إغلاق', zh:'关闭', ja:'閉じる', ru:'Закрыть', pl:'Zamknij' },
+};
+const _ckt = k => (_CK_T[k] && (_CK_T[k][LANG] || _CK_T[k].en)) || '';
+const _ckNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+let _ckSel = 0, _ckList = [];
+function _ckItems() {
+  const items = [];
+  document.querySelectorAll('#nav .nav-link').forEach(b => {
+    const lbl = b.textContent.trim();
+    if (!lbl || !b.offsetParent) return;       // masqué (web ≠ launcher) : absent
+    items.push({ g: 'pages', label: lbl, act: () => b.click() });
+  });
+  (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).filter(w => !isMatureHidden(w)).forEach(w => {
+    items.push({ g: 'works', label: w.title, sub: getCatLabel(w) + ' · ' + w.year, img: av(w.cover), act: () => showPage('detail', w.id) });
+  });
+  items.push({ g: 'actions', label: _ckt('aSearch'), act: () => { try { openSearch(); } catch (e) {} } });
+  items.push({ g: 'actions', label: _ckt('aLang'), act: () => { try { reopenLangGate(); } catch (e) {} } });
+  if (!IS_TAURI) items.push({ g: 'actions', label: _ckt('aDl'), act: () => showPage('launcher') });
+  return items;
+}
+function _ckClose() { document.getElementById('glg-cmdk')?.remove(); }
+function _ckRender(q) {
+  const list = document.getElementById('ck-list'); if (!list) return;
+  const nq = _ckNorm(q);
+  const scored = _ckItems().map(it => {
+    if (!nq) return { it, s: 1 };
+    const L = _ckNorm(it.label), S = _ckNorm(it.sub || '');
+    const s = L.startsWith(nq) ? 0 : L.indexOf(nq) >= 0 ? 1 : S.indexOf(nq) >= 0 ? 2 : -1;
+    return { it, s };
+  }).filter(x => x.s >= 0);
+  scored.sort((x, y) => x.s - y.s);
+  _ckList = scored.slice(0, 24).map(x => x.it);
+  _ckSel = 0;
+  if (!_ckList.length) { list.innerHTML = `<p class="ck-none">${_ckt('empty')}</p>`; return; }
+  let html = '', lastG = '';
+  _ckList.forEach((it, i) => {
+    if (it.g !== lastG) { html += `<div class="ck-group">${_ckt(it.g)}</div>`; lastG = it.g; }
+    html += `<button class="ck-item ${i === 0 ? 'sel' : ''}" data-i="${i}" type="button">
+      ${it.img ? `<img src="${it.img}" alt="" loading="lazy">` : ''}
+      <b>${escHtml(it.label)}</b>${it.sub ? `<small>${escHtml(it.sub)}</small>` : ''}</button>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.ck-item').forEach(b => b.addEventListener('click', () => _ckGo(+b.dataset.i)));
+}
+function _ckGo(i) {
+  const it = _ckList[i]; if (!it) return;
+  _ckClose();
+  try { it.act(); } catch (e) {}
+}
+function _ckMove(d) {
+  if (!_ckList.length) return;
+  _ckSel = (_ckSel + d + _ckList.length) % _ckList.length;
+  const items = document.querySelectorAll('#ck-list .ck-item');
+  items.forEach((b, i) => b.classList.toggle('sel', i === _ckSel));
+  items[_ckSel]?.scrollIntoView({ block: 'nearest' });
+}
+function _ckOpen() {
+  if (document.getElementById('glg-cmdk')) { _ckClose(); return; }
+  const ov = document.createElement('div');
+  ov.id = 'glg-cmdk';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.innerHTML = `
+    <div class="ck-card">
+      <input id="ck-input" class="ck-input" type="text" placeholder="${_ckt('ph')}" autocomplete="off" spellcheck="false">
+      <div id="ck-list" class="ck-list" data-lenis-prevent></div>
+      <div class="ck-foot">
+        <span><kbd>↵</kbd>${_ckt('hOpen')}</span>
+        <span><kbd>↑↓</kbd>${_ckt('hNav')}</span>
+        <span><kbd>Esc</kbd>${_ckt('hClose')}</span>
+      </div>
+    </div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) _ckClose(); });
+  document.body.appendChild(ov);
+  const inp = document.getElementById('ck-input');
+  inp.addEventListener('input', () => _ckRender(inp.value));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _ckMove(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _ckMove(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); _ckGo(_ckSel); }
+    else if (e.key === 'Escape') { e.preventDefault(); _ckClose(); }
+  });
+  _ckRender('');
+  inp.focus();
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); _ckOpen(); }
+});
+
+/* ══ RÉCOMPENSES GLG (tâche #58) ══
+   Le NIVEAU (anneau) reste le niveau de trophées calculé côté client.
+   S'ajoute ici la couche VÉRIFIÉE SERVEUR (rpc glg_progress + liste
+   blanche) : Points GLG, 6 badges, cadre d'avatar par palier, et 4
+   presets d'ambiance verrouillés par points. Triche par insertion de
+   fausses clés : impossible (les clés hors liste blanche comptent zéro). */
+const _RWD_T = {
+  title:   { fr:'Récompenses GLG', en:'GLG Rewards', es:'Recompensas GLG', de:'GLG-Belohnungen', it:'Ricompense GLG', ar:'مكافآت GLG', zh:'GLG 奖励', ja:'GLGリワード', ru:'Награды GLG', pl:'Nagrody GLG' },
+  points:  { fr:'points', en:'points', es:'puntos', de:'Punkte', it:'punti', ar:'نقطة', zh:'积分', ja:'ポイント', ru:'очков', pl:'punktów' },
+  rookie:  { fr:'Recrue', en:'Rookie', es:'Recluta', de:'Rekrut', it:'Recluta', ar:'مبتدئ', zh:'新兵', ja:'ルーキー', ru:'Новичок', pl:'Rekrut' },
+  lockAt:  { fr:'Se débloque à %s points GLG', en:'Unlocks at %s GLG points', es:'Se desbloquea con %s puntos GLG', de:'Wird bei %s GLG-Punkten freigeschaltet', it:'Si sblocca a %s punti GLG', ar:'يُفتح عند %s نقطة GLG', zh:'达到 %s GLG 积分解锁', ja:'GLGポイント%sで解除', ru:'Откроется при %s очках GLG', pl:'Odblokuje się przy %s punktach GLG' },
+  bdFirstT:{ fr:'Premier sang', en:'First Blood', es:'Primera sangre', de:'Erstes Blut', it:'Primo sangue', ar:'الدم الأول', zh:'首杀', ja:'ファーストブラッド', ru:'Первая кровь', pl:'Pierwsza krew' },
+  bdFirstD:{ fr:'Débloque ton premier trophée', en:'Unlock your first trophy', es:'Desbloquea tu primer trofeo', de:'Schalte deine erste Trophäe frei', it:'Sblocca il tuo primo trofeo', ar:'افتح أول كأس لك', zh:'解锁你的第一个奖杯', ja:'最初のトロフィーを獲得', ru:'Получите первый трофей', pl:'Zdobądź pierwsze trofeum' },
+  bdPlatT: { fr:'Platine', en:'Platinum', es:'Platino', de:'Platin', it:'Platino', ar:'بلاتيني', zh:'白金', ja:'プラチナ', ru:'Платина', pl:'Platyna' },
+  bdPlatD: { fr:'Décroche une platine', en:'Earn a platinum', es:'Consigue un platino', de:'Hole ein Platin', it:'Ottieni un platino', ar:'احصل على بلاتينية', zh:'获得一个白金奖杯', ja:'プラチナを獲得', ru:'Получите платину', pl:'Zdobądź platynę' },
+  bdCritT: { fr:'Plume critique', en:'Critic', es:'Crítico', de:'Kritiker', it:'Critico', ar:'ناقد', zh:'评论家', ja:'批評家', ru:'Критик', pl:'Krytyk' },
+  bdCritD: { fr:'Publie 3 évaluations', en:'Publish 3 reviews', es:'Publica 3 reseñas', de:'Veröffentliche 3 Bewertungen', it:'Pubblica 3 recensioni', ar:'انشر 3 تقييمات', zh:'发布 3 条评价', ja:'レビューを3件投稿', ru:'Опубликуйте 3 отзыва', pl:'Opublikuj 3 recenzje' },
+  bdSocT:  { fr:'Bien entouré', en:'Well Connected', es:'Bien acompañado', de:'Gut vernetzt', it:'In buona compagnia', ar:'محاط بالأصدقاء', zh:'广交好友', ja:'友達の輪', ru:'В кругу друзей', pl:'W dobrym towarzystwie' },
+  bdSocD:  { fr:'Compte 5 amis', en:'Have 5 friends', es:'Ten 5 amigos', de:'Habe 5 Freunde', it:'Abbi 5 amici', ar:'كوّن 5 أصدقاء', zh:'拥有 5 位好友', ja:'フレンド5人', ru:'Заведите 5 друзей', pl:'Miej 5 znajomych' },
+  bdHuntT: { fr:'Chasseur', en:'Hunter', es:'Cazador', de:'Jäger', it:'Cacciatore', ar:'صيّاد', zh:'猎手', ja:'ハンター', ru:'Охотник', pl:'Łowca' },
+  bdHuntD: { fr:'Débloque 50 trophées', en:'Unlock 50 trophies', es:'Desbloquea 50 trofeos', de:'Schalte 50 Trophäen frei', it:'Sblocca 50 trofei', ar:'افتح 50 كأسًا', zh:'解锁 50 个奖杯', ja:'トロフィーを50個獲得', ru:'Получите 50 трофеев', pl:'Zdobądź 50 trofeów' },
+  bdFndT:  { fr:'Pionnier', en:'Pioneer', es:'Pionero', de:'Pionier', it:'Pioniere', ar:'رائد', zh:'先驱', ja:'パイオニア', ru:'Первопроходец', pl:'Pionier' },
+  bdFndD:  { fr:'Compte créé la première année du studio', en:'Account created in the studio\u2019s first year', es:'Cuenta creada el primer año del estudio', de:'Konto im ersten Studiojahr erstellt', it:'Account creato nel primo anno dello studio', ar:'حساب أُنشئ في السنة الأولى للاستوديو', zh:'工作室元年注册的账号', ja:'スタジオ最初の年に作成されたアカウント', ru:'Аккаунт создан в первый год студии', pl:'Konto założone w pierwszym roku studia' },
+  brTro:   { fr:'Trophées', en:'Trophies', es:'Trofeos', de:'Trophäen', it:'Trofei', ar:'الكؤوس', zh:'奖杯', ja:'トロフィー', ru:'Трофеи', pl:'Trofea' },
+  brRev:   { fr:'Évaluations', en:'Reviews', es:'Reseñas', de:'Bewertungen', it:'Recensioni', ar:'التقييمات', zh:'评价', ja:'レビュー', ru:'Отзывы', pl:'Recenzje' },
+  brYears: { fr:'Ancienneté', en:'Seniority', es:'Antigüedad', de:'Mitglied seit', it:'Anzianità', ar:'الأقدمية', zh:'资历', ja:'在籍', ru:'Стаж', pl:'Staż' },
+  brFr:    { fr:'Amis', en:'Friends', es:'Amigos', de:'Freunde', it:'Amici', ar:'الأصدقاء', zh:'好友', ja:'フレンド', ru:'Друзья', pl:'Znajomi' },
+};
+const _rwt = k => (_RWD_T[k] && (_RWD_T[k][LANG] || _RWD_T[k].en)) || '';
+const _LOCK_SVG = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3.4" y="7" width="9.2" height="6.4" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7" stroke="currentColor" stroke-width="1.4"/></svg>';
+const _RWD_BADGES = [
+  { k:'first_blood', t:'bdFirstT', d:'bdFirstD', ico:'<path d="M8 2.2c2.2 3 4 5 4 7.2a4 4 0 1 1-8 0c0-2.2 1.8-4.2 4-7.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>' },
+  { k:'platinum',    t:'bdPlatT',  d:'bdPlatD',  ico:'<path d="M4 3h8v3a4 4 0 0 1-8 0V3zM2 4h2M12 4h2M6.6 10.6 6 13.4h4l-.6-2.8M4.6 13.4h6.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>' },
+  { k:'critic',      t:'bdCritT',  d:'bdCritD',  ico:'<path d="M11 2.4 13.6 5 6 12.6l-3.4.8.8-3.4L11 2.4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>' },
+  { k:'social',      t:'bdSocT',   d:'bdSocD',   ico:'<circle cx="5.6" cy="5.8" r="2.2" stroke="currentColor" stroke-width="1.3"/><circle cx="10.8" cy="6.6" r="1.7" stroke="currentColor" stroke-width="1.2"/><path d="M2.2 13c.5-2.3 1.8-3.4 3.4-3.4s2.9 1.1 3.4 3.4M9.4 10.2c1.9-.5 3.6.4 4.3 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' },
+  { k:'hunter',      t:'bdHuntT',  d:'bdHuntD',  ico:'<circle cx="8" cy="8" r="5.4" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2.4M8 12.6V15M1 8h2.4M12.6 8H15" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' },
+  { k:'founder',     t:'bdFndT',   d:'bdFndD',   ico:'<path d="M8 1.8 9.8 5.6l4.2.6-3 2.9.7 4.1L8 11.2l-3.7 2 .7-4.1-3-2.9 4.2-.6L8 1.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>' },
+];
+const _RWD_FRAMES = [[3000, 'plat'], [1800, 'gold'], [900, 'silver'], [300, 'bronze']];
+function _rwdFrame(pts) { const f = _RWD_FRAMES.find(x => pts >= x[0]); return f ? f[1] : ''; }
+let _rwdMe = null, _rwdMeAt = 0;
+function _rwdHas(pts) { return !!_rwdMe && _rwdMe.points >= pts; }
+async function _rwdEnsure(force) {
+  if (!window.GLG_AUTH?.isConfigured?.() || typeof GLG_AUTH.glgProgress !== 'function') return null;
+  if (_rwdMe && !force && Date.now() - _rwdMeAt < 60000) return _rwdMe;
+  try {
+    const r = await GLG_AUTH.glgProgress();
+    if (r && r.ok) { _rwdMe = r.progress; _rwdMeAt = Date.now(); }
+  } catch (e) {}
+  return _rwdMe;
+}
+/* Carte « Récompenses GLG » : profil perso (uid absent) et profil public. */
+async function _renderRewards(uid) {
+  const host = document.getElementById('pp-rewards'); if (!host) return;
+  let pg = null;
+  try {
+    if (uid) { const r = await GLG_AUTH.glgProgress(uid); pg = r && r.ok ? r.progress : null; }
+    else pg = await _rwdEnsure(true);
+  } catch (e) {}
+  if (!pg) { host.hidden = true; return; }
+  const frame = _rwdFrame(pg.points);
+  const tierName = frame ? _tt(frame === 'plat' ? 'platinum' : frame === 'gold' ? 'gold' : frame === 'silver' ? 'silver' : 'bronze') : _rwt('rookie');
+  const badges = Array.isArray(pg.badges) ? pg.badges : [];
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="pp-sec-head"><h2 class="pp-sec-title">${_rwt('title')}</h2></div>
+    <div class="rwd-card ${frame ? 'rwd-card--' + frame : ''}">
+      <div class="rwd-score">
+        <b>${(+pg.points || 0).toLocaleString(LANG_LOCALE[LANG] || 'en-US')}</b>
+        <span>${_rwt('points')}</span>
+        <i class="rwd-tier">${tierName}</i>
+      </div>
+      <div class="rwd-badges">
+        ${_RWD_BADGES.map(b => {
+          const on = badges.indexOf(b.k) >= 0;
+          return `<span class="rwd-badge ${on ? 'on' : ''}" title="${_rwt(b.t)} — ${_rwt(b.d)}" aria-label="${_rwt(b.t)}">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">${b.ico}</svg>
+            <small>${_rwt(b.t)}</small>${on ? '' : _LOCK_SVG}</span>`;
+        }).join('')}
+      </div>
+      <div class="rwd-break">
+        <span>${_rwt('brTro')} · ${(pg.tiers && (pg.tiers.bronze + pg.tiers.silver + pg.tiers.gold + pg.tiers.platinum)) || 0}</span>
+        <span>${_rwt('brRev')} · ${pg.reviews || 0}</span>
+        <span>${_rwt('brFr')} · ${pg.friends || 0}</span>
+        <span>${_rwt('brYears')} · ${pg.years || 0}</span>
+      </div>
+    </div>`;
+  const av2 = document.querySelector('.pp-avatar');
+  if (av2) {
+    av2.classList.remove('glg-frame--bronze', 'glg-frame--silver', 'glg-frame--gold', 'glg-frame--plat');
+    if (frame) av2.classList.add('glg-frame--' + frame);
+  }
 }
 
 /* ══ MENU CONTEXTUEL DU LAUNCHER (clic droit) ══

@@ -1092,3 +1092,169 @@ end $$;
 --  FIN. Après exécution : Project Settings → API → copier URL + anon key
 --  dans js/config.js.
 -- ════════════════════════════════════════════════════════════════════════
+
+
+-- ════════════════════════════════════════════════════════════════════════
+--  RÉCOMPENSES GLG — points vérifiés côté serveur (tâche #58)
+--  glg_trophy_tiers = LISTE BLANCHE générée depuis data.js : toute clé
+--  insérée à la main dans user_achievements qui n'y figure pas compte ZÉRO.
+--  Les platines ne sont pas stockées : DÉRIVÉES (toutes les non-platines
+--  du jeu débloquées), comme le fait le client. À RÉGÉNÉRER si data.js
+--  change les trophées (le bloc delete/insert est idempotent).
+-- ════════════════════════════════════════════════════════════════════════
+create table if not exists public.glg_trophy_tiers (
+  ach_key text primary key,          -- "<game_id>/<code>"
+  game    text not null,
+  tier    text not null check (tier in ('bronze','silver','gold','platinum'))
+);
+alter table public.glg_trophy_tiers enable row level security;
+drop policy if exists "gtt_read" on public.glg_trophy_tiers;
+create policy "gtt_read" on public.glg_trophy_tiers for select using (true);
+
+delete from public.glg_trophy_tiers;
+insert into public.glg_trophy_tiers (ach_key, game, tier) values
+  ('trick-or-treat/first_door','trick-or-treat','bronze'),
+  ('trick-or-treat/sweet_tooth','trick-or-treat','bronze'),
+  ('trick-or-treat/safe_home','trick-or-treat','silver'),
+  ('trick-or-treat/all_endings','trick-or-treat','gold'),
+  ('trick-or-treat/platinum','trick-or-treat','platinum'),
+  ('a-terrible-wonderful-christmas/snowed_in','a-terrible-wonderful-christmas','bronze'),
+  ('a-terrible-wonderful-christmas/wrapped','a-terrible-wonderful-christmas','bronze'),
+  ('a-terrible-wonderful-christmas/secret','a-terrible-wonderful-christmas','silver'),
+  ('a-terrible-wonderful-christmas/four_pov','a-terrible-wonderful-christmas','gold'),
+  ('a-terrible-wonderful-christmas/platinum','a-terrible-wonderful-christmas','platinum'),
+  ('easter-my-bunny/first_egg','easter-my-bunny','bronze'),
+  ('easter-my-bunny/garden','easter-my-bunny','bronze'),
+  ('easter-my-bunny/folklore','easter-my-bunny','silver'),
+  ('easter-my-bunny/six_truths','easter-my-bunny','gold'),
+  ('easter-my-bunny/platinum','easter-my-bunny','platinum'),
+  ('eid-of-light/homecoming','eid-of-light','bronze'),
+  ('eid-of-light/lantern','eid-of-light','bronze'),
+  ('eid-of-light/reunion','eid-of-light','silver'),
+  ('eid-of-light/ten_lights','eid-of-light','gold'),
+  ('eid-of-light/platinum','eid-of-light','platinum'),
+  ('backrooms-liminal/noclip','backrooms-liminal','bronze'),
+  ('backrooms-liminal/almond','backrooms-liminal','bronze'),
+  ('backrooms-liminal/smile','backrooms-liminal','silver'),
+  ('backrooms-liminal/way_back','backrooms-liminal','gold'),
+  ('backrooms-liminal/platinum','backrooms-liminal','platinum'),
+  ('soul-redemption/push_breaks','soul-redemption','bronze'),
+  ('soul-redemption/eagle_eye','soul-redemption','silver'),
+  ('soul-redemption/smile_lies','soul-redemption','bronze'),
+  ('soul-redemption/no_fear','soul-redemption','silver'),
+  ('soul-redemption/too_cool','soul-redemption','bronze'),
+  ('soul-redemption/playtime','soul-redemption','bronze'),
+  ('soul-redemption/good_times','soul-redemption','bronze'),
+  ('soul-redemption/sneaky_fox','soul-redemption','silver'),
+  ('soul-redemption/thrill_seeker','soul-redemption','bronze'),
+  ('soul-redemption/smashed','soul-redemption','bronze'),
+  ('soul-redemption/disguise','soul-redemption','silver'),
+  ('soul-redemption/beast_whisper','soul-redemption','bronze'),
+  ('soul-redemption/back_future','soul-redemption','bronze'),
+  ('soul-redemption/jackpot','soul-redemption','bronze'),
+  ('soul-redemption/one_down','soul-redemption','silver'),
+  ('soul-redemption/quick_flash','soul-redemption','silver'),
+  ('soul-redemption/tech_guru','soul-redemption','bronze'),
+  ('soul-redemption/shocking','soul-redemption','bronze'),
+  ('soul-redemption/oops_again','soul-redemption','bronze'),
+  ('soul-redemption/game_over','soul-redemption','bronze'),
+  ('soul-redemption/victory_royale','soul-redemption','gold'),
+  ('soul-redemption/no_rest','soul-redemption','silver'),
+  ('soul-redemption/not_grandma','soul-redemption','bronze'),
+  ('soul-redemption/hungry_wolf','soul-redemption','silver'),
+  ('soul-redemption/forest_calling','soul-redemption','bronze'),
+  ('soul-redemption/big_teeth','soul-redemption','bronze'),
+  ('soul-redemption/a_to_b','soul-redemption','silver'),
+  ('soul-redemption/better_luck','soul-redemption','bronze'),
+  ('soul-redemption/fears_under_sea','soul-redemption','bronze'),
+  ('soul-redemption/fish_water','soul-redemption','bronze'),
+  ('soul-redemption/freeze_frame','soul-redemption','silver'),
+  ('soul-redemption/fear_deep','soul-redemption','silver'),
+  ('soul-redemption/keep_swimming','soul-redemption','bronze'),
+  ('soul-redemption/sweet_tooth','soul-redemption','bronze'),
+  ('soul-redemption/no_dessert','soul-redemption','bronze'),
+  ('soul-redemption/piece_cake','soul-redemption','bronze'),
+  ('soul-redemption/gobstopper','soul-redemption','silver'),
+  ('soul-redemption/sugar_rush','soul-redemption','bronze'),
+  ('soul-redemption/pure_imagination','soul-redemption','silver'),
+  ('soul-redemption/highway_hell','soul-redemption','silver'),
+  ('soul-redemption/king_underworld','soul-redemption','gold'),
+  ('soul-redemption/hollows_1','soul-redemption','silver'),
+  ('soul-redemption/hollows_2','soul-redemption','silver'),
+  ('soul-redemption/hollows_3','soul-redemption','silver'),
+  ('soul-redemption/hollows_4','soul-redemption','silver'),
+  ('soul-redemption/hollows_5','soul-redemption','silver'),
+  ('soul-redemption/last_goodbye','soul-redemption','gold'),
+  ('soul-redemption/no_more_secrets','soul-redemption','gold'),
+  ('soul-redemption/real_soldier','soul-redemption','gold'),
+  ('soul-redemption/platinum','soul-redemption','platinum'),
+  ('soul-redemption-frenzy-fest/frenzy','soul-redemption-frenzy-fest','bronze'),
+  ('soul-redemption-frenzy-fest/chain10','soul-redemption-frenzy-fest','bronze'),
+  ('soul-redemption-frenzy-fest/wave20','soul-redemption-frenzy-fest','silver'),
+  ('soul-redemption-frenzy-fest/flawless','soul-redemption-frenzy-fest','gold'),
+  ('soul-redemption-frenzy-fest/platinum','soul-redemption-frenzy-fest','platinum'),
+  ('hush/silence','hush','bronze'),
+  ('hush/breath','hush','bronze'),
+  ('hush/no_sound','hush','silver'),
+  ('hush/mute','hush','gold'),
+  ('hush/platinum','hush','platinum')
+on conflict (ach_key) do update set game = excluded.game, tier = excluded.tier;
+
+-- Points : bronze 15 · argent 30 · or 90 · platine 180 (identique au client)
+-- + 50/évaluation écrite (≥ 40 caractères) + 100/année d'ancienneté
+-- + 10/ami (plafonné à 10 amis).
+create or replace function public.glg_progress(target uuid default null)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  uid uuid := coalesce(target, auth.uid());
+  b int; s int; g int; p int; rev int; fr int; yrs int;
+  created timestamptz; pts int; badges text[] := '{}';
+begin
+  if uid is null then return null; end if;
+  select p2.created_at into created from profiles p2 where p2.id = uid;
+  if created is null then return null; end if;
+
+  select count(*) filter (where t.tier = 'bronze'),
+         count(*) filter (where t.tier = 'silver'),
+         count(*) filter (where t.tier = 'gold')
+    into b, s, g
+    from user_achievements ua
+    join glg_trophy_tiers t on t.ach_key = ua.ach_key and t.tier <> 'platinum'
+   where ua.user_id = uid;
+
+  select count(*) into p from (
+    select t.game
+      from glg_trophy_tiers t
+      left join user_achievements ua
+        on ua.ach_key = t.ach_key and ua.user_id = uid
+     where t.tier <> 'platinum'
+     group by t.game
+    having count(*) = count(ua.ach_key)
+  ) full_games;
+
+  select count(*) into rev from reviews r
+   where r.user_id = uid and not r.hidden
+     and r.body is not null and char_length(r.body) >= 40;
+  select count(*) into fr from friendships f
+   where (f.requester = uid or f.addressee = uid) and f.status = 'accepted';
+  yrs := greatest(0, floor(extract(epoch from (now() - created)) / 31557600))::int;
+
+  pts := b*15 + s*30 + g*90 + p*180 + rev*50 + least(fr, 10)*10 + yrs*100;
+
+  if (b + s + g + p) >= 1  then badges := badges || 'first_blood'; end if;
+  if p >= 1                then badges := badges || 'platinum';    end if;
+  if rev >= 3              then badges := badges || 'critic';      end if;
+  if fr >= 5               then badges := badges || 'social';      end if;
+  if (b + s + g) >= 50     then badges := badges || 'hunter';      end if;
+  if created < timestamptz '2027-01-01' then badges := badges || 'founder'; end if;
+
+  return jsonb_build_object(
+    'points', pts,
+    'tiers', jsonb_build_object('bronze', b, 'silver', s, 'gold', g, 'platinum', p),
+    'reviews', rev, 'friends', fr, 'years', yrs,
+    'badges', to_jsonb(badges));
+end $$;
+revoke all on function public.glg_progress(uuid) from public;
+grant execute on function public.glg_progress(uuid) to authenticated;

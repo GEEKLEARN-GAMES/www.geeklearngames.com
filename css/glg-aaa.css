@@ -4700,3 +4700,221 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 }
 #glg-ctx button:hover{ background:rgba(255,255,255,.08); color:#fff; }
 #glg-ctx hr{ border:none; border-top:1px solid rgba(255,255,255,.08); margin:5px 8px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   §84 · RÉCOMPENSES GLG — carte points/badges, cadres d'avatar,
+   presets d'ambiance verrouillés
+═══════════════════════════════════════════════════════════════ */
+.rwd-card{
+  display:flex; flex-wrap:wrap; align-items:center; gap:26px;
+  padding:22px 26px; background:#121215;
+  border:1px solid rgba(255,255,255,.1); border-radius:16px;
+}
+.rwd-score{ display:flex; flex-direction:column; min-width:132px; }
+.rwd-score b{ font-size:2.3rem; line-height:1; font-family:var(--f-disp,sans-serif); }
+.rwd-score span{
+  margin-top:6px; font-family:var(--f-mono,monospace); font-size:.56rem;
+  letter-spacing:.3em; text-transform:uppercase; color:rgba(255,255,255,.45);
+}
+.rwd-tier{
+  margin-top:9px; font-style:normal; font-size:.64rem; letter-spacing:.16em;
+  text-transform:uppercase; color:rgba(255,255,255,.6);
+}
+.rwd-card--bronze .rwd-tier{ color:#d8a06a; }
+.rwd-card--silver .rwd-tier{ color:#cfd6e4; }
+.rwd-card--gold   .rwd-tier{ color:#ffd452; }
+.rwd-card--plat   .rwd-tier{ color:#c9d4ff; }
+.rwd-badges{ display:flex; gap:10px; flex-wrap:wrap; flex:1; min-width:260px; }
+.rwd-badge{
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:78px; padding:11px 6px 9px; background:#0c0c0f;
+  border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  color:rgba(255,255,255,.26);
+}
+.rwd-badge.on{ color:#fff; border-color:rgba(255,255,255,.24); background:#17171c; }
+.rwd-badge small{ font-size:.5rem; letter-spacing:.06em; text-transform:uppercase; text-align:center; line-height:1.3; }
+.rwd-badge > svg:last-of-type:not(:first-of-type){ position:absolute; top:5px; inset-inline-end:5px; opacity:.5; }
+.rwd-break{
+  width:100%; display:flex; gap:18px; flex-wrap:wrap; padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.07);
+  font-family:var(--f-mono,monospace); font-size:.56rem; letter-spacing:.14em;
+  text-transform:uppercase; color:rgba(255,255,255,.4);
+}
+/* — Cadres d'avatar par palier de points — */
+.pp-avatar.glg-frame--bronze{ box-shadow:0 0 0 3px #a06438, 0 0 24px -6px #a06438; }
+.pp-avatar.glg-frame--silver{ box-shadow:0 0 0 3px #b9c2d6, 0 0 24px -6px #b9c2d6; }
+.pp-avatar.glg-frame--gold{   box-shadow:0 0 0 3px #f5c344, 0 0 26px -5px #f5c344; }
+.pp-avatar.glg-frame--plat{   box-shadow:0 0 0 3px #cfd8ff, 0 0 30px -4px #8fa2ff; }
+/* — Presets verrouillés — */
+.set-amb2{ position:relative; }
+.set-amb2-lock{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:#fff; background:rgba(5,5,7,.45); border-radius:inherit; opacity:0; pointer-events:none;
+}
+.set-amb2--locked{ filter:saturate(.35) brightness(.75); }
+.set-amb2--locked .set-amb2-lock{ opacity:1; }
+.set-amb2.deny{ animation:glg-deny .45s; }
+@keyframes glg-deny{
+  20%{ transform:translateX(-4px); } 45%{ transform:translateX(4px); }
+  70%{ transform:translateX(-3px); } 100%{ transform:translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   §85 · MODE MANETTE — focus spatial + barre d'aide
+═══════════════════════════════════════════════════════════════ */
+.glg-pad-focus{
+  outline:2px solid var(--user-accent,#8ab4ff) !important; outline-offset:3px;
+  box-shadow:0 0 0 7px rgba(138,180,255,.16) !important;
+  border-radius:10px; position:relative; z-index:5;
+}
+.glg-pad-press{ transform:scale(.96); }
+#glg-padbar{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:90000;
+  display:flex; align-items:center; gap:22px; padding:10px 20px;
+  background:rgba(10,10,12,.92); border:1px solid rgba(255,255,255,.14);
+  border-radius:999px; backdrop-filter:blur(8px);
+  font-size:.68rem; color:rgba(255,255,255,.75); white-space:nowrap;
+}
+#glg-padbar span{ display:flex; align-items:center; gap:8px; }
+.pb-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:20px; height:20px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.4);
+  font-style:normal; font-size:.54rem; font-weight:700;
+}
+.pb-btn.pb-a{ border-color:#57d98c; color:#57d98c; }
+.pb-btn.pb-b{ border-color:#ff5d5d; color:#ff5d5d; }
+.pb-btn.pb-w{ border-radius:7px; padding:0 6px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   §86 · PALETTE UNIVERSELLE Ctrl+K
+═══════════════════════════════════════════════════════════════ */
+#glg-cmdk{
+  position:fixed; inset:0; z-index:95000;
+  background:rgba(4,4,6,.62); backdrop-filter:blur(4px);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:12vh 4vw 4vh;
+}
+.ck-card{
+  width:min(640px,100%); max-height:70vh; overflow:hidden;
+  display:flex; flex-direction:column;
+  background:#101014; border:1px solid rgba(255,255,255,.14); border-radius:16px;
+  box-shadow:0 30px 90px -20px rgba(0,0,0,.9);
+}
+.ck-input{
+  width:100%; padding:18px 20px; background:none; border:none;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  color:#fff; font-size:1rem; outline:none;
+}
+.ck-list{ overflow:auto; padding:8px; }
+.ck-group{
+  padding:10px 12px 4px; font-family:var(--f-mono,monospace); font-size:.54rem;
+  letter-spacing:.3em; text-transform:uppercase; color:rgba(255,255,255,.38);
+}
+.ck-item{
+  display:flex; width:100%; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:10px;
+  background:none; border:none; color:#ddd; cursor:pointer; text-align:start;
+}
+.ck-item.sel, .ck-item:hover{ background:rgba(255,255,255,.08); color:#fff; }
+.ck-item img{ width:30px; height:42px; object-fit:cover; border-radius:6px; flex-shrink:0; }
+.ck-item b{ font-weight:600; font-size:.86rem; }
+.ck-item small{ margin-inline-start:auto; color:rgba(255,255,255,.4); font-size:.64rem; }
+.ck-none{ padding:22px; text-align:center; color:rgba(255,255,255,.4); font-size:.85rem; }
+.ck-foot{
+  display:flex; gap:16px; padding:10px 16px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:.6rem; color:rgba(255,255,255,.4);
+}
+.ck-foot kbd{
+  margin-inline-end:6px; padding:2px 6px; border-radius:5px;
+  background:#1c1c22; border:1px solid rgba(255,255,255,.14);
+  font-family:var(--f-mono,monospace);
+}
+@media (max-width:640px){
+  #glg-cmdk{ padding:8vh 3vw 3vh; }
+  .rwd-card{ gap:16px; padding:18px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   §87 · MOTION GLG — entrées de page, cascades, physiques de
+   boutons, focus clavier, pop des overlays, skeletons
+═══════════════════════════════════════════════════════════════ */
+/* — Entrée de page (sous le voile de cross-fade) — */
+@keyframes glg-pagein{
+  from{ opacity:0; transform:translateY(14px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.page.page-in{ animation:glg-pagein .55s cubic-bezier(.16,1,.3,1) both; }
+/* — Cascade des grilles connues (plafonnée à 12 enfants) — */
+@keyframes glg-rise{
+  from{ opacity:0; transform:translateY(18px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > *{
+  animation:glg-rise .5s cubic-bezier(.16,1,.3,1) both;
+}
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(1){ animation-delay:.03s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(2){ animation-delay:.07s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(3){ animation-delay:.11s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(4){ animation-delay:.15s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(5){ animation-delay:.19s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(6){ animation-delay:.23s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(7){ animation-delay:.27s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(8){ animation-delay:.31s; }
+.page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > :nth-child(n+9){ animation-delay:.34s; }
+
+/* — Tilt : transition de retour douce quand le JS rend la main — */
+.c-card, .lib-gcard{
+  transition:transform .45s cubic-bezier(.16,1,.3,1), box-shadow .35s;
+  will-change:transform;
+}
+
+/* — Physique des boutons : l'appui se SENT — */
+.btn, .nav-link, .chat-ic-btn, .set-tab, .pp-stat, .ck-item{
+  transition-property:transform, background, color, border-color, box-shadow;
+  transition-duration:.22s;
+}
+.btn:active, .chat-ic-btn:active, .set-tab:active, .pp-stat:active{
+  transform:translateY(1px) scale(.975);
+}
+/* — Soulignement de survol du header (l'actif garde son style existant) — */
+.nav-link{ position:relative; }
+.nav-link::before{
+  content:''; position:absolute; left:50%; bottom:3px; height:1px; width:0;
+  background:currentColor; opacity:.55;
+  transform:translateX(-50%); transition:width .26s cubic-bezier(.16,1,.3,1);
+}
+.nav-link:not(.active):hover::before{ width:56%; }
+
+/* — Focus clavier : anneau cohérent partout (accessibilité AAA) — */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible{
+  outline:2px solid var(--user-accent, #8ab4ff);
+  outline-offset:2px;
+  border-radius:6px;
+}
+
+/* — Overlays : apparition physique — */
+@keyframes glg-pop{
+  from{ opacity:0; transform:translateY(8px) scale(.97); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes glg-fadein{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes glg-riseup{ from{ opacity:0; transform:translate(-50%, 12px); } to{ opacity:1; transform:translate(-50%, 0); } }
+#glg-cmdk{ animation:glg-fadein .18s ease both; }
+#glg-cmdk .ck-card{ animation:glg-pop .26s cubic-bezier(.2,1.2,.35,1) both; }
+#glg-ctx{ animation:glg-pop .16s cubic-bezier(.2,1.2,.35,1) both; transform-origin:top left; }
+#glg-padbar{ animation:glg-riseup .35s cubic-bezier(.16,1,.3,1) both; }
+
+/* — Skeletons : les « ··· » d'attente respirent — */
+@keyframes glg-pulse{ 0%,100%{ opacity:.32; } 50%{ opacity:.8; } }
+.dp-rev-loading, .chat-msgs > .lib-sec-note{ animation:glg-pulse 1.2s ease-in-out infinite; }
+
+/* — Mouvement réduit : tout s'efface, rien ne bouge — */
+.glg-reduce-motion .page.page-in,
+.glg-reduce-motion .page-in :is(.works-grid, .lib-grid, .pp-tg-grid, .pp-favs-grid, .shop-cat-grid) > *,
+.glg-reduce-motion #glg-cmdk, .glg-reduce-motion #glg-cmdk .ck-card,
+.glg-reduce-motion #glg-ctx, .glg-reduce-motion #glg-padbar{
+  animation:none !important;
+}
+.glg-reduce-motion .c-card, .glg-reduce-motion .lib-gcard{ transition:none; }
