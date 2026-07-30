@@ -1465,6 +1465,7 @@ function buildCarousels() {
   _buildCarouselsTimer = setTimeout(() => {
     buildWorksGrid('films-carousel', filterByAge(FILMS), FILM_LABELS[LANG] || 'Interactive Film');
     buildWorksGrid('games-carousel', filterByAge(GAMES), GAME_LABELS[LANG] || 'Video Game');
+    _buildFeatured();
   }, 0);
 }
 
@@ -1492,7 +1493,7 @@ function cardHTML(item, typeLabel) {
   const tint = item.tint || '#ffffff';
   const tintRgb = hexToRgb(tint) || '255,255,255';
   return `
-    <div class="c-card" data-g="${item.glow}" style="--tint:${tint};--tint-rgb:${tintRgb}" role="button" tabindex="0" aria-label="${item.title}" onclick="showPage('detail','${item.id}')">
+    <div class="c-card" data-g="${item.glow}" data-wid="${item.id}" style="--tint:${tint};--tint-rgb:${tintRgb}" role="button" tabindex="0" aria-label="${item.title}" onclick="showPage('detail','${item.id}')">
       <div class="c-card-pw">
         <img src="${av(item.cover)}" alt="${item.title}" loading="lazy" decoding="async"
              onerror="this.style.background='#111';this.style.display='block'">
@@ -1501,6 +1502,7 @@ function cardHTML(item, typeLabel) {
       </div>
       <button class="c-wish ${wishHas(item.id)?'on':''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" aria-label="${_wt('add')}" title="${_wt('add')}" onclick="event.stopPropagation();toggleWish('${item.id}',this)">${_HEART_SVG}</button>
       <span class="c-badge ${item.status}">${getStatusLabel(item)}</span>
+      ${typeof activePromo === 'function' && activePromo(item) ? `<span class="c-deal" aria-hidden="true">−${activePromo(item).pct}%</span>` : ''}
       <div class="c-card-overlay">
         <div class="c-card-type">${typeLabel}</div>
         <div class="c-card-name">${item.title}</div>
@@ -8028,6 +8030,182 @@ if ('serviceWorker' in navigator && !IS_TAURI && /(^|\.)geeklearngames\.com$/.te
       });
     }).catch(() => {});
   });
+}
+
+/* ══ VITRINE v2 (tâche #54) ══
+   Transpositions GLG des patterns de storefront de référence :
+   • diaporama de captures au survol des cards — PARESSEUX (rien n'est
+     chargé avant le 1er survol), zéro déplacement de layout ;
+   • tooltip riche avec HOVER-INTENT (240 ms) + cache des verdicts
+     d'évaluations (un seul élément global réutilisé, placement selon
+     l'espace, « pas de place = pas de tooltip ») ;
+   • capsule vedette « À la une » rotative en tête de Nos Œuvres ;
+   • bandeau promo incliné qui oscille au survol (le badge crie, la
+     grille reste calme). Souris uniquement, coupé en mouvement réduit. */
+const _VT_T = {
+  alaUne: { fr:'À la une', en:'Featured', es:'Destacado', de:'Im Fokus', it:'In evidenza', ar:'مميّز', zh:'焦点推荐', ja:'注目', ru:'В центре внимания', pl:'Polecane' },
+  pick:   { fr:'Sélection du studio', en:'Studio pick', es:'Selección del estudio', de:'Studio-Auswahl', it:'Scelta dello studio', ar:'اختيار الاستوديو', zh:'工作室精选', ja:'スタジオのおすすめ', ru:'Выбор студии', pl:'Wybór studia' },
+  rev:    { fr:'Évaluations', en:'Reviews', es:'Reseñas', de:'Bewertungen', it:'Recensioni', ar:'التقييمات', zh:'评价', ja:'レビュー', ru:'Отзывы', pl:'Recenzje' },
+  rvVery: { fr:'Très positives', en:'Very positive', es:'Muy positivas', de:'Sehr positiv', it:'Molto positive', ar:'إيجابية جداً', zh:'特别好评', ja:'非常に好評', ru:'Очень положительные', pl:'Bardzo pozytywne' },
+  rvPos:  { fr:'Positives', en:'Positive', es:'Positivas', de:'Positiv', it:'Positive', ar:'إيجابية', zh:'好评', ja:'好評', ru:'Положительные', pl:'Pozytywne' },
+  rvMixed:{ fr:'Moyennes', en:'Mixed', es:'Variadas', de:'Ausgeglichen', it:'Nella media', ar:'متفاوتة', zh:'褒贬不一', ja:'賛否両論', ru:'Смешанные', pl:'Mieszane' },
+  rvNeg:  { fr:'Négatives', en:'Negative', es:'Negativas', de:'Negativ', it:'Negative', ar:'سلبية', zh:'差评', ja:'不評', ru:'Отрицательные', pl:'Negatywne' },
+  rvNone: { fr:'Aucune évaluation', en:'No reviews yet', es:'Sin reseñas', de:'Noch keine Bewertungen', it:'Nessuna recensione', ar:'لا تقييمات بعد', zh:'暂无评价', ja:'レビューはまだありません', ru:'Пока нет отзывов', pl:'Brak recenzji' },
+};
+const _vtt = k => (_VT_T[k] && (_VT_T[k][LANG] || _VT_T[k].en)) || '';
+
+/* — Verdicts d'évaluations : lot complet en une passe, cache 5 min — */
+let _revAgg = null, _revAggAt = 0, _revAggP = null;
+function _revVerdict(agg) {
+  if (!agg || !agg.ok || !agg.count) return { t: _vtt('rvNone'), cls: 'none', n: 0 };
+  const v = agg.avg || 0;
+  return v >= 4.5 ? { t: _vtt('rvVery'), cls: 'very', n: agg.count }
+       : v >= 3.5 ? { t: _vtt('rvPos'), cls: 'pos', n: agg.count }
+       : v >= 2.5 ? { t: _vtt('rvMixed'), cls: 'mixed', n: agg.count }
+       : { t: _vtt('rvNeg'), cls: 'neg', n: agg.count };
+}
+function _revAggAll() {
+  if (_revAgg && Date.now() - _revAggAt < 300000) return Promise.resolve(_revAgg);
+  if (_revAggP) return _revAggP;
+  if (!window.GLG_AUTH?.isConfigured?.()) return Promise.resolve({});
+  _revAggP = Promise.all((typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).map(w =>
+    GLG_AUTH.reviewSummary(w.id).then(r => [w.id, r]).catch(() => [w.id, null])
+  )).then(es => { _revAgg = Object.fromEntries(es); _revAggAt = Date.now(); _revAggP = null; return _revAgg; });
+  return _revAggP;
+}
+
+/* — Diaporama de captures au survol (lazy, aucune image avant le survol) — */
+const _slide = { el: null, t: 0, i: 0 };
+function _slideStop() {
+  if (!_slide.el) return;
+  clearInterval(_slide.t);
+  const ss = _slide.el.querySelector('.c-ss');
+  if (ss) ss.classList.remove('on');
+  _slide.el = null;
+}
+if (matchMedia('(pointer:fine)').matches) {
+  document.addEventListener('mouseover', e => {
+    if (document.documentElement.classList.contains('glg-reduce-motion')) return;
+    const card = e.target.closest && e.target.closest('.c-card');
+    if (card === _slide.el) return;
+    _slideStop();
+    if (!card || !card.dataset.wid) return;
+    const w = (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).find(x => x.id === card.dataset.wid);
+    if (!w || !Array.isArray(w.screenshots) || !w.screenshots.length) return;
+    const pw = card.querySelector('.c-card-pw'); if (!pw) return;
+    let ss = pw.querySelector('.c-ss');
+    if (!ss) {
+      ss = document.createElement('div');
+      ss.className = 'c-ss'; ss.setAttribute('aria-hidden', 'true');
+      pw.insertBefore(ss, pw.querySelector('.c-card-title-bg'));
+    }
+    const imgs = w.screenshots.slice(0, 4).map(av);
+    _slide.el = card; _slide.i = 1;
+    setTimeout(() => {                     // intention : pas au 1er pixel
+      if (_slide.el !== card) return;
+      ss.style.backgroundImage = "url('" + imgs[0] + "')";
+      ss.classList.add('on');
+    }, 420);
+    _slide.t = setInterval(() => {
+      if (_slide.el !== card) return;
+      ss.style.backgroundImage = "url('" + imgs[_slide.i % imgs.length] + "')";
+      _slide.i++;
+    }, 950);
+  }, { passive: true });
+  document.addEventListener('mouseout', e => {
+    if (_slide.el && !(e.relatedTarget && _slide.el.contains(e.relatedTarget))) _slideStop();
+  }, { passive: true });
+}
+
+/* — Tooltip riche : hover-intent 240 ms, un seul nœud global, placement
+     selon l'espace (aucune place = aucun tooltip) — */
+let _tipEl = null, _tipT = 0, _tipFor = '';
+function _tipHide() {
+  clearTimeout(_tipT); _tipFor = '';
+  if (_tipEl) _tipEl.classList.remove('on');
+}
+if (matchMedia('(pointer:fine)').matches) {
+  document.addEventListener('mouseover', e => {
+    const card = e.target.closest && e.target.closest('.c-card');
+    if (!card || !card.dataset.wid) return;
+    const wid = card.dataset.wid;
+    if (wid === _tipFor) return;
+    clearTimeout(_tipT);
+    _tipT = setTimeout(() => {
+      if (!card.isConnected || !card.matches(':hover')) return;
+      const w = (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).find(x => x.id === wid);
+      if (!w) return;
+      _revAggAll().then(aggs => {
+        if (!card.isConnected || !card.matches(':hover')) return;
+        if (!_tipEl) {
+          _tipEl = document.createElement('div');
+          _tipEl.id = 'glg-cardtip';
+          _tipEl.setAttribute('role', 'tooltip');
+          document.body.appendChild(_tipEl);
+        }
+        const v = _revVerdict(aggs && aggs[wid]);
+        _tipEl.innerHTML = `
+          <b>${escHtml(w.title)}</b>
+          <i>${getCatLabel(w)} · ${w.year}</i>
+          <p>${escHtml(getItemField(w, 'tagline') || '')}</p>
+          <span class="ct-rev ct-rev--${v.cls}">${_vtt('rev')} : ${v.t}${v.n ? ' (' + v.n + ')' : ''}</span>`;
+        const r = card.getBoundingClientRect();
+        _tipEl.classList.add('on');
+        const tw = _tipEl.offsetWidth || 290;
+        const left = (r.right + 14 + tw <= innerWidth - 8) ? r.right + 14 : r.left - tw - 14;
+        if (left < 8) { _tipEl.classList.remove('on'); return; }
+        _tipEl.style.left = left + 'px';
+        _tipEl.style.top = Math.max(8, Math.min(r.top, innerHeight - _tipEl.offsetHeight - 12)) + 'px';
+        _tipFor = wid;
+      });
+    }, 240);
+  }, { passive: true });
+  document.addEventListener('mouseout', e => {
+    const card = e.target.closest && e.target.closest('.c-card');
+    if (card && !(e.relatedTarget && card.contains(e.relatedTarget))) _tipHide();
+  }, { passive: true });
+}
+
+/* — Capsule vedette « À la une » : rotation 7 s, pause au survol, points — */
+let _featT = 0, _featI = 0;
+function _buildFeatured() {
+  const page = $('page-works'); if (!page) return;
+  clearInterval(_featT);
+  const works = filterByAge(typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []);
+  const anchor = page.querySelector('.works-cat-section');
+  if (!works.length || !anchor) { page.querySelector('#glg-featured')?.remove(); return; }
+  let host = page.querySelector('#glg-featured');
+  if (!host) {
+    host = document.createElement('section');
+    host.id = 'glg-featured';
+    anchor.parentNode.insertBefore(host, anchor);
+  }
+  const render = i => {
+    const w = works[i % works.length];
+    const ss = (Array.isArray(w.screenshots) && w.screenshots[0]) ? av(w.screenshots[0]) : av(w.cover);
+    host.innerHTML = `
+      <div class="feat-cap" style="--tint:${w.tint || '#fff'};--tint-rgb:${hexToRgb(w.tint || '#ffffff') || '255,255,255'}"
+           role="button" tabindex="0" aria-label="${escHtml(w.title)}" onclick="showPage('detail','${w.id}')">
+        <div class="feat-bg" style="background-image:url('${ss}')" aria-hidden="true"></div>
+        <div class="feat-veil" aria-hidden="true"></div>
+        <div class="feat-body">
+          <span class="feat-eyebrow">${_vtt('alaUne')} — ${_vtt('pick')}</span>
+          <h3>${escHtml(w.title)}</h3>
+          <p>${escHtml(getItemField(w, 'tagline') || '')}</p>
+          <div class="feat-cta">${priceHTML(w, { size: 'sm' })}<span class="feat-arrow" aria-hidden="true">${_ARR()}</span></div>
+        </div>
+        <div class="feat-dots" aria-hidden="true">${works.map((x, j) => `<i class="${j === i % works.length ? 'on' : ''}"></i>`).join('')}</div>
+      </div>`;
+    host.querySelectorAll('.feat-dots i').forEach((d, j) =>
+      d.addEventListener('click', ev => { ev.stopPropagation(); _featI = j; render(j); }));
+  };
+  render(_featI = 0);
+  _featT = setInterval(() => {
+    if (!page.classList.contains('active')) return;         // page cachée : on ne tourne pas
+    if (host.matches(':hover')) return;                     // lecture en cours : pause
+    _featI = (_featI + 1) % works.length;
+    render(_featI);
+  }, 7000);
 }
 
 /* ══ MOTION GLG — la couche « sensation » ══
