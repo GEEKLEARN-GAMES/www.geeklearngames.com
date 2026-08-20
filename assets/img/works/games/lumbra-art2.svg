@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="room" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#08080a"/>
+      <stop offset="1" stop-color="#050506"/>
+    </linearGradient>
+    <linearGradient id="shaft" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="rgba(234,236,244,0.34)"/>
+      <stop offset=".6" stop-color="rgba(234,236,244,0.10)"/>
+      <stop offset="1" stop-color="rgba(234,236,244,0.02)"/>
+    </linearGradient>
+    <radialGradient id="pool2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(230,232,240,0.14)"/>
+      <stop offset="1" stop-color="rgba(230,232,240,0)"/>
+    </radialGradient>
+    <radialGradient id="vig2" cx="0.5" cy="0.5" r="0.78">
+      <stop offset=".55" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.8)"/>
+    </radialGradient>
+    <filter id="g2">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/>
+    </filter>
+    <filter id="soft2"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#room)"/>
+
+  <!-- haute fenêtre hors-champ : un seul rai traverse la pièce -->
+  <polygon points="470,0 610,0 900,650 640,650" fill="url(#shaft)"/>
+  <ellipse cx="770" cy="648" rx="180" ry="24" fill="url(#pool2)"/>
+
+  <!-- poussière dans le rai -->
+  <g fill="rgba(238,240,246,0.35)">
+    <circle cx="620" cy="210" r="1.4"/><circle cx="676" cy="300" r="1.1"/>
+    <circle cx="704" cy="410" r="1.5"/><circle cx="590" cy="150" r="1"/>
+    <circle cx="730" cy="500" r="1.2"/><circle cx="662" cy="255" r="1"/>
+    <circle cx="748" cy="560" r="1.4"/><circle cx="640" cy="360" r="1.1"/>
+  </g>
+
+  <!-- une malle, un refuge -->
+  <g fill="#040405">
+    <rect x="285" y="520" width="230" height="130" rx="6"/>
+    <rect x="285" y="500" width="230" height="34" rx="10"/>
+  </g>
+  <path d="M515 508 v138" stroke="rgba(232,234,242,0.16)" stroke-width="2"/>
+
+  <!-- elle, cachée au bord du rai, un œil sur la lumière -->
+  <g>
+    <g fill="#050506">
+      <ellipse cx="552" cy="486" rx="12" ry="12"/>
+      <path d="M540 496 q12 -9 24 0 l5 56 q-17 7 -34 0 z"/>
+    </g>
+    <path d="M563 476 q5 7 4 14 l5 54" fill="none" stroke="rgba(238,240,246,0.5)" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+
+  <!-- au fond du noir, deux yeux tournés vers la lampe -->
+  <g opacity=".2" fill="#eef0f6">
+    <ellipse cx="1084" cy="330" rx="6" ry="3.6"/>
+    <ellipse cx="1110" cy="328" rx="6" ry="3.6"/>
+  </g>
+
+  <rect width="1280" height="720" fill="url(#vig2)"/>
+  <rect width="1280" height="720" filter="url(#g2)" opacity=".55"/>
+</svg>

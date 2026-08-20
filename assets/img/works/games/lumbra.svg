@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101013"/>
+      <stop offset=".45" stop-color="#0a0a0c"/>
+      <stop offset="1" stop-color="#050506"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(236,238,244,0.30)"/>
+      <stop offset=".55" stop-color="rgba(236,238,244,0.10)"/>
+      <stop offset="1" stop-color="rgba(236,238,244,0.02)"/>
+    </linearGradient>
+    <linearGradient id="pane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(226,229,238,0.55)"/>
+      <stop offset="1" stop-color="rgba(226,229,238,0.22)"/>
+    </linearGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.46" r="0.85">
+      <stop offset=".55" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.78)"/>
+    </radialGradient>
+    <radialGradient id="pool" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(230,232,240,0.16)"/>
+      <stop offset="1" stop-color="rgba(230,232,240,0)"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="900" fill="url(#sky)"/>
+
+  <!-- Fenêtre à meneaux, haut gauche — la seule source de lumière -->
+  <g>
+    <rect x="112" y="64" width="150" height="216" fill="url(#pane)" opacity=".9"/>
+    <g fill="#08080a">
+      <rect x="180" y="64" width="14" height="216"/>
+      <rect x="112" y="164" width="150" height="12"/>
+      <rect x="106" y="58" width="162" height="10"/>
+      <rect x="106" y="276" width="162" height="10"/>
+      <rect x="106" y="58" width="8" height="228"/>
+      <rect x="260" y="58" width="8" height="228"/>
+    </g>
+  </g>
+
+  <!-- Faisceau tombé de la fenêtre : il éclaire le sol, pas elle -->
+  <polygon points="118,286 268,286 420,704 210,704" fill="url(#beam)"/>
+  <ellipse cx="316" cy="702" rx="150" ry="26" fill="url(#pool)"/>
+
+  <!-- Sol -->
+  <rect x="0" y="700" width="600" height="200" fill="#060607"/>
+  <rect x="0" y="698" width="600" height="3" fill="rgba(220,222,232,0.05)"/>
+
+  <!-- Deux yeux, loin dans le noir, à droite -->
+  <g opacity=".22" fill="#eef0f6">
+    <ellipse cx="500" cy="472" rx="5.5" ry="3.4"/>
+    <ellipse cx="524" cy="470" rx="5.5" ry="3.4"/>
+  </g>
+
+  <!-- La petite fille — dans l'ombre, au bord du faisceau, liseré de lumière -->
+  <g>
+    <g fill="#050506">
+      <ellipse cx="150" cy="560" rx="17" ry="17"/>
+      <path d="M133 574 q17 -14 34 0 l7 74 q-24 10 -48 0 z"/>
+      <rect x="138" y="644" width="9" height="52" rx="4"/>
+      <rect x="152" y="644" width="9" height="52" rx="4"/>
+    </g>
+    <!-- liseré : la lumière la dessine sans la toucher -->
+    <path d="M165 548 q6 8 5 18 l6 68" fill="none" stroke="rgba(238,240,246,0.5)" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M160 696 h4" stroke="rgba(238,240,246,0.35)" stroke-width="2" stroke-linecap="round"/>
+    <!-- son ombre s'étire vers le noir, à l'opposé du faisceau -->
+    <ellipse cx="118" cy="700" rx="52" ry="7" fill="rgba(0,0,0,0.85)" filter="url(#soft)"/>
+  </g>
+
+  <!-- LUMBRA — lettres massives en barres (sans diagonales, comme en jeu) -->
+  <g fill="#eceef4" opacity=".95">
+    <!-- L -->
+    <g transform="translate(93,742)">
+      <rect width="18" height="88"/><rect y="70" width="56" height="18"/>
+    </g>
+    <!-- U -->
+    <g transform="translate(163,742)">
+      <rect width="18" height="88"/><rect x="38" width="18" height="88"/><rect y="70" width="56" height="18"/>
+    </g>
+    <!-- M -->
+    <g transform="translate(233,742)">
+      <rect width="18" height="88"/><rect x="23" width="18" height="56"/><rect x="46" width="18" height="88"/><rect width="64" height="18"/>
+    </g>
+    <!-- B -->
+    <g transform="translate(311,742)">
+      <rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect y="70" width="52" height="18"/><rect x="38" width="18" height="88"/>
+    </g>
+    <!-- R -->
+    <g transform="translate(381,742)">
+      <rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect x="38" width="18" height="53"/><rect x="40" y="53" width="16" height="35"/>
+    </g>
+    <!-- A -->
+    <g transform="translate(451,742)">
+      <rect y="0" width="56" height="18"/><rect y="18" width="18" height="70" x="0"/><rect x="38" y="18" width="18" height="70"/><rect y="44" width="56" height="14"/>
+    </g>
+  </g>
+
+  <rect width="600" height="900" fill="url(#vig)"/>
+  <rect width="600" height="900" filter="url(#grain)" opacity=".5" fill="none"/>
+</svg>

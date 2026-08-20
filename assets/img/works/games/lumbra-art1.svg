@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="dawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0b0e"/>
+      <stop offset=".62" stop-color="#131317"/>
+      <stop offset=".78" stop-color="#28282e"/>
+      <stop offset=".82" stop-color="#0a0a0c"/>
+      <stop offset="1" stop-color="#060607"/>
+    </linearGradient>
+    <radialGradient id="lowsun" cx="0.18" cy="0.79" r="0.5">
+      <stop offset="0" stop-color="rgba(232,234,242,0.30)"/>
+      <stop offset=".4" stop-color="rgba(232,234,242,0.08)"/>
+      <stop offset="1" stop-color="rgba(232,234,242,0)"/>
+    </radialGradient>
+    <radialGradient id="vig1" cx="0.5" cy="0.5" r="0.75">
+      <stop offset=".6" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.72)"/>
+    </radialGradient>
+    <filter id="g1">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.045 0"/>
+    </filter>
+    <filter id="soft1"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#dawn)"/>
+  <!-- aube rasante, très basse, presque éteinte -->
+  <rect width="1280" height="720" fill="url(#lowsun)"/>
+
+  <!-- lignes d'herbe en contre-jour, à peine -->
+  <g stroke="rgba(214,216,226,0.10)" stroke-width="2">
+    <path d="M120 576 v-14"/><path d="M180 580 v-10"/><path d="M260 574 v-16"/>
+    <path d="M700 578 v-12"/><path d="M840 575 v-15"/><path d="M980 579 v-11"/>
+    <path d="M1080 576 v-13"/><path d="M420 577 v-12"/><path d="M540 574 v-15"/>
+  </g>
+  <rect x="0" y="576" width="1280" height="144" fill="#060607"/>
+  <rect x="0" y="574" width="1280" height="3" fill="rgba(220,222,232,0.06)"/>
+
+  <!-- elle marche vers la lumière basse, minuscule dans l'immense -->
+  <g>
+    <g fill="#050506">
+      <ellipse cx="806" cy="518" rx="10" ry="10"/>
+      <path d="M796 526 q10 -8 20 0 l4 44 q-14 6 -28 0 z"/>
+      <path d="M800 568 l-4 30 h6 l3 -24"/>
+      <path d="M812 568 l6 29 h-6 l-4 -24"/>
+    </g>
+    <path d="M797 512 q-4 6 -3 12 l-4 42" fill="none" stroke="rgba(236,238,244,0.42)" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="864" cy="598" rx="60" ry="5" fill="rgba(0,0,0,0.8)" filter="url(#soft1)"/>
+  </g>
+
+  <rect width="1280" height="720" fill="url(#vig1)"/>
+  <rect width="1280" height="720" filter="url(#g1)" opacity=".55"/>
+</svg>
