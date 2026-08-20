@@ -23,11 +23,32 @@ use tauri::Manager;
 const SPLASH_HTML: &str = include_str!("splash.html");
 const SPLASH_ICON: &[u8] = include_bytes!("../icons/128x128.png");
 
+// ── Démarrage avec la session (autostart, opt-in) ────────────────────────
+/// Lancé par l'autostart de l'OS ? L'entrée créée par `enable()` porte
+/// l'argument `--minimized` (voir l'init du plugin dans run()). L'argument
+/// SURVIT aux mises à jour : l'updater NSIS retransmet argv via /ARGS et
+/// app.restart() rejoue les mêmes arguments — un démarrage de session
+/// reste silencieux de bout en bout, même quand une MAJ s'installe.
+fn started_minimized() -> bool {
+    std::env::args().any(|a| a == "--minimized")
+}
+
 /// Ferme le splash et révèle la fenêtre principale (site prêt derrière).
+/// Autostart (`--minimized`) : la fenêtre naît directement RÉDUITE dans la
+/// barre des tâches — minimize AVANT show (jamais de flash plein écran,
+/// jamais de vol de focus au login de session).
 fn show_main(app: &tauri::AppHandle) {
     if let Some(m) = app.get_webview_window("main") {
-        let _ = m.show();
-        let _ = m.set_focus();
+        if started_minimized() {
+            let _ = m.minimize();
+            let _ = m.show();
+            // Filet cross-platform : si minimize() a été ignoré sur une
+            // fenêtre encore cachée, celui-ci s'applique après show().
+            let _ = m.minimize();
+        } else {
+            let _ = m.show();
+            let _ = m.set_focus();
+        }
     }
     if let Some(s) = app.get_webview_window("splash") {
         let _ = s.close();
@@ -109,10 +130,16 @@ pub fn run() {
         // Windows livre les glg:// d'un launcher déjà ouvert via argv du
         // second process → on les récupère ici puis on refocalise.
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            let minimized = argv.iter().any(|a| a == "--minimized");
             let urls: Vec<String> = argv
                 .into_iter()
                 .filter(|a| a.starts_with("glg://"))
                 .collect();
+            // Doublon issu de l'autostart (--minimized, aucun deep-link) :
+            // ne pas voler le focus de l'instance déjà ouverte.
+            if minimized && urls.is_empty() {
+                return;
+            }
             handle_deep_link(app, urls);
         }))
         .plugin(tauri_plugin_deep_link::init())
@@ -122,6 +149,15 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         // Toasts système — messages/appels/amis/installations (app.js GLG_TOAST)
         .plugin(tauri_plugin_notification::init())
+        // Démarrage avec la session — opt-in (Options → Launcher côté site).
+        // N'ACTIVE rien tout seul : enregistre seulement les commandes
+        // enable/disable/is_enabled (IPC `plugin:autostart|…`, ouvertes au
+        // site distant dans capabilities/remote-window.json). L'entrée
+        // créée par enable() relance le launcher avec `--minimized`.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--minimized"]),
+        ))
         // Splash embarqué : HTML + logo servis depuis le binaire lui-même
         .register_uri_scheme_protocol("glgsplash", |_ctx, request| {
             if request.uri().path().ends_with("icon.png") {
@@ -137,6 +173,17 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Autostart (--minimized) : escamoter le splash AVANT son
+            // premier rendu (créé visible par tauri.conf.json) — le login
+            // de session reste propre. L'updater tourne quand même : MAJ
+            // silencieuse puis relance minimisée (argv préservé) ;
+            // show_main() réduira `main` au lieu de la focaliser.
+            if started_minimized() {
+                if let Some(s) = app.get_webview_window("splash") {
+                    let _ = s.hide();
+                }
+            }
+
             // Statut Discord (logo + « Dans le launcher ») — non bloquant.
             start_discord_presence();
 
