@@ -18,14 +18,9 @@ import os, random
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 WORKS = [
-    ("trick-or-treat",                 "film", "#ff6a00"),
-    ("a-terrible-wonderful-christmas", "film", "#3a7bd5"),
-    ("easter-my-bunny",                "film", "#56ab2f"),
-    ("eid-of-light",                   "film", "#f7931e"),
-    ("backrooms-liminal",              "game", "#f5e642"),
-    ("soul-redemption",                "game", "#8b44ff"),
-    ("soul-redemption-frenzy-fest",    "game", "#ff3a3a"),
-    ("hush",                           "game", "#00d4ff"),
+    # Catalogue 2026-08 : LUMBRA et les visuels "projet secret" sont
+    # dessinés À LA MAIN (assets/img/works/games/lumbra*.svg, works/secret/) —
+    # ne JAMAIS les régénérer ici. Ajouter ici les futures œuvres annoncées.
 ]
 
 

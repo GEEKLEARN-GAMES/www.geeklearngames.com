@@ -2,7 +2,7 @@
   "id": "/",
   "name": "GEEKLEARN GAMES",
   "short_name": "GLG",
-  "description": "GEEKLEARN GAMES — independent studio. Interactive films & video games that teach, move, haunt your mind.",
+  "description": "GEEKLEARN GAMES, independent studio. Interactive films & video games that teach, move, haunt your mind.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",
@@ -48,12 +48,6 @@
       "name": "Chat",
       "short_name": "Chat",
       "url": "/#chat",
-      "icons": [{ "src": "assets/icons/web-app-manifest-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Shop",
-      "short_name": "Shop",
-      "url": "/#shop",
       "icons": [{ "src": "assets/icons/web-app-manifest-192x192.png", "sizes": "192x192" }]
     },
     {

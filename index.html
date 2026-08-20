@@ -21,20 +21,20 @@
   <link rel="manifest" href="site.webmanifest" />
   <meta charset="UTF-8">
   <!-- Caching: assets are cache-busted via ?v=N below, so the browser is free to
-       cache normally (faster repeat visits). No no-cache meta — it fought the ?v= system. -->
+       cache normally (faster repeat visits). No no-cache meta, it fought the ?v= system. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#000000">
-  <meta name="description" content="GEEKLEARN GAMES — Independent game studio. Games that teach, move, haunt your mind.">
+  <meta name="description" content="GEEKLEARN GAMES, Independent game studio. Games that teach, move, haunt your mind.">
   <title>GEEKLEARN GAMES</title>
 
-  <!-- ══ CANONICAL — www est l'URL de référence ══ -->
+  <!-- ══ CANONICAL, www est l'URL de référence ══ -->
   <link rel="canonical" href="https://www.geeklearngames.com/">
 
   <!-- ══ SEO / OPEN GRAPH ══ -->
   <!-- og:site_name tells Google, Facebook, Discord etc. the human name of the site -->
   <meta property="og:site_name"   content="GEEKLEARN GAMES">
-  <meta property="og:title"       content="GEEKLEARN GAMES — Games that Teach, Move, Haunt Your Mind">
-  <meta property="og:description" content="Independent game studio creating interactive experiences. Eight titles — interactive films and video games.">
+  <meta property="og:title"       content="GEEKLEARN GAMES, Games that Teach, Move, Haunt Your Mind">
+  <meta property="og:description" content="Independent French game studio. First announced title: LUMBRA, don’t be afraid of the dark.">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://www.geeklearngames.com/">
   <meta property="og:image"       content="https://www.geeklearngames.com/assets/img/brand/glg-logo-white.png">
@@ -43,7 +43,7 @@
   <meta name="twitter:title"      content="GEEKLEARN GAMES">
   <meta name="twitter:description" content="Games that teach, move, haunt your mind.">
 
-  <!-- ══ HREFLANG — 10 langues (l'app honore ?lang=xx : entrée directe sans gate) ══ -->
+  <!-- ══ HREFLANG, 10 langues (l'app honore ?lang=xx : entrée directe sans gate) ══ -->
   <link rel="alternate" hreflang="x-default" href="https://www.geeklearngames.com/">
   <link rel="alternate" hreflang="fr" href="https://www.geeklearngames.com/?lang=fr">
   <link rel="alternate" hreflang="en" href="https://www.geeklearngames.com/?lang=en">
@@ -85,7 +85,7 @@
   }
   </script>
 
-  <!-- ══ SECURITY HEADERS (via meta — complement with HTTP headers on deployment) ══ -->
+  <!-- ══ SECURITY HEADERS (via meta, complement with HTTP headers on deployment) ══ -->
   <!-- Content Security Policy: restrict resource origins, block injected scripts -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
@@ -120,11 +120,11 @@
   <link rel="stylesheet" href="css/fonts.css?v=1">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
-  <link rel="stylesheet" href="css/main.css?v=52">
+  <link rel="stylesheet" href="css/main.css?v=53">
   <!-- Premium visual layer & animations -->
-  <link rel="stylesheet" href="css/glg-premium.css?v=8">
-  <!-- AAA overhaul 2026 — section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=73">
+  <link rel="stylesheet" href="css/glg-premium.css?v=9">
+  <!-- AAA overhaul 2026, section enhancements, tinted hovers, accounts UI (loads last) -->
+  <link rel="stylesheet" href="css/glg-aaa.css?v=74">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=3"></script>
 </head>
@@ -136,7 +136,7 @@
 <!-- ══════════ LANGUAGE GATE ══════════ -->
 <div id="lang-gate">
 
-  <!-- Back button — hidden on first visit, shown only when gate is re-opened after a language was already selected -->
+  <!-- Back button, hidden on first visit, shown only when gate is re-opened after a language was already selected -->
   <button id="gate-back-btn" class="gate-back-btn" onclick="closeGateBack()" aria-label="Go back">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -168,7 +168,7 @@
   <!-- Flag mosaic -->
   <div class="gate-grid" id="gate-langs"></div>
 
-  <!-- Bottom separator — full unbroken line (mirrors top separator, no centre label) -->
+  <!-- Bottom separator, full unbroken line (mirrors top separator, no centre label) -->
   <div class="gate-separator gate-sep-bottom" aria-hidden="true">
     <span class="gate-sep-line"></span>
   </div>
@@ -196,7 +196,7 @@
 <!-- ══════════ SEARCH MODAL ══════════ -->
 <div id="search-modal" role="dialog" aria-modal="true" aria-labelledby="search-label-txt" onclick="if(event.target===this) closeSearch()">
   <div class="search-modal-inner">
-    <label class="search-label" id="search-label-txt" for="search-input">Search a game or film</label>
+    <label class="search-label" id="search-label-txt" for="search-input">Search a game</label>
     <div class="search-input-row">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.5"/>
@@ -234,7 +234,6 @@
       <button class="nav-link active" data-nav="home"    id="nl-home"    onclick="showPage('home')">Home</button>
       <button class="nav-link"        data-nav="works"   id="nl-works"   onclick="showPage('works')">Our Works</button>
       <button class="nav-link"        data-nav="library" id="nl-library" onclick="showPage('library')">Library</button>
-      <button class="nav-link"        data-nav="shop"    id="nl-shop"    onclick="showPage('shop')">Shop</button>
       <button class="nav-link"        data-nav="about"   id="nl-about"   onclick="showPage('about')">About Us</button>
       <button class="nav-link"        data-nav="contact" id="nl-contact" onclick="showPage('contact')">Contact</button>
     </div>
@@ -276,7 +275,6 @@
   <button class="nav-mobile-link" id="nml-works"   onclick="showPage('works')">Our Works</button>
   <button class="nav-mobile-link" id="nml-library" onclick="showPage('library')">Library</button>
   <button class="nav-mobile-link" id="nml-chat"    onclick="showPage('chat')">Chat</button>
-  <button class="nav-mobile-link" id="nml-shop"    onclick="showPage('shop')">Shop</button>
   <button class="nav-mobile-link" id="nml-about"   onclick="showPage('about')">About Us</button>
   <button class="nav-mobile-link" id="nml-contact" onclick="showPage('contact')">Contact</button>
   <!-- Search option in mobile menu -->
@@ -300,26 +298,13 @@
 ═══════════════════════ -->
 <main class="page active" id="page-home">
 
-  <!-- HERO — centered text, content pushed to bottom so background image shows -->
-  <section class="hero">
-    <div class="hero-bg"></div>
+  <!-- HERO : LUMBRA, le titre annoncé (contenu localisé par _buildHomeHero) -->
+  <section class="hero hero--lumbra">
+    <div class="hero-bg" id="home-hero-bg"></div>
     <div class="hero-overlay"></div>
     <div class="hero-grain" aria-hidden="true"></div>
-    <div class="hero-content">
-      <div class="hero-eyebrow">
-        <span class="hero-eyebrow-dash"></span>
-        <span class="hero-eyebrow-text" id="hero-eye">Independent Studio · Est. 2026 · France</span>
-        <span class="hero-eyebrow-dash"></span>
-      </div>
-      <h1 class="hero-slogan" id="hero-slogan">GAMES THAT <span class="hollow">TEACH, MOVE,</span> HAUNT YOUR MIND</h1>
-      <p class="hero-desc" id="hero-desc">
-        We are GEEKLEARN GAMES — a studio built on the belief that interactive storytelling
-        can be more than entertainment. It can change the way you see the world.
-      </p>
-      <div class="hero-btns">
-        <button class="btn btn-primary btn-lg" id="hero-btn1" onclick="showPage('works')">Explore Our Works</button>
-        <button class="btn btn-outline btn-lg" id="hero-btn2" onclick="showPage('contact')">Work With Us</button>
-      </div>
+    <div class="hero-content" id="home-hero-content">
+      <h1 class="hero-slogan hl-title">LUMBRA</h1>
     </div>
     <div class="hero-scroll" aria-hidden="true">
       <div class="hero-scroll-line"></div>
@@ -332,28 +317,9 @@
     <div class="marquee-track" id="marquee-track"></div>
   </div>
 
-  <!-- ODYSSEY — vitrine cinématique façon Rockstar : un panneau plein écran
+  <!-- ODYSSEY, vitrine cinématique façon Rockstar : un panneau plein écran
        par œuvre, épinglé au scroll (rempli par app.js → _buildOdyssey) -->
   <section id="glg-odyssey" aria-label="Catalogue"></section>
-
-  <!-- DIAGONAL PUZZLE STRIPS ────────────────────────────────────────────
-       "WHAT WE CREATE" — 3 full-width diagonal image strips with large quotes.
-       These are showcase images only — not game cards.
-       Add your own images in js/app.js → buildPuzzleStrips() → strips[].img
-       Recommended: wide landscape photos (16:9 or wider).
-       ──────────────────────────────────────────────────────────────────── -->
-  <div class="showcase-section">
-    <div class="showcase-header">
-      <div>
-        <div class="showcase-eyebrow" id="showcase-eye">Our Universe</div>
-        <h2 class="showcase-title" id="showcase-title" data-idx="01 /">WHAT WE<br>CREATE</h2>
-
-      </div>
-      <button class="btn btn-ghost" onclick="showPage('works')" id="showcase-btn">Discover all works →</button>
-    </div>
-    <!-- Built by buildPuzzleStrips() in app.js -->
-    <div class="puzzle-strips" id="puzzle-strips"></div>
-  </div>
 
   <!-- GLG PATTERN BAND separator -->
   <div class="glg-band">
@@ -365,19 +331,20 @@
   <div class="studio-block reveal glg-pattern glg-line-after">
     <div class="glg-pattern-bg glg-pat-subtle"></div>
     <div class="studio-half">
+      <h2 class="studio-slogan" id="studio-slogan">GAMES THAT <span class="hollow">TEACH, MOVE,</span> HAUNT YOUR MIND</h2>
       <blockquote class="studio-quote" id="studio-quote">
         "We don't develop games.<br>We build worlds that<br><em>leave marks.</em>"
       </blockquote>
       <div class="studio-body">
         <p id="studio-body1">GEEKLEARN GAMES is an independent studio creating interactive experiences that make you think, move you deeply, and stay with you long after the screen goes dark.</p>
-        <p id="studio-body2">From Halloween horror films to Eid celebrations, from liminal dread to soul-driven combat — we explore the full spectrum of human experience through play.</p>
+        <p id="studio-body2">Our first world is called LUMBRA, a black-and-white adventure where shadow protects and light exposes. The next ones already exist, somewhere in the dark.</p>
       </div>
     </div>
     <div class="studio-half">
       <div class="studio-themes">
 
         <div class="studio-themes-eyebrow">
-          <span>— Univers créatifs</span>
+          <span>Univers créatifs</span>
         </div>
 
         <div class="studio-theme-item reveal rd1">
@@ -398,7 +365,7 @@
         </div>
 
         <div class="studio-themes-footer">
-          Films interactifs et jeux vidéo · Est. 2026
+          Jeux vidéo · Est. 2026
         </div>
 
       </div>
@@ -412,7 +379,7 @@
     <div style="max-width:540px;margin:0 auto">
       <p class="section-eye reveal" style="justify-content:center" id="cta-eye">Publishers &amp; Partners</p>
       <h2 class="section-h reveal" style="margin:14px 0 18px" id="cta-title">LET'S BUILD<br>TOGETHER</h2>
-      <p style="font-size:.88rem;color:var(--greyt);line-height:1.85;margin-bottom:36px" class="reveal" id="cta-desc">Publishers, distributors, collaborators — we are open to meaningful partnerships.</p>
+      <p style="font-size:.88rem;color:var(--greyt);line-height:1.85;margin-bottom:36px" class="reveal" id="cta-desc">Publishers, distributors, collaborators, we are open to meaningful partnerships.</p>
       <div style="display:flex;justify-content:center;gap:11px;flex-wrap:wrap" class="reveal">
         <button class="btn btn-primary btn-lg" id="cta-btn1" onclick="showPage('contact')">Get In Touch</button>
         <button class="btn btn-ghost   btn-lg" id="cta-btn2" onclick="showPage('works')">Explore Our Works</button>
@@ -420,7 +387,7 @@
     </div>
   </div>
 
-  <!-- FOOTER — injected by buildPageFooters() in app.js -->
+  <!-- FOOTER, injected by buildPageFooters() in app.js -->
   <div class="page-footer-slot"></div>
 
 </main>
@@ -439,22 +406,12 @@
         id="works-title">OUR WORKS</h1>
     <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
        class="reveal" id="works-desc">
-      Eight titles. Four interactive films. Four video games. Every one a world built with intention.
+      One announced title. Three projects kept in the dark. Every world takes the time it deserves.
     </p>
   </div>
 
-  <!-- Interactive Films carousel -->
-  <div class="works-cat-section">
-    <div class="works-cat-header">
-      <div>
-        <div class="works-cat-label" id="wcat-films-label">Category 01</div>
-        <h2 class="works-cat-title" id="wcat-films-title">INTERACTIVE<br>FILMS</h2>
-      </div>
-    </div>
-    <div class="carousel-viewport">
-      <div class="carousel-track films-t" id="films-carousel"></div>
-    </div>
-  </div>
+  <!-- À LA UNE, le titre annoncé (rempli par buildCarousels → spotlight) -->
+  <div id="works-spot"></div>
 
   <!-- GLG pattern band separator -->
   <div class="glg-band" style="--glg-direction:reverse;--glg-opacity:.07;height:72px">
@@ -462,18 +419,16 @@
     <div class="glg-band-label"></div>
   </div>
 
-  <!-- Video Games carousel -->
-  <div class="works-cat-section">
+  <!-- DANS L'OMBRE, les projets non annoncés (rempli par buildCarousels) -->
+  <section class="works-cat-section works-secrets">
     <div class="works-cat-header">
       <div>
-        <div class="works-cat-label" id="wcat-games-label">Category 02</div>
-        <h2 class="works-cat-title" id="wcat-games-title">VIDEO<br>GAMES</h2>
+        <div class="works-cat-label" id="wsec-eye">Ce qui vient</div>
+        <h2 class="works-cat-title" id="wsec-title">DANS L’OMBRE</h2>
       </div>
     </div>
-    <div class="carousel-viewport">
-      <div class="carousel-track games-t" id="games-carousel"></div>
-    </div>
-  </div>
+    <div id="secret-grid" class="secret-grid"></div>
+  </section>
 
   <div class="page-footer-slot"></div>
 
@@ -481,7 +436,7 @@
 
 
 <!-- ═══════════════════════
-     PAGE: LIBRARY — bibliothèque du joueur (façon Rockstar/Steam)
+     PAGE: LIBRARY, bibliothèque du joueur (façon Rockstar/Steam)
      Rendue par buildLibraryPage() : rail des jeux possédés + vitrine du
      jeu sélectionné. JOUER/INSTALLER → hand-off launcher (glg://).
 ═══════════════════════ -->
@@ -491,7 +446,7 @@
 </main>
 
 <!-- ═══════════════════════
-     PAGE : CHAT (GLG Chat — MP + groupes « serveurs »)
+     PAGE : CHAT (GLG Chat, MP + groupes « serveurs »)
      Rendue par buildChatPage() : rail des conversations + fil de messages.
      MP partout ; groupes exclusifs au launcher. Pas de footer (app-like).
 ═══════════════════════ -->
@@ -501,14 +456,12 @@
 
 
 <!-- ═══════════════════════
-     PAGE: SHOP — Boutique v1
+     PAGES LÉGALES (dynamiques), mentions légales · confidentialité · CGU
+     Rendues par buildLegalPage() ; reliées au pied de page.
 ═══════════════════════ -->
-<main class="page" id="page-shop">
-  <!-- BOUTIQUE v1 — rendue par buildShopPage() (app.js) : offres du moment,
-       catalogue complet (prix/promos/wishlist), teasers "Prochainement". -->
-  <div id="shop-root"></div>
-  <div class="page-footer-slot"></div>
-</main>
+<main class="page" id="page-legal"></main>
+<main class="page" id="page-privacy"></main>
+<main class="page" id="page-terms"></main>
 
 
 <!-- ═══════════════════════
@@ -525,11 +478,11 @@
         id="about-title">ABOUT<br>US</h1>
     <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
        class="reveal" id="about-desc">
-      Meet the people behind the worlds — building experiences that teach, move, and haunt your mind.
+      Meet the people behind the worlds, building experiences that teach, move, and haunt your mind.
     </p>
   </div>
 
-  <!-- ORG TREE — built by buildAboutPage() -->
+  <!-- ORG TREE, built by buildAboutPage() -->
   <div class="about-section about-team-section">
     <div class="about-section-eye reveal" id="team-eye">The Team</div>
     <h2 class="about-section-title reveal" id="team-title">WHO WE<br>ARE</h2>
@@ -543,14 +496,14 @@
       <div class="about-manifesto-label" id="manifesto-label">Studio Manifesto</div>
       <blockquote class="about-manifesto-quote" id="about-manifesto-quote">
         "We don't make games.<br>
-        We build <em>worlds that leave marks</em> on the people who enter them —<br>
+        We build <em>worlds that leave marks</em> on the people who enter them -<br>
         experiences that teach, move, and haunt your mind long after the screen goes dark."
       </blockquote>
-      <div class="about-manifesto-sig">— GEEKLEARN GAMES, Est. 2026</div>
+      <div class="about-manifesto-sig">GEEKLEARN GAMES, Est. 2026</div>
     </div>
   </div>
 
-  <!-- AWARDS & DISTINCTIONS — built by buildAboutPage() -->
+  <!-- AWARDS & DISTINCTIONS, built by buildAboutPage() -->
   <div class="about-section about-awards-section">
     <div class="about-section-eye reveal" id="awards-eye">Awards &amp; Distinctions</div>
     <h2 class="about-section-title reveal" id="awards-title">RECOGNISED<br>WORK</h2>
@@ -574,7 +527,7 @@
 <main class="page" id="page-profile"></main>
 
 <!-- ═══════════════════════
-     PAGE: SETTINGS / OPTIONS (dynamic) — page dédiée (+ mises à jour launcher)
+     PAGE: SETTINGS / OPTIONS (dynamic), page dédiée (+ mises à jour launcher)
 ═══════════════════════ -->
 <main class="page" id="page-settings"></main>
 
@@ -591,7 +544,7 @@
       <p class="contact-eye-lbl reveal" id="contact-eye">Let's talk</p>
       <h1 class="contact-hero-h reveal" id="contact-title-h">CONTACT</h1>
       <p class="contact-hero-desc reveal" id="contact-desc">
-        Publishers, collaborators, press, or players — every message gets a response within 48 hours.
+        Publishers, collaborators, press, or players, every message gets a response within 48 hours.
       </p>
       <div class="contact-promises reveal">
         <div class="contact-promise">
@@ -605,8 +558,8 @@
         </div>
         <div class="contact-promise-div"></div>
         <div class="contact-promise">
-          <span class="contact-promise-n">5+</span>
-          <span class="contact-promise-l" id="cp-titles">Titles in production</span>
+          <span class="contact-promise-n">10</span>
+          <span class="contact-promise-l" id="cp-titles">Languages supported</span>
         </div>
       </div>
     </div>
@@ -642,7 +595,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" id="lbl-subject" for="contact-subject">Subject *</label>
-          <select class="form-select" id="contact-subject" required><option value="" disabled selected>—</option></select>
+          <select class="form-select" id="contact-subject" required><option value="" disabled selected>-</option></select>
         </div>
         <div class="form-group">
           <label class="form-label" id="lbl-message" for="inp-message">Message *</label>
@@ -668,13 +621,13 @@
       <!-- Direct contact card -->
       <div class="contact-direct-card">
         <p class="contact-direct-label" id="contact-info-title">Direct contact</p>
-        <a href="mailto:geeklearngames.studio@gmail.com" class="c-main-email">geeklearngames.studio@gmail.com</a>
+        <a href="mailto:contact@geeklearngames.com" class="c-main-email">contact@geeklearngames.com</a>
         <div class="contact-direct-promise">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>
             <path d="M8 4.5v3.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
-          <span id="cd-promise">We reply within 48h — every message is read</span>
+          <span id="cd-promise">We reply within 48h, every message is read</span>
         </div>
       </div>
 
@@ -726,20 +679,20 @@
 
 <!-- ══════════ SCRIPTS ══════════ -->
 <!-- Site data + core app -->
-<script src="js/data.js?v=15"></script>
-<!-- Language-gate flag field (canvas) — defines window.GLG_GATE_FIELD before buildGate() runs -->
+<script src="js/data.js?v=16"></script>
+<!-- Language-gate flag field (canvas), defines window.GLG_GATE_FIELD before buildGate() runs -->
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=123"></script>
-<!-- Accounts (Supabase) — self-hosted, no external CDN -->
+<script src="js/app.js?v=124"></script>
+<!-- Accounts (Supabase), self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>
 <script src="js/auth.js?v=21" defer></script>
-<!-- GSAP + ScrollTrigger — AAA animation engine (self-hosted) -->
+<!-- GSAP + ScrollTrigger, AAA animation engine (self-hosted) -->
 <script src="js/vendor/gsap.min.js?v=1" defer></script>
 <script src="js/vendor/ScrollTrigger.min.js?v=1" defer></script>
-<!-- Lenis smooth scroll — butter-smooth scrolling on desktop (self-hosted) -->
+<!-- Lenis smooth scroll, butter-smooth scrolling on desktop (self-hosted) -->
 <script src="js/vendor/lenis.min.js?v=1" defer></script>
 <script src="js/glg-animations.js?v=11" defer></script>
 </body>

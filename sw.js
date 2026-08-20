@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   GEEKLEARN GAMES — service worker (PWA / étape launcher)
+   GEEKLEARN GAMES, service worker (PWA / étape launcher)
    ───────────────────────────────────────────────────────────
    Stratégie volontairement SIMPLE et sans liste à maintenir :
      • index.html (navigations) → network-first, repli cache → le site
@@ -10,7 +10,7 @@
      • cross-origin (Supabase, API de change) → JAMAIS interceptés.
    Discipline : bumper CACHE à chaque déploiement (PROGRESS.md).
 ═══════════════════════════════════════════════════════════ */
-const CACHE = 'glg-v22';
+const CACHE = 'glg-v23';
 
 /* Précache AUTO-ENTRETENU : on télécharge l'index, on en extrait les
    assets versionnés (css/js/fonts ?v=) et on les met en cache À L'INSTALL.

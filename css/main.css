@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════
-   GeekLearn Games — main.css
+   GeekLearn Games, main.css
    ═══════════════════════════════════════════════════
 
-   ┌── GLG PATTERN — 7 lines to tune ──────────────────────────────────────┐
+   ┌── GLG PATTERN, 7 lines to tune ──────────────────────────────────────┐
    │  --glg-size:       tile width px          (default 180px)              │
    │  --glg-gap:        space between tiles    (default 64px)               │
    │  --glg-angle:      grid rotation          (default -25deg)             │
@@ -25,8 +25,8 @@
   --ease:cubic-bezier(.16,1,.3,1);
   --ease2:cubic-bezier(.76,0,.24,1);
 
-  /* GLG Pattern — tune these */
-  --glg-size:       480px;   /* largeur d'une tuile — 3 logos/rangée à 1440px */
+  /* GLG Pattern, tune these */
+  --glg-size:       480px;   /* largeur d'une tuile, 3 logos/rangée à 1440px */
   --glg-speed:      35s;     /* vitesse scroll gauche (plus grand = plus lent) */
   --glg-opacity:    .07;
   --glg-brightness: 1;
@@ -36,7 +36,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{font-size:16px;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--white);font-family:var(--f-body);font-weight:400;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-/* Dark minimal scrollbar — Chrome/Edge/Safari */
+/* Dark minimal scrollbar, Chrome/Edge/Safari */
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
@@ -73,7 +73,7 @@ ul{list-style:none}
 .gate-bl{bottom:clamp(14px,2.4vh,28px);left:clamp(14px,2.4vw,28px);border-bottom:1px solid rgba(255,255,255,.2);border-left:1px solid rgba(255,255,255,.2)}
 .gate-br{bottom:clamp(14px,2.4vh,28px);right:clamp(14px,2.4vw,28px);border-bottom:1px solid rgba(255,255,255,.2);border-right:1px solid rgba(255,255,255,.2)}
 
-/* Shadow radiating from centre of each element — darkest at the element, fades outward */
+/* Shadow radiating from centre of each element, darkest at the element, fades outward */
 .gate-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:clamp(14px,2.8vh,28px);position:relative;z-index:1;animation:gFadeUp .9s .08s cubic-bezier(.16,1,.3,1) both;filter:drop-shadow(0 0 14px rgba(0,0,0,.98)) drop-shadow(0 0 48px rgba(0,0,0,.72)) drop-shadow(0 0 110px rgba(0,0,0,.38))}
 .gate-logo-img{height:42px;width:auto;filter:brightness(0) invert(1);opacity:.92}
 .gate-studio-name{font-family:var(--f-mono);font-size:.5rem;letter-spacing:.55em;text-transform:uppercase;color:rgb(255, 255, 255)}
@@ -89,7 +89,7 @@ ul{list-style:none}
 
 /* Individual flag card */
 .gate-lang{position:relative;overflow:hidden;background:#0a0a0a;cursor:pointer;border:none;padding:0;filter:grayscale(100%);transition:opacity .28s,transform .38s var(--ease),filter .45s ease;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-/* Dimmed = opaque but 82% brightness — the rain behind stays hidden */
+/* Dimmed = opaque but 82% brightness, the rain behind stays hidden */
 .gate-lang.dimmed{opacity:1;filter:grayscale(100%) brightness(.82)}
 /* Override the .gate-grid:hover rule (same specificity, appears later → wins) */
 .gate-grid:hover .gate-lang.dimmed{opacity:1;filter:grayscale(100%) brightness(.82)}
@@ -122,13 +122,13 @@ ul{list-style:none}
 .gate-bottom-item{font-family:var(--f-mono);font-size:.34rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.14)}
 .gate-bottom-dot{font-family:var(--f-mono);font-size:.34rem;color:rgba(255,255,255,.09)}
 
-/* Bottom separator — full unbroken line below the flag grid */
+/* Bottom separator, full unbroken line below the flag grid */
 .gate-sep-bottom{margin-top:clamp(8px,1.4vh,14px);margin-bottom:0;animation-delay:.54s}
 .gate-sep-bottom .gate-sep-line{flex:1}
 
 @keyframes gFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-/* Ambient colour wash — gradient set directly on this container (no child slots).
+/* Ambient colour wash, gradient set directly on this container (no child slots).
    The correct gradient is always painted synchronously before opacity goes to 1,
    so the user never sees a stale/wrong-language colour on first hover. */
 #gate-wash{
@@ -143,7 +143,7 @@ ul{list-style:none}
 /* Fast fade-in: wash is visible within ~250ms so even a quick tap sees colour */
 #gate-wash.gate-wash--active{opacity:1;transition:opacity .25s ease;}
 
-/* ── Gate background — animated diagonal grid (replaces flag rain) ── */
+/* ── Gate background, animated diagonal grid (replaces flag rain) ── */
 #lang-gate::after{
   content:'';
   position:absolute;
@@ -180,7 +180,7 @@ ul{list-style:none}
     min-height:-webkit-fill-available; /* iOS 14 and below */
   }
   /* Logo: slightly smaller but always visible */
-  .gate-logo-wrap{filter:none} /* drop heavy shadows — avoids Safari compositing bug */
+  .gate-logo-wrap{filter:none} /* drop heavy shadows, avoids Safari compositing bug */
   .gate-logo-img{height:32px}
   .gate-studio-name{font-size:.44rem;letter-spacing:.4em}
   .gate-tagline{font-size:.74rem;margin-bottom:8px}
@@ -194,22 +194,22 @@ ul{list-style:none}
 }
 
 /* ── Touch / no-hover devices (phones + tablets) ────────
-   • Wash is shown — touchstart already wires it up in JS
+   • Wash is shown, touchstart already wires it up in JS
    • Hover states replaced with :active for correct feedback  */
 @media(hover:none){
   #lang-gate{overflow-y:auto;-webkit-overflow-scrolling:touch}
-  /* No scale-up pop on tap — prevents layout jank */
+  /* No scale-up pop on tap, prevents layout jank */
   .gate-lang:hover{transform:none;box-shadow:none;filter:grayscale(100%)}
   /* Active (pressed) state: slight shrink + colour reveal */
   .gate-lang:active{transform:scale(.96);filter:grayscale(0%)!important;transition:transform .12s,filter .12s}
-  /* Underline sweep stays off on touch — it never fires without hover */
+  /* Underline sweep stays off on touch, it never fires without hover */
   .gate-lang:hover::after{transform:scaleX(0)}
   /* Back button touch area enlarged */
   .gate-back-btn{padding:10px}
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LANGUAGE GATE — AAA boot-screen polish (v2)
+   LANGUAGE GATE, AAA boot-screen polish (v2)
    Scanline · logo spotlight · staggered flags · ENTER hint ·
    select-flash · live system HUD.  All transform-cheap.
 ═══════════════════════════════════════════════════════════════ */
@@ -241,7 +241,7 @@ ul{list-style:none}
 .gate-lang.selected{filter:grayscale(0%)!important;animation:gateSelFlash .6s ease 1}
 @keyframes gateSelFlash{0%{box-shadow:0 0 0 0 rgba(255,255,255,.9)}100%{box-shadow:0 0 0 16px rgba(255,255,255,0)}}
 
-/* System HUD strip — readable + animated */
+/* System HUD strip, readable + animated */
 .gate-bottom{filter:drop-shadow(0 0 8px rgba(0,0,0,.98)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
 .gate-bottom-item{color:rgba(255,255,255,.34);font-size:.36rem}
 .gate-bottom-dot{color:rgba(255,255,255,.16)}
@@ -263,7 +263,7 @@ ul{list-style:none}
 /* ─── LOADER ────────────────────────────────────────── */
 #loader{position:fixed;inset:0;z-index:8888;background:var(--black);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
 #loader.show{opacity:1;pointer-events:all}
-/* Outro: pure opacity dissolve — logo breathes then fades into the content beneath */
+/* Outro: pure opacity dissolve, logo breathes then fades into the content beneath */
 #loader.fade{opacity:0;transition:opacity 1.1s cubic-bezier(.4,0,.2,1)}
 /* Logo breathes gently while waiting */
 .loader-logo{width:130px;height:auto;filter:brightness(0) invert(1);animation:loaderBreath 2.4s ease-in-out infinite}
@@ -299,9 +299,9 @@ ul{list-style:none}
   padding-left:.45em;
 }
 .nav-links{display:flex;align-items:center;gap:0}
-/* Right cluster (notifications + account) — pushed to the far right on every breakpoint */
+/* Right cluster (notifications + account), pushed to the far right on every breakpoint */
 .nav-right{display:flex;align-items:center;margin-left:auto;gap:0;flex-shrink:0}
-/* Search icon — first item of the right cluster, before the section links */
+/* Search icon, first item of the right cluster, before the section links */
 .nav-search-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;margin:0 10px 0 0;border:1px solid var(--border);color:var(--greyt);cursor:pointer;background:none;transition:all .2s;flex-shrink:0}
 .nav-search-btn:hover{color:var(--white);border-color:var(--bmd);background:var(--w06)}
 .nav-link{font-family:var(--f-mono);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--greyt);padding:8px 13px;position:relative;transition:color .2s;cursor:pointer;background:none;border:none;white-space:nowrap}
@@ -312,7 +312,7 @@ ul{list-style:none}
 #nav-lang-btn{display:flex;align-items:center;justify-content:center;width:28px;height:20px;margin-left:2px;padding:0;background:none;border:1px solid var(--border);cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color .2s,transform .25s var(--ease)}
 #nav-lang-btn:hover{border-color:var(--bhi);transform:scale(1.1)}
 #nav-lang-flag{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-/* Search icon in top nav bar — mobile only (hidden on desktop) */
+/* Search icon in top nav bar, mobile only (hidden on desktop) */
 .nav-search-topbar{display:none;align-items:center;justify-content:center;width:34px;height:34px;margin-left:8px;border:1px solid var(--border);color:var(--greyt);cursor:pointer;background:none;transition:color .2s,border-color .2s,background .2s;flex-shrink:0}
 .nav-search-topbar:hover{color:var(--white);border-color:var(--bmd);background:var(--w06)}
 /* Search row inside the mobile fullscreen menu */
@@ -372,7 +372,7 @@ ul{list-style:none}
 .btn-ghost:hover{color:var(--white);border-color:var(--bmd)}
 .btn-lg{padding:15px 38px;font-size:.66rem}
 
-/* ─── HERO — Centered, content pushed lower ─────────── */
+/* ─── HERO, Centered, content pushed lower ─────────── */
 .hero{position:relative;height:100vh;min-height:640px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .hero-bg{position:absolute;inset:0;background:url('../assets/img/backgrounds/hero.svg') center/cover no-repeat;filter:brightness(.28);animation:heroDrift 22s ease-in-out infinite alternate}
 @keyframes heroDrift{from{transform:scale(1.04)}to{transform:scale(1.06)}}
@@ -398,7 +398,7 @@ ul{list-style:none}
 .marquee-bar{
   border-top:1px solid var(--border);border-bottom:1px solid var(--border);
   padding:14px 0;overflow:hidden;
-  background:var(--s1);  /* solid — no pattern bleeds through */
+  background:var(--s1);  /* solid, no pattern bleeds through */
   white-space:nowrap;
   position:relative;z-index:2;  /* sits above any overflowing bg layers */
 }
@@ -407,410 +407,75 @@ ul{list-style:none}
 .marquee-dot{width:3px;height:3px;border-radius:50%;background:var(--grey);flex-shrink:0}
 @keyframes marquee{to{transform:translateX(-50%)}}
 
-/* ─── DIAGONAL PUZZLE SHOWCASE ──────────────────────────────────
-   "WHAT WE CREATE" — Full-width diagonal image strips with quotes.
-   Images are placeholder rectangles clipped into parallelogram shapes.
-   Quotes are always visible and overlap the image edge.
-   ─────────────────────────────────────────────────────────────── */
-.showcase-section {
-  padding: clamp(64px,9vw,110px) 0;
-  border-top: 1px solid var(--border);
-  background: var(--bg);     /* opaque — blocks any pattern bleed from below */
-  position: relative;
-  z-index: 1;
-}
-.showcase-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 20px;
-  margin-bottom: 52px;
-  padding: 0 clamp(16px,5vw,72px);
-}
-.showcase-eyebrow {
-  font-family: var(--f-mono);
-  font-size: .54rem;
-  letter-spacing: .4em;
-  color: var(--grey);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.showcase-eyebrow{justify-content:center;}
-.showcase-eyebrow::before,.showcase-eyebrow::after { content:''; width:16px; height:1px; background:var(--grey) }
-.showcase-title {
-  font-family: var(--f-disp);
-  font-size: clamp(1.8rem,5vw,4.8rem);
-  letter-spacing: .02em;
-  text-transform: uppercase;
-  line-height: .88;
-  white-space: nowrap;
-}
-
-/* ── Strip container — full width, stacked ── */
-.puzzle-strips {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  width: 100%;
-}
-
-/* ── Outer row: relative, overflow visible so quote bleeds out ── */
-.puz-strip-row {
-  position: relative;
-  width: 100%;
-  /* extra vertical space for the overlapping quote */
-  padding-bottom: clamp(28px, 5vw, 56px);
-  margin-bottom: -8px; /* slight overlap between rows */
-}
-/* alternating border-line accent */
-.puz-strip-row:not(:first-child)::before {
-  content: '';
-  position: absolute;
-  top: 0; left: clamp(16px,5vw,72px); right: clamp(16px,5vw,72px);
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(255,255,255,.08), transparent);
-}
-
-/* ── The actual clipped image strip ── */
-.puz-strip {
-  position: relative;
-  width: 100%;
-  height: clamp(240px, 28vw, 440px);
-  overflow: hidden;
-  /* Dramatic diagonal cut — parallelogram shape */
-}
-/* Strip 1: diagonal rises from left — bottom-left cut up */
-.puz-strip-row:nth-child(odd) .puz-strip {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 7vw));
-}
-/* Strip 2: horizontal mirror of strip 1 — bottom-right raised */
-.puz-strip-row:nth-child(even) .puz-strip {
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7vw), 0 100%);
-}
-
-/* ── Image / placeholder fill ── */
-.puz-strip-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(.40) saturate(.55);
-  transition: filter .7s var(--ease), transform 1s var(--ease);
-}
-.puz-strip-row:hover .puz-strip-img {
-  filter: brightness(.68) saturate(.85);
-  transform: scale(1.04);
-}
-
-/* Inner gradient: darken bottom half so quote is readable */
-.puz-strip-grad {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(8,8,8,0) 30%,
-    rgba(8,8,8,.72) 100%
-  );
-}
-/* Even strips: gradient also flows top→bottom (quote is at bottom-right, same vertical axis) */
-.puz-strip-row:nth-child(even) .puz-strip-grad {
-  background: linear-gradient(
-    to bottom,
-    rgba(8,8,8,0) 30%,
-    rgba(8,8,8,.72) 100%
-  );
-}
-
-/* White-line edge glow */
-.puz-strip::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-  transition: box-shadow .4s;
-}
-.puz-strip-row:hover .puz-strip::after {
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.42);
-}
-
-/* ── Quote block: absolute over row, overlaps strip bottom and space below ── */
-.puz-quote {
-  position: absolute;
-  z-index: 10;
-  max-width: clamp(280px, 42vw, 580px);
-  /* Default: odd rows → quote on left */
-  bottom: 0;
-  left: clamp(32px,6vw,88px);
-}
-.puz-strip-row:nth-child(even) .puz-quote {
-  /* Mirror of odd: quote stays on right so it stays in the taller (uncut) corner */
-  left: auto;
-  right: clamp(32px,6vw,88px);
-  text-align: right;
-}
-.puz-quote-text {
-  font-family: var(--f-serif);
-  font-style: italic;
-  font-size: clamp(1.15rem, 2.8vw, 2.15rem);
-  color: var(--white);
-  line-height: 1.22;
-  text-shadow:
-    0 2px 32px rgba(0,0,0,.95),
-    0 0 12px rgba(0,0,0,.9),
-    0 1px 4px rgba(0,0,0,.8);
-  /* Always visible */
-  opacity: .88;
-  transition: opacity .4s var(--ease);
-}
-.puz-strip-row:hover .puz-quote-text {
-  opacity: 1;
-}
-.puz-quote-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--f-mono);
-  font-size: .48rem;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.38);
-  margin-top: 13px;
-}
-.puz-quote-tag::before {
-  content: '';
-  display: inline-block;
-  width: 20px;
-  height: 1px;
-  background: rgba(255,255,255,.28);
-  flex-shrink: 0;
-}
-.puz-strip-row:nth-child(even) .puz-quote-tag {
-  flex-direction: row-reverse;
-}
-
-/* ── Strip index number (large, decorative) ── */
-.puz-strip-index {
-  position: absolute;
-  z-index: 2;
-  font-family: var(--f-disp);
-  font-size: clamp(5rem, 12vw, 14rem);
-  letter-spacing: -.02em;
-  line-height: 1;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(255,255,255,.07);
-  pointer-events: none;
-  user-select: none;
-  top: clamp(10px,3vw,30px);
-  right: clamp(16px,4vw,60px);
-  transition: -webkit-text-stroke .4s;
-}
-.puz-strip-row:nth-child(even) .puz-strip-index {
-  right: auto;
-  left: clamp(16px,4vw,60px);
-}
-.puz-strip-row:hover .puz-strip-index {
-  -webkit-text-stroke: 1px rgba(255,255,255,.16);
-}
-
-/* ── Mobile ── */
-@media (max-width: 640px) {
-  .puz-strip { height: clamp(160px, 42vw, 280px) }
-  .puz-strip-row:nth-child(odd) .puz-strip {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 24px))
-  }
-  .puz-strip-row:nth-child(even) .puz-strip {
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), 0 100%)
-  }
-  .puz-quote { max-width: 90vw }
-  .puz-quote-text { font-size: clamp(.95rem,4.5vw,1.4rem) }
-  .puz-strip-index { display: none }
-}
-
 /* ══════════════════════════════════════════════════════════════
-   STRIP REVEAL — Cinematic "emergence from the diagonal"
+   STRIP REVEAL, Cinematic "emergence from the diagonal"
    ══════════════════════════════════════════════════════════════
    Architecture: 3 independent layers animate in sequence
-     1. .puz-strip      → clip-path rises from its own diagonal anchor
-     2. .puz-strip-index → scales down from large + fades in
-     3. .puz-quote       → slides up from below + fades in
-
-   The diagonal edge acts as the fixed anchor — the panel unfolds
-   upward from that line, as if being revealed by a rising blade.
-   The .puz-strip-row itself stays opacity:1 (the clip IS the reveal),
-   overriding the generic .reveal { opacity:0 } rule.
+ rule.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Row: override generic reveal — clip handles visibility ── */
-.puz-strip-row.reveal,
-.puz-strip-row.reveal.visible {
-  opacity: 1;
-  transform: none;
-  transition: none;
-}
+/* ── Row: override generic reveal, clip handles visibility ── */
 
-/* ── 1. The clipped panel — rises from its diagonal anchor ── */
-.puz-strip-row.reveal .puz-strip {
-  transition: clip-path 1.1s cubic-bezier(.16, 1, .3, 1);
-}
+
+/* ── 1. The clipped panel, rises from its diagonal anchor ── */
+
 
 /* ODD strips (diagonal at bottom-left):
    Start = degenerate quad along the diagonal line (zero visible area)
    The diagonal anchor (bottom-left point) and bottom-right stay fixed
    while the two top corners rise up from those positions. */
-.puz-strip-row:nth-child(odd).reveal .puz-strip {
-  clip-path: polygon(
-    0   calc(100% - 7vw),  /* top-left collapses to diagonal anchor */
-    100% 100%,              /* top-right collapses to bottom-right */
-    100% 100%,              /* bottom-right stays */
-    0   calc(100% - 7vw)   /* bottom-left diagonal anchor — fixed */
-  );
-}
-.puz-strip-row:nth-child(odd).reveal.visible .puz-strip {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 7vw));
-}
+
+
 
 /* EVEN strips (diagonal at bottom-right):
-   Mirror of above — bottom-left anchor fixed, top corners rise. */
-.puz-strip-row:nth-child(even).reveal .puz-strip {
-  clip-path: polygon(
-    0   100%,               /* top-left collapses to bottom-left */
-    100% calc(100% - 7vw), /* top-right collapses to diagonal anchor */
-    100% calc(100% - 7vw), /* bottom-right diagonal anchor — fixed */
-    0   100%                /* bottom-left stays */
-  );
-}
-.puz-strip-row:nth-child(even).reveal.visible .puz-strip {
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7vw), 0 100%);
-}
+   Mirror of above, bottom-left anchor fixed, top corners rise. */
+
+
 
 /* Stagger clip per strip (natural scroll order + fine stagger) */
-.puz-strip-row.reveal.rd1 .puz-strip { transition-delay: .08s; }
-.puz-strip-row.reveal.rd2 .puz-strip { transition-delay: .16s; }
 
-/* ── 2. Large index number — scales from large, fades in late ── */
-.puz-strip-row.reveal .puz-strip-index {
-  opacity: 0;
-  transform: scale(1.45) translateX(10px);
-  transition:
-    opacity  .65s .52s var(--ease),
-    transform .85s .52s cubic-bezier(.16, 1, .3, 1);
-}
-.puz-strip-row.reveal.visible .puz-strip-index {
-  opacity: 1;
-  transform: scale(1) translateX(0);
-}
+
+
+/* ── 2. Large index number, scales from large, fades in late ── */
+
+
 /* Even: index enters from left side */
-.puz-strip-row:nth-child(even).reveal .puz-strip-index {
-  transform: scale(1.45) translateX(-10px);
-}
 
-.puz-strip-row.reveal.rd1 .puz-strip-index {
-  transition-delay: .60s, .60s;
-}
-.puz-strip-row.reveal.rd2 .puz-strip-index {
-  transition-delay: .68s, .68s;
-}
 
-/* ── 3. Quote block — slides up after panel is fully visible ── */
-.puz-strip-row.reveal .puz-quote {
-  opacity: 0;
-  transform: translateY(18px);
-  transition:
-    opacity  .72s .72s var(--ease),
-    transform .72s .72s var(--ease);
-}
-.puz-strip-row.reveal.visible .puz-quote {
-  opacity: 1;
-  transform: translateY(0);
-}
-.puz-strip-row.reveal.rd1 .puz-quote {
-  transition-delay: .80s, .80s;
-}
-.puz-strip-row.reveal.rd2 .puz-quote {
-  transition-delay: .88s, .88s;
-}
+
+
+
+/* ── 3. Quote block, slides up after panel is fully visible ── */
+
+
+
+
 
 /* ── Mobile: flat diagonal (24px) instead of 7vw ── */
 @media (max-width: 640px) {
-  .puz-strip-row:nth-child(odd).reveal .puz-strip {
-    clip-path: polygon(0 calc(100% - 24px), 100% 100%, 100% 100%, 0 calc(100% - 24px));
-  }
-  .puz-strip-row:nth-child(odd).reveal.visible .puz-strip {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 24px));
-  }
-  .puz-strip-row:nth-child(even).reveal .puz-strip {
-    clip-path: polygon(0 100%, 100% calc(100% - 24px), 100% calc(100% - 24px), 0 100%);
-  }
-  .puz-strip-row:nth-child(even).reveal.visible .puz-strip {
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), 0 100%);
-  }
+
+
+
+
 }
 
-/* ── Per-strip mood colour accent (::before inside .puz-strip) ── */
-.puz-strip-row:nth-child(1) .puz-strip::before,
-.puz-strip-row:nth-child(2) .puz-strip::before,
-.puz-strip-row:nth-child(3) .puz-strip::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-/* HORREUR — bleu nuit froid */
-.puz-strip-row:nth-child(1) .puz-strip::before {
-  background:
-    radial-gradient(ellipse at 12% 50%, rgba(15,38,80,.72) 0%, transparent 58%),
-    radial-gradient(ellipse at 88% 50%, rgba(6,14,42,.45) 0%, transparent 55%);
-}
-/* AVENTURE & ÉMOTION — ambre chaud */
-.puz-strip-row:nth-child(2) .puz-strip::before {
-  background:
-    radial-gradient(ellipse at 88% 50%, rgba(95,42,8,.72) 0%, transparent 58%),
-    radial-gradient(ellipse at 12% 50%, rgba(55,18,4,.45) 0%, transparent 55%);
-}
-/* MYSTÈRE — violet profond */
-.puz-strip-row:nth-child(3) .puz-strip::before {
-  background:
-    radial-gradient(ellipse at 12% 50%, rgba(52,16,90,.72) 0%, transparent 58%),
-    radial-gradient(ellipse at 88% 50%, rgba(25,8,55,.45) 0%, transparent 55%);
-}
+
+/* HORREUR, bleu nuit froid */
+
+/* AVENTURE & ÉMOTION, ambre chaud */
+
+/* MYSTÈRE, violet profond */
+
 
 /* ── Theme watermark text on strip ── */
-.puz-cat {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--f-disp);
-  font-size: clamp(5.5rem, 12vw, 11rem);
-  letter-spacing: -.01em;
-  line-height: 1;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(255,255,255,.13);
-  pointer-events: none;
-  user-select: none;
-  transition: -webkit-text-stroke .5s var(--ease);
-}
-.puz-strip-row:hover .puz-cat {
-  -webkit-text-stroke: 1px rgba(255,255,255,.28);
-}
+
+
 @media (max-width: 640px) {
-  .puz-cat { font-size: clamp(3rem, 14vw, 6rem); }
+
 }
 
-/* ── Quote text — slightly larger ── */
-.puz-quote-text { font-size: clamp(1.2rem, 2.8vw, 2.2rem); }
+/* ── Quote text, slightly larger ── */
+
 
 /* ─── STUDIO THEMES ──────────────────────────────────── */
 .studio-themes {
@@ -953,7 +618,7 @@ ul{list-style:none}
   animation: glgDrift var(--glg-speed) linear infinite;
 }
 
-/* ── Seamless left scroll — translateX(-480px) = exactement 1 tuile → loop invisible ── */
+/* ── Seamless left scroll, translateX(-480px) = exactement 1 tuile → loop invisible ── */
 @keyframes glgDrift {
   from { transform: translateX(0); }
   to   { transform: translateX(-480px); }
@@ -986,7 +651,7 @@ ul{list-style:none}
 .glg-pat-subtle  { --glg-opacity: .035 }
 .glg-pat-visible { --glg-opacity: .09  }
 
-/* Pulse (for CTA band) — drift sur ::before, pulse opacity sur le parent */
+/* Pulse (for CTA band), drift sur ::before, pulse opacity sur le parent */
 .glg-pat-pulse .glg-pattern-bg {
   animation: glgPulse 5s ease-in-out infinite alternate;
 }
@@ -1050,7 +715,7 @@ ul{list-style:none}
   text-align:center;white-space:nowrap;
 }
 
-/* ─── CAROUSEL — smaller cards ──────────────────────── */
+/* ─── CAROUSEL, smaller cards ──────────────────────── */
 .carousel-viewport{
   position:relative;overflow:hidden;padding:8px 0 20px;
   direction:ltr; /* CRITICAL: force LTR on the overflow container so the track's LEFT edge
@@ -1058,25 +723,25 @@ ul{list-style:none}
                     Without this, RTL layout makes translateX(0) show the RIGHT end of the
                     track instead of the left, breaking the seamless loop teleport logic. */
   touch-action: pan-y; /* allow vertical scroll while capturing horizontal swipes */
-  /* Gradient fade edges — hides items as they enter/leave */
+  /* Gradient fade edges, hides items as they enter/leave */
   mask-image:linear-gradient(to right,transparent 0%,#000 8%,#000 92%,transparent 100%);
   -webkit-mask-image:linear-gradient(to right,transparent 0%,#000 8%,#000 92%,transparent 100%);
 }
 .carousel-track{
   display:flex;
   direction:ltr; /* force LTR layout so RTL document dir (Arabic etc.) doesn't reverse cards */
-  gap:0; /* NO gap — use margin-right on cards so -50% aligns perfectly */
+  gap:0; /* NO gap, use margin-right on cards so -50% aligns perfectly */
   width: max-content;
   will-change: transform;
 }
 /* Carousel movement handled entirely by JS requestAnimationFrame (app.js)
-   — no CSS animations needed. will-change:transform is already on .carousel-track. */
+  , no CSS animations needed. will-change:transform is already on .carousel-track. */
 
-/* Cards — fixed small size */
+/* Cards, fixed small size */
 .c-card{
   flex-shrink:0;
   width:clamp(130px,16vw,200px);
-  /* Margin-right replaces flex gap — critical for seamless -50% loop */
+  /* Margin-right replaces flex gap, critical for seamless -50% loop */
   margin-right:10px;
   position:relative;overflow:hidden;cursor:pointer;
   transition:transform .5s var(--ease),box-shadow .5s var(--ease);
@@ -1087,7 +752,7 @@ ul{list-style:none}
 .c-card:hover .c-card-pw img{transform:scale(1.07);filter:brightness(1) saturate(1)}
 .c-card::before{content:'';position:absolute;inset:-1px;background:var(--cglow,transparent);opacity:0;transition:opacity .4s var(--ease);z-index:2;pointer-events:none}
 .c-card:hover::before{opacity:1}
-/* White card outline — change --card-border-w and --card-border-opacity to tune */
+/* White card outline, change --card-border-w and --card-border-opacity to tune */
 .c-card::after{content:'';position:absolute;inset:0;border:var(--card-border-w,1px) solid rgba(255,255,255,var(--card-border-opacity,.18));pointer-events:none;z-index:5}
 .c-card[data-g="b"]{--cglow:linear-gradient(180deg,rgba(100,180,255,.6) 0%,transparent 36%)}
 .c-card[data-g="p"]{--cglow:linear-gradient(180deg,rgba(170,100,255,.6) 0%,transparent 36%)}
@@ -1104,7 +769,7 @@ ul{list-style:none}
 .c-card-yr  {font-family:var(--f-mono);font-size:.42rem;letter-spacing:.12em;color:var(--w50);margin-top:2px}
 .c-badge{position:absolute;top:8px;left:8px;z-index:4;font-family:var(--f-mono);font-size:.42rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;background:rgba(0,0,0,.82);border:1px solid var(--bmd);color:var(--w80)}
 
-/* ─── DETAIL PAGE v3 — GLG FILM DOSSIER ─────────────────────── */
+/* ─── DETAIL PAGE v3, GLG FILM DOSSIER ─────────────────────── */
 /* Hero */
 .dp-hero{position:relative;height:100vh;min-height:600px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;overflow:hidden}
 .dp-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(.14) saturate(.7);transform:scale(1.06);transition:transform 16s ease}
@@ -1152,13 +817,13 @@ ul{list-style:none}
 .dp-sec-label{font-family:var(--f-mono);font-size:.48rem;letter-spacing:.38em;text-transform:uppercase;color:var(--grey);margin-bottom:28px;display:flex;align-items:center;gap:14px}
 .dp-sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
 
-/* Story — full-width pull quote then description */
+/* Story, full-width pull quote then description */
 .dp-story{border-top:1px solid var(--border);padding:clamp(64px,10vw,120px) clamp(16px,5vw,72px);max-width:1440px;margin:0 auto}
 .dp-story-pull{font-family:var(--f-serif);font-style:italic;font-size:clamp(2rem,4.8vw,5.2rem);line-height:1.16;color:var(--white);text-align:center;max-width:1080px;margin:0 auto clamp(48px,7vw,80px);opacity:.92}
 .dp-story-p{font-size:.93rem;line-height:1.95;color:var(--greyt);margin-bottom:18px}
 .dp-story-p:last-child{margin-bottom:0}
 
-/* Features — editorial full-width rows with tint numbers */
+/* Features, editorial full-width rows with tint numbers */
 .dp-features{border-top:1px solid var(--border);padding:clamp(52px,8vw,96px) clamp(16px,5vw,72px);max-width:1440px;margin:0 auto}
 .dp-features-list{display:flex;flex-direction:column}
 .dp-feat-item{display:grid;grid-template-columns:72px 1fr;gap:24px;padding:clamp(18px,2.6vw,28px) 0;border-bottom:1px solid var(--border);align-items:baseline;transition:opacity .2s}
@@ -1282,7 +947,7 @@ ul{list-style:none}
   color:var(--grey);margin-bottom:36px;
 }
 
-/* FORM — CSS step counters */
+/* FORM, CSS step counters */
 #contact-form{counter-reset:form-step}
 #contact-form .form-group{counter-increment:form-step}
 #contact-form .form-label::before{
@@ -1327,7 +992,7 @@ ul{list-style:none}
 .contact-submit-btn{width:100%!important;justify-content:center;padding:16px 24px!important}
 .contact-legal{font-size:.68rem;color:var(--grey);margin-top:13px;line-height:1.65}
 
-/* INFO — Direct contact card */
+/* INFO, Direct contact card */
 .contact-direct-card{
   background:var(--s1);border:1px solid var(--border);
   padding:28px 26px;margin-bottom:36px;
@@ -1423,7 +1088,7 @@ footer{
   letter-spacing:.01em;text-transform:uppercase;margin-bottom:clamp(40px,6vw,80px);
   white-space:nowrap;
 }
-/* ── About Us — centered hero & team section titles ── */
+/* ── About Us, centered hero & team section titles ── */
 .about-hero .section-eye{justify-content:center;}
 .about-hero #about-desc{margin-left:auto;margin-right:auto;}
 .about-team-section .about-section-eye{justify-content:center;}
@@ -1431,7 +1096,7 @@ footer{
 .about-awards-section .about-section-eye{justify-content:center;}
 .about-awards-section .about-section-title{text-align:center;}
 
-/* ── Org-tree — cinema split cards container ── */
+/* ── Org-tree, cinema split cards container ── */
 .org-tree{
   display:flex;flex-direction:column;
   overflow:hidden;
@@ -1442,11 +1107,11 @@ footer{
 }
 
 /* ══════════════════════════════════════════════
-   STUDIO PROFILE — Cinematic split cards
+   STUDIO PROFILE, Cinematic split cards
    ─────────────────────────────────────────────
    Layout: photo (60%) | info (40%)
    • Identity (name + real name) overlaid at the
-     bottom of the photo panel — film-poster style
+     bottom of the photo panel, film-poster style
    • Quote is the dominant element of info panel
    • Large faded watermark adds depth behind text
    • Seamless right-edge gradient blends panels
@@ -1493,7 +1158,7 @@ footer{
     linear-gradient(to top,    rgba(0,0,0,.96) 0%, transparent 42%);
 }
 
-/* Identity overlay — bottom of photo, cinematic film-credit style */
+/* Identity overlay, bottom of photo, cinematic film-credit style */
 .cm-photo-ident{
   position:absolute;
   bottom:clamp(28px,4.5vh,60px);
@@ -1532,7 +1197,7 @@ footer{
   color:rgba(255,255,255,.32);
 }
 
-/* Initials fallback — shown when no photo path is set */
+/* Initials fallback, shown when no photo path is set */
 .cm-photo-init{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -1549,7 +1214,7 @@ footer{
   position:relative;overflow:hidden;
 }
 
-/* Giant index watermark — atmospheric, behind all content */
+/* Giant index watermark, atmospheric, behind all content */
 .cm-watermark{
   position:absolute;
   top:-.06em;right:-.04em;
@@ -1561,7 +1226,7 @@ footer{
   letter-spacing:-.02em;
 }
 
-/* Inner column — eyebrow → quote → divider → role */
+/* Inner column, eyebrow → quote → divider → role */
 .cm-info-inner{
   display:flex;flex-direction:column;
   gap:clamp(20px,3vh,36px);
@@ -1578,7 +1243,7 @@ footer{
   letter-spacing:.01em;
 }
 
-/* Quote — the DOMINANT element of the info panel */
+/* Quote, the DOMINANT element of the info panel */
 .cm-quote{
   font-family:var(--f-serif);font-style:italic;
   font-size:clamp(1.08rem,1.82vw,1.5rem);
@@ -1601,7 +1266,7 @@ footer{
   color:var(--greyt);
 }
 
-/* ── Stats strip — pinned to foot of info panel ── */
+/* ── Stats strip, pinned to foot of info panel ── */
 .cm-stats{
   display:flex;align-items:stretch;
   padding-top:clamp(20px,3.2vh,32px);
@@ -1790,30 +1455,29 @@ footer{
 }
 @media(min-width:1800px){body{font-size:18px}}
 
-/* ─── ACCESSIBILITY — reduced motion ───────────────── */
+/* ─── ACCESSIBILITY, reduced motion ───────────────── */
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{
     animation-duration:.01ms!important;
     animation-iteration-count:1!important;
     transition-duration:.01ms!important;
   }
-  /* Keep loader fade readable — just make it instant */
+  /* Keep loader fade readable, just make it instant */
   #loader,#loader.fade{transition:none!important}
   /* Page appear with no animation */
   .page.active{animation:none!important;opacity:1!important}
   /* Gate open/close instant */
   #lang-gate{transition:none!important}
-  /* Detail page — show everything without waiting for animations */
+  /* Detail page, show everything without waiting for animations */
   .dp-hero-bg{transform:scale(1)!important;transition:none!important}
   .dp-hero-scroll-line{animation:none!important}
-  /* Strip reveal — show instantly */
-  .puz-strip-row.reveal .puz-strip{transition:none!important}
-  .puz-strip-row.reveal .puz-strip-index,
-  .puz-strip-row.reveal .puz-quote{transition:none!important;opacity:1!important;transform:none!important}
+  /* Strip reveal, show instantly */
+
+
 }
 
 /* ════════════════════════════════════════════════════════════
-   ★  GLG — CINEMATIC ANIMATION SYSTEM v2  (2026)
+   ★  GLG, CINEMATIC ANIMATION SYSTEM v2  (2026)
    ════════════════════════════════════════════════════════════
    GPU-only (transform + opacity) · prefers-reduced-motion safe
    Pointer:fine guards on cursor / parallax / tilt
@@ -1858,7 +1522,7 @@ footer{
   to  {opacity:1;transform:none}
 }
 
-/* pageIn: opacity-only fallback — GSAP handles the translateY */
+/* pageIn: opacity-only fallback, GSAP handles the translateY */
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
 .page.active{display:block;animation:pageIn .5s cubic-bezier(.16,1,.3,1) both}
 
@@ -1973,7 +1637,7 @@ footer{
 .nav-link::after{transition:left .35s var(--ease),right .35s var(--ease)}
 
 /* ─────────────────────────────────────────────────────
-   prefers-reduced-motion — extension for v2 rules
+   prefers-reduced-motion, extension for v2 rules
    (original block earlier in CSS covers legacy rules)
 ────────────────────────────────────────────────────── */
 @media(prefers-reduced-motion:reduce){
@@ -2001,9 +1665,9 @@ footer{
    Custom cursor · Stats band · Visual polish
    ════════════════════════════════════════════════════════ */
 
-/* ── Custom GLG cursor REMOVED — native cursor restored (see glg-aaa.css §11) ──── */
+/* ── Custom GLG cursor REMOVED, native cursor restored (see glg-aaa.css §11) ──── */
 @media (hover:hover) and (pointer:fine){
-  /* (was: *{cursor:none!important}) — native cursor is now visible everywhere */
+  /* (was: *{cursor:none!important}), native cursor is now visible everywhere */
   #glg-cur-dot,#glg-cur-ring{
     position:fixed;top:0;left:0;border-radius:50%;
     pointer-events:none;z-index:99999;opacity:0;
@@ -2021,47 +1685,6 @@ footer{
     border:1.5px solid rgba(255,220,80,.55);
     background:transparent;
   }
-}
-
-/* ── Stats band ─────────────────────────────────────────── */
-.glg-stats-band{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:0;
-  background:#000;
-  border-top:1px solid rgba(255,255,255,.07);
-  border-bottom:1px solid rgba(255,255,255,.07);
-  overflow:hidden;
-}
-.glg-stat-item{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:clamp(1.4rem,4vw,2.8rem) clamp(.8rem,2vw,1.8rem);
-  position:relative;gap:.35rem;
-}
-.glg-stat-item+.glg-stat-item::before{
-  content:'';position:absolute;left:0;top:22%;bottom:22%;
-  width:1px;background:rgba(255,255,255,.09);
-}
-.glg-stat-num{
-  font-family:var(--f-disp);
-  font-size:clamp(2.6rem,6vw,5.2rem);
-  line-height:1;
-  color:var(--accent);
-  letter-spacing:.02em;
-}
-.glg-stat-label{
-  font-family:var(--f-mono);
-  font-size:clamp(.58rem,.85vw,.76rem);
-  text-transform:uppercase;
-  letter-spacing:.13em;
-  color:rgba(255,255,255,.42);
-  text-align:center;
-}
-@media(max-width:600px){
-  .glg-stats-band{grid-template-columns:repeat(2,1fr)}
-  .glg-stat-item:nth-child(3){border-top:1px solid rgba(255,255,255,.09)}
-  .glg-stat-item:nth-child(4){border-top:1px solid rgba(255,255,255,.09)}
-  .glg-stat-item:nth-child(3)::before,.glg-stat-item:nth-child(4)::before{display:none}
 }
 
 /* ── Button primary glow ────────────────────────────────── */
@@ -2094,7 +1717,7 @@ footer{
   opacity:.5;
 }
 
-/* ── Nav glass — stronger when scrolled ─────────────────── */
+/* ── Nav glass, stronger when scrolled ─────────────────── */
 #nav.scrolled{
   backdrop-filter:blur(24px) saturate(160%);
   -webkit-backdrop-filter:blur(24px) saturate(160%);
@@ -2118,12 +1741,12 @@ footer{
 }
 
 /* ── Puzzle strip placeholder atmospheres ───────────────── */
-.puz-strip-row:nth-child(1) .puz-strip-img{background:linear-gradient(135deg,#1a0608 0%,#420d10 45%,#0c0a1c 100%) !important}
-.puz-strip-row:nth-child(2) .puz-strip-img{background:linear-gradient(135deg,#091520 0%,#0d2d42 50%,#050d17 100%) !important}
-.puz-strip-row:nth-child(3) .puz-strip-img{background:linear-gradient(135deg,#0b1e0a 0%,#183520 50%,#0a110a 100%) !important}
-.puz-strip-row:nth-child(4) .puz-strip-img{background:linear-gradient(135deg,#180d1c 0%,#30103e 50%,#0d0a1e 100%) !important}
 
-/* ── Studio theme name — slightly larger ────────────────── */
+
+
+
+
+/* ── Studio theme name, slightly larger ────────────────── */
 .studio-theme-name{
   font-size:clamp(2rem,4.2vw,3.4rem);
   letter-spacing:.06em;
@@ -2132,13 +1755,13 @@ footer{
 /* ── Marquee track brightness ───────────────────────────── */
 .marquee-track{filter:brightness(1.12)}
 
-/* ── Social icon hover — accent tint ───────────────────── */
+/* ── Social icon hover, accent tint ───────────────────── */
 .soc-btn:hover .soc-icon{
   filter:brightness(0) saturate(100%) invert(88%) sepia(44%) saturate(600%) hue-rotate(4deg) brightness(105%);
   opacity:1;
 }
 
-/* ── About manifesto — forced dark ground ───────────────── */
+/* ── About manifesto, forced dark ground ───────────────── */
 .about-manifesto{background:#000!important}
 
 /* ── Footer column visual separators ───────────────────── */
@@ -2149,16 +1772,16 @@ footer{
   }
 }
 
-/* ── prefers-reduced-motion — new elements ──────────────── */
+/* ── prefers-reduced-motion, new elements ──────────────── */
 @media(prefers-reduced-motion:reduce){
   #glg-cur-dot,#glg-cur-ring{transition:none!important}
   #loader::after{animation:none!important}
   #glg-hero-canvas{display:none!important}
-  .glg-stats-band .glg-stat-num{transition:none!important}
+
 }
 
 /* ════════════════════════════════════════════════════════════
-   GLG OVERHAUL v4 — AAA STUDIO VISUAL UPGRADE
+   GLG OVERHAUL v4, AAA STUDIO VISUAL UPGRADE
    Complete redesign: accent system · hero · cards · pages
    ════════════════════════════════════════════════════════════ */
 
@@ -2171,7 +1794,7 @@ footer{
   --transition-base:.28s cubic-bezier(.16,1,.3,1);
 }
 
-/* ─── 2. Hero — cinematic overhaul ─────────────────────── */
+/* ─── 2. Hero, cinematic overhaul ─────────────────────── */
 /* Override the pure-black placeholder SVG with a rich, cinematic gradient */
 .hero-bg{
   background:
@@ -2183,7 +1806,7 @@ footer{
   filter:none !important;
 }
 
-/* Cinematic gradient overlay — top warmth, heavy bottom fade */
+/* Cinematic gradient overlay, top warmth, heavy bottom fade */
 .hero-overlay{
   background:linear-gradient(
     170deg,
@@ -2221,16 +1844,16 @@ footer{
   color:transparent;
 }
 
-/* Hero description — slightly brighter */
+/* Hero description, slightly brighter */
 .hero-desc{color:rgba(255,255,255,.75) !important;max-width:520px}
 
-/* Scroll indicator — accent line */
+/* Scroll indicator, accent line */
 .hero-scroll-line{
   background:linear-gradient(transparent,var(--accent)) !important;
   opacity:.6;
 }
 
-/* ─── 3. Primary button — gold & premium ───────────────── */
+/* ─── 3. Primary button, gold & premium ───────────────── */
 .btn-primary{
   background:var(--accent) !important;
   color:#000 !important;
@@ -2246,7 +1869,7 @@ footer{
   box-shadow:0 0 32px rgba(255,255,255,.22),0 4px 16px rgba(0,0,0,.5) !important;
   transform:translateY(-2px) !important;
 }
-.btn-primary::after{display:none} /* remove old shimmer — not needed with gold */
+.btn-primary::after{display:none} /* remove old shimmer, not needed with gold */
 
 /* Outline button refined */
 .btn-outline{
@@ -2271,28 +1894,7 @@ footer{
   transform:translateY(-1px) !important;
 }
 
-/* ─── 4. Stats band — gold numbers ─────────────────────── */
-.glg-stats-band{
-  background:linear-gradient(180deg,#0c0c0c 0%,#060606 100%) !important;
-  border-top-color:rgba(var(--accent-rgb),.14) !important;
-  border-bottom-color:rgba(var(--accent-rgb),.08) !important;
-  position:relative;
-}
-.glg-stats-band::before{
-  content:'';position:absolute;
-  top:0;left:8%;right:8%;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.5),transparent);
-}
-.glg-stat-num{
-  color:var(--accent) !important;
-  text-shadow:0 0 28px rgba(var(--accent-rgb),.28);
-}
-.glg-stat-label{color:rgba(255,255,255,.38) !important;letter-spacing:.16em}
-.glg-stat-item+.glg-stat-item::before{
-  background:rgba(var(--accent-rgb),.12) !important;
-}
-
-/* ─── 5. Marquee — gold dots ────────────────────────────── */
+/* ─── 5. Marquee, gold dots ────────────────────────────── */
 .marquee-dot{
   background:var(--accent) !important;
   box-shadow:0 0 5px rgba(var(--accent-rgb),.6);
@@ -2300,11 +1902,11 @@ footer{
 }
 .marquee-item{color:rgba(255,255,255,.42) !important;font-size:.52rem;letter-spacing:.18em}
 
-/* ─── 6. Section eyebrows — gold dashes ────────────────── */
+/* ─── 6. Section eyebrows, gold dashes ────────────────── */
 .section-eye{color:rgba(var(--accent-rgb),.75) !important;letter-spacing:.42em}
 .section-eye::before,.section-eye::after{background:var(--accent) !important;opacity:.7}
 
-/* ─── 7. Studio block — accent bars ────────────────────── */
+/* ─── 7. Studio block, accent bars ────────────────────── */
 .studio-theme-bar{
   background:var(--accent) !important;
   box-shadow:0 0 8px rgba(var(--accent-rgb),.4);
@@ -2315,28 +1917,17 @@ footer{
 }
 .studio-quote{line-height:1.18}
 
-/* ─── 8. Puzzle strips — stronger atmosphere ────────────── */
-.puz-strip-row:nth-child(1) .puz-strip-img{
-  background:linear-gradient(145deg,#220000 0%,#6b0f0f 35%,#400808 65%,#0d0003 100%) !important;
-}
-.puz-strip-row:nth-child(2) .puz-strip-img{
-  background:linear-gradient(145deg,#00040e 0%,#072646 38%,#0d2040 65%,#040b1c 100%) !important;
-}
-.puz-strip-row:nth-child(3) .puz-strip-img{
-  background:linear-gradient(145deg,#030e00 0%,#0f3006 38%,#153410 65%,#071402 100%) !important;
-}
-.puz-strip-row:nth-child(4) .puz-strip-img{
-  background:linear-gradient(145deg,#0d0015 0%,#2a0840 38%,#1e0632 65%,#080010 100%) !important;
-}
+/* ─── 8. Puzzle strips, stronger atmosphere ────────────── */
+
+
+
+
 
 /* Puzzle strip quote text brighter */
-.puz-quote-text{
-  color:rgba(255,255,255,.92) !important;
-  text-shadow:0 2px 20px rgba(0,0,0,.8);
-}
-.puz-quote-tag{color:rgba(var(--accent-rgb),.65) !important;letter-spacing:.25em}
 
-/* ─── 9. GLG band — better label ───────────────────────── */
+
+
+/* ─── 9. GLG band, better label ───────────────────────── */
 .glg-band-label{
   color:rgba(255,255,255,.18) !important;
   letter-spacing:.5em;
@@ -2357,7 +1948,7 @@ footer{
 .works-cat-label::before,.works-cat-label::after{background:var(--accent) !important;opacity:.6}
 .works-cat-title{letter-spacing:.01em}
 
-/* ─── 11. Carousel cards — tint gradient overlays ─────── */
+/* ─── 11. Carousel cards, tint gradient overlays ─────── */
 /* Richer base card */
 .c-card{
   border-radius:4px;
@@ -2403,7 +1994,7 @@ footer{
 /* Enhance glow on hover */
 .c-card:hover .c-card-pw::after{opacity:1.4;filter:brightness(1.2)}
 
-/* Card title watermark (aria-hidden) — shown beneath overlay */
+/* Card title watermark (aria-hidden), shown beneath overlay */
 .c-card-title-bg{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -2419,7 +2010,7 @@ footer{
   hyphens:auto;
 }
 
-/* Card overlay — always visible so title shows without hover */
+/* Card overlay, always visible so title shows without hover */
 .c-card-overlay{
   opacity:1 !important;
   transform:none !important;
@@ -2443,7 +2034,7 @@ footer{
 .c-card-name{color:#fff !important;font-size:.88rem !important;line-height:1.08;text-shadow:0 1px 8px rgba(0,0,0,.9)}
 .c-card-yr{color:rgba(255,255,255,.48) !important;opacity:1 !important}
 
-/* Badge — accent tinted for coming-soon */
+/* Badge, accent tinted for coming-soon */
 .c-badge{
   border-radius:2px;
   font-size:.38rem;
@@ -2497,7 +2088,7 @@ footer{background:#000 !important}
   height:2px !important;
 }
 
-/* ─── 16. Nav — polished ────────────────────────────────── */
+/* ─── 16. Nav, polished ────────────────────────────────── */
 #nav.scrolled{
   border-bottom:1px solid rgba(var(--accent-rgb),.07) !important;
 }
@@ -2549,9 +2140,6 @@ footer{background:#000 !important}
   /* Works titles */
   .works-cat-title{font-size:clamp(1.6rem,7vw,2.6rem) !important;white-space:normal !important}
 
-  /* Stats band 2x2 grid */
-  .glg-stats-band{grid-template-columns:repeat(2,1fr) !important}
-
   /* Buttons full width on mobile for CTA */
   .hero-btns .btn{flex:1;justify-content:center;min-width:0}
   .hero-btns{width:100%;max-width:320px}
@@ -2563,7 +2151,7 @@ footer{background:#000 !important}
 
 @media(max-width:480px){
   .hero-slogan{font-size:clamp(2.2rem,12vw,3.6rem) !important;line-height:.92}
-  .glg-stat-num{font-size:clamp(2rem,8vw,3rem) !important}
+
   .contact-promises{flex-direction:column;align-items:stretch}
   .contact-promise-div{width:100%;height:1px}
 }
@@ -2581,7 +2169,7 @@ footer{background:#000 !important}
 /* ─── 25. Large screens (1440px+) ──────────────────────── */
 @media(min-width:1440px){
   .hero-slogan{font-size:clamp(5rem,8vw,9rem) !important}
-  .glg-stat-num{font-size:clamp(3.8rem,5vw,6rem) !important}
+
 }
 
 /* ─── 26. Reduced motion ────────────────────────────────── */
@@ -2591,7 +2179,7 @@ footer{background:#000 !important}
 }
 
 /* ════════════════════════════════════════════════════════════
-   GLG OVERHAUL v4b — PAGE HEADER DEPTH + FINAL POLISH
+   GLG OVERHAUL v4b, PAGE HEADER DEPTH + FINAL POLISH
    ════════════════════════════════════════════════════════════ */
 
 /* ─── Page headers: gradient depth overlay over GLG pattern ─ */
@@ -2628,7 +2216,7 @@ footer{background:#000 !important}
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 
-/* ─── Nav active link — gold + underline ────────────────────── */
+/* ─── Nav active link, gold + underline ────────────────────── */
 [data-nav].active{
   color:var(--accent) !important;
 }
@@ -2664,9 +2252,9 @@ footer{background:#000 !important}
 .studio-body p{margin-bottom:16px}
 
 /* ─── CTA section accent top line ───────────────────────────── */
-/* The CTA band already has GLG pattern — add a radial glow from center */
+/* The CTA band already has GLG pattern, add a radial glow from center */
 
-/* ─── Carousel fade edges — use accent color ────────────────── */
+/* ─── Carousel fade edges, use accent color ────────────────── */
 .carousel-viewport::before{
   background:linear-gradient(to right,
     var(--bg) 0%,rgba(var(--accent-rgb),.02) 12%,transparent 24%

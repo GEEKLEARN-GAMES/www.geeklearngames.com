@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
-   GEEKLEARN GAMES — glg-premium.css  v6
-   B&W AAA STUDIO — Complete premium visual layer
+   GEEKLEARN GAMES, glg-premium.css  v6
+   B&W AAA STUDIO, Complete premium visual layer
    Loads after main.css. Overrides everything that needs it.
    Philosophy: depth through shadow · precision through spacing
                quality through texture · prestige through restraint
@@ -16,7 +16,7 @@
    We reset the entire accent axis to pure white/grey.
 ──────────────────────────────────────────────────────────────*/
 :root {
-  /* Core surfaces — slightly cooler than main.css originals */
+  /* Core surfaces, slightly cooler than main.css originals */
   --bg:    #080808;
   --s1:    #0c0c0c;
   --s2:    #111111;
@@ -84,11 +84,11 @@
 .nav-mobile { background: #080808 !important; border-top-color: rgba(255,255,255,.07) !important; }
 
 /* ────────────────────────────────────────────────────────────
-   §3  HERO — cinematic B&W atmosphere
+   §3  HERO, cinematic B&W atmosphere
    Replaces the noisy coloured gradient from main.css v4.
 ──────────────────────────────────────────────────────────────*/
 
-/* Pure atmospheric dark background — no colour */
+/* Pure atmospheric dark background, no colour */
 .hero-bg {
   background:
     /* Very soft white underlighting where text lives */
@@ -138,7 +138,7 @@
   ) !important;
 }
 
-/* Hollow text — visible but not harsh */
+/* Hollow text, visible but not harsh */
 .hero-slogan .hollow {
   -webkit-text-stroke: 1.5px rgba(255,255,255,.20) !important;
   color: transparent !important;
@@ -173,7 +173,7 @@
 .marquee-dot   { background: rgba(255,255,255,.28) !important; box-shadow: none !important; }
 
 /* ────────────────────────────────────────────────────────────
-   §5  BUTTONS — clean B&W, precise
+   §5  BUTTONS, clean B&W, precise
 ──────────────────────────────────────────────────────────────*/
 .btn { letter-spacing: .24em !important; }
 
@@ -205,50 +205,6 @@
   border-color: rgba(255,255,255,.26) !important;
   background: rgba(255,255,255,.03) !important;
 }
-
-/* ────────────────────────────────────────────────────────────
-   §6  SHOWCASE / PUZZLE STRIPS
-──────────────────────────────────────────────────────────────*/
-/* Desaturate images — cinematic B&W treatment */
-.puz-strip-img {
-  filter: brightness(.48) saturate(.35) !important;
-  transition: filter .7s var(--ease), transform 1s var(--ease) !important;
-}
-.puz-strip-row:hover .puz-strip-img {
-  filter: brightness(.7) saturate(.5) !important;
-  transform: scale(1.04) !important;
-}
-
-/* Inner edge glow on hover */
-.puz-strip::after {
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
-  transition: box-shadow .4s !important;
-}
-.puz-strip-row:hover .puz-strip::after {
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28) !important;
-}
-
-/* Quotes */
-.puz-quote-text {
-  opacity: 1 !important;
-  color: rgba(255,255,255,.88) !important;
-  text-shadow:
-    0 2px 40px rgba(0,0,0,.98),
-    0 0  12px rgba(0,0,0,.95),
-    0 1px 4px rgba(0,0,0,.9) !important;
-}
-.puz-quote-tag { color: rgba(255,255,255,.32) !important; }
-
-/* Category labels */
-.puz-cat { opacity: .055 !important; }
-.puz-strip-row:hover .puz-cat { opacity: .11 !important; }
-
-/* Large index numbers */
-.puz-strip-index { opacity: .038 !important; }
-.puz-strip-row:hover .puz-strip-index { opacity: .075 !important; }
-
-/* Showcase section title */
-.showcase-title { letter-spacing: .02em !important; }
 
 /* ────────────────────────────────────────────────────────────
    §7  GLG BAND SEPARATOR
@@ -294,18 +250,6 @@
 .studio-body p { line-height: 1.78 !important; }
 
 /* ────────────────────────────────────────────────────────────
-   §9  STATS BAND
-──────────────────────────────────────────────────────────────*/
-.glg-stats-band { border-color: rgba(255,255,255,.07) !important; }
-.glg-stat-num {
-  color: #fff !important;
-  font-size: clamp(2.4rem,5.5vw,4.8rem) !important;
-  text-shadow: none !important;
-}
-.glg-stat-num::after { color: rgba(255,255,255,.42) !important; }
-.glg-stat-label { color: rgba(255,255,255,.38) !important; letter-spacing: .22em !important; }
-
-/* ────────────────────────────────────────────────────────────
    §10  GAME CARDS (carousel)
    Remove ALL coloured per-game glows from main.css v4.
 ──────────────────────────────────────────────────────────────*/
@@ -327,7 +271,7 @@
     0 20px 60px rgba(0,0,0,.72) !important;
 }
 
-/* Top colour glow — white instead of RGB colour */
+/* Top colour glow, white instead of RGB colour */
 .c-card::before {
   background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, transparent 40%) !important;
 }
@@ -349,7 +293,7 @@
   font-size: clamp(.88rem,1.7vw,1.4rem) !important;
 }
 
-/* Overlay — always visible */
+/* Overlay, always visible */
 .c-card-overlay {
   opacity: 1 !important;
   transform: none !important;
@@ -506,7 +450,7 @@
 /* Form column */
 .contact-form-eyebrow { color: rgba(255,255,255,.38) !important; }
 
-/* Form inputs — underline style */
+/* Form inputs, underline style */
 .form-input,
 .form-textarea,
 .form-select {
@@ -634,7 +578,7 @@
 /* ────────────────────────────────────────────────────────────
    §18  LANGUAGE GATE
 ──────────────────────────────────────────────────────────────*/
-/* Background: very deep dark — gate manages its own atmosphere */
+/* Background: very deep dark, gate manages its own atmosphere */
 #lang-gate { background: #050508 !important; }
 
 .gate-lang::after {
@@ -690,7 +634,7 @@ footer::before {
 /* ────────────────────────────────────────────────────────────
    §23  PAGE TRANSITION
 ──────────────────────────────────────────────────────────────*/
-/* pageIn is handled by GSAP animPageEnter — CSS provides opacity-only fallback */
+/* pageIn is handled by GSAP animPageEnter, CSS provides opacity-only fallback */
 .page.active { animation: pageIn .5s cubic-bezier(.16,1,.3,1) both; }
 
 /* ────────────────────────────────────────────────────────────

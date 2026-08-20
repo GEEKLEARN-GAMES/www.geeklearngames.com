@@ -1,12 +1,12 @@
 -- ════════════════════════════════════════════════════════════════════════
---  GEEKLEARN GAMES — schema.sql
+--  GEEKLEARN GAMES, schema.sql
 --  Base de données des comptes (Supabase / Postgres).
 --  ────────────────────────────────────────────────────────────────────────
---  IDEMPOTENT — RÉ-EXÉCUTER CE FICHIER EN ENTIER après chaque mise à jour
+--  IDEMPOTENT, RÉ-EXÉCUTER CE FICHIER EN ENTIER après chaque mise à jour
 --  du schéma (chaque session qui ajoute colonnes/RPC/policies le signale) :
 --    Supabase Dashboard → SQL Editor → coller tout ce fichier → "Run".
 --
---  ⚠️ « ERROR 40P01: deadlock detected » — PAS un bug du script : il modifie
+--  ⚠️ « ERROR 40P01: deadlock detected », PAS un bug du script : il modifie
 --  les tables (verrous exclusifs) pendant que le LAUNCHER/site OUVERT les lit
 --  en temps réel (chat, présence). La transaction est annulée proprement,
 --  rien n'est appliqué à moitié. Remède : FERMER le launcher et les onglets
@@ -54,7 +54,7 @@ create unique index if not exists profiles_username_lower_idx
 alter table public.profiles add column if not exists bio text;  -- requis avant la contrainte bio ci-dessous
 do $$
 begin
-  -- pseudo : 3–20 car., commence par alphanumérique, jeu de caractères sûr
+  -- pseudo : 3-20 car., commence par alphanumérique, jeu de caractères sûr
   if not exists (select 1 from pg_constraint where conname = 'profiles_username_fmt') then
     alter table public.profiles
       add constraint profiles_username_fmt
@@ -251,7 +251,7 @@ create policy "shots_delete_own" on storage.objects
   );
 
 -- ════════════════════════════════════════════════════════════════════════
---  AMIS / CONTACTS  (style Steam/Epic) — sécurisé par RLS + RPC SECURITY DEFINER
+--  AMIS / CONTACTS  (style Steam/Epic), sécurisé par RLS + RPC SECURITY DEFINER
 --  ────────────────────────────────────────────────────────────────────────
 --  Modèle : une ligne par relation (requester → addressee).
 --    status 'pending'  = demande envoyée, pas encore acceptée
@@ -431,7 +431,7 @@ revoke all on function public.friends_played(text) from public;
 grant execute on function public.friends_played(text) to authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
---  PROFIL PUBLIC d'un autre joueur (style Steam) — champs PUBLICS uniquement
+--  PROFIL PUBLIC d'un autre joueur (style Steam), champs PUBLICS uniquement
 --  ────────────────────────────────────────────────────────────────────────
 --  SECURITY DEFINER : contourne RLS mais n'expose QUE des champs publics
 --  (pseudo, avatar, bannière, bio, date d'inscription) + compteurs (trophées,
@@ -449,7 +449,7 @@ returns table (
 language sql security definer set search_path = public as $$
   select p.id, p.username, p.avatar_url, p.banner_url, p.bio, p.created_at,
          -- Trophées : comptés/servis SEULEMENT si prefs.privacy.showTrophies
-         -- (avant : servis à tous malgré l'opt-out — incohérent avec le client).
+         -- (avant : servis à tous malgré l'opt-out, incohérent avec le client).
          case when coalesce(p.prefs #>> '{privacy,showTrophies}', 'true') <> 'false'
               then (select count(*) from public.user_achievements ua where ua.user_id = p.id)
               else 0 end,
@@ -467,7 +467,7 @@ language sql security definer set search_path = public as $$
               then coalesce(p.recent_games, '[]'::jsonb) else '[]'::jsonb end,
          -- Profil public v4 : nombre de jeux possédés (compteur seul, jamais
          -- la liste) + vitrine « Favoris » (ids d'œuvres publiques, coupable
-         -- via prefs.privacy.showFavs — Options → Confidentialité).
+         -- via prefs.privacy.showFavs, Options → Confidentialité).
          -- Favoris CLAMPÉS serveur (24) : prefs est écrit par le client, un
          -- client modifié ne doit pas gonfler le payload servi aux visiteurs.
          jsonb_array_length(coalesce(p.library, '[]'::jsonb))::bigint,
@@ -483,7 +483,7 @@ revoke all on function public.public_profile(uuid) from public;
 grant execute on function public.public_profile(uuid) to authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
---  JEUX RÉCENTS (activité de jeu, style Steam/PSN) — sessions RÉELLES
+--  JEUX RÉCENTS (activité de jeu, style Steam/PSN), sessions RÉELLES
 --  ────────────────────────────────────────────────────────────────────────
 --  Le JEU (ou le launcher) appelle touch_recent_game('backrooms-liminal', 37)
 --  à la fin d'une session (minutes jouées, ≤24h par appel). Stockage compact
@@ -533,9 +533,9 @@ revoke all on function public.touch_recent_game(text, int) from public;
 grant execute on function public.touch_recent_game(text, int) to authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
---  BIBLIOTHÈQUE (jeux possédés, façon Steam/Rockstar) — achats RÉELS
+--  BIBLIOTHÈQUE (jeux possédés, façon Steam/Rockstar), achats RÉELS
 --  ────────────────────────────────────────────────────────────────────────
---  profiles.library : [{id, platform, at}] — alimentée par grant_game() au
+--  profiles.library : [{id, platform, at}], alimentée par grant_game() au
 --  moment de l'achat. Comme grant_achievement : en production, l'appel doit
 --  venir du backend de paiement (idéalement service_role anti-triche) ;
 --  l'RPC authenticated permet les tests et l'import self-service en attendant.
@@ -568,12 +568,12 @@ revoke all on function public.grant_game(text, text) from public;
 grant execute on function public.grant_game(text, text) to authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
---  TROPHÉES / SUCCÈS  (style PlayStation) — déblocages RÉELS
+--  TROPHÉES / SUCCÈS  (style PlayStation), déblocages RÉELS
 --  ────────────────────────────────────────────────────────────────────────
 --  Les DÉFINITIONS de trophées vivent côté site (js/data.js → TROPHIES).
 --  Ici on ne stocke que les DÉBLOCAGES d'un utilisateur, protégés par RLS.
 --  En production, c'est le JEU (contexte de confiance) qui appelle
---  grant_achievement() — idéalement via service_role pour empêcher la triche.
+--  grant_achievement(), idéalement via service_role pour empêcher la triche.
 -- ════════════════════════════════════════════════════════════════════════
 create table if not exists public.user_achievements (
   user_id     uuid not null references public.profiles (id) on delete cascade,
@@ -610,9 +610,9 @@ alter table public.profiles add column if not exists linked_accounts jsonb not n
 -- (colonne bio : déjà ajoutée en tête de fichier, avant sa contrainte CHECK)
 
 -- ════════════════════════════════════════════════════════════════════════
---  ÉVALUATIONS (style Steam) — 1 avis max par joueur et par œuvre
+--  ÉVALUATIONS (style Steam), 1 avis max par joueur et par œuvre
 --  ────────────────────────────────────────────────────────────────────────
---  Note 1–5 + texte optionnel ≤1200. Éditable par l'auteur, publique.
+--  Note 1-5 + texte optionnel ≤1200. Éditable par l'auteur, publique.
 --  Lecture TOUJOURS via RPC (jointure pseudo/avatar sans exposer profiles).
 --  Modération : signalements communautaires → auto-masquage à 5, revue
 --  finale via le Dashboard Supabase (filtre hidden/report_count).
@@ -676,7 +676,7 @@ end; $$;
 revoke all on function public.delete_review(text) from public;
 grant execute on function public.delete_review(text) to authenticated;
 
--- Agrégat pour les fiches (nb, moyenne, histogramme) — visible par tous
+-- Agrégat pour les fiches (nb, moyenne, histogramme), visible par tous
 -- drop d'abord : CREATE OR REPLACE ne peut pas changer un type de retour (42P13)
 drop function if exists public.review_summary(text);
 create or replace function public.review_summary(wid text)
@@ -786,7 +786,7 @@ revoke all on function public.trophy_rarity(text) from public;
 grant execute on function public.trophy_rarity(text) to anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
---  TEMPS RÉEL — notifications d'amis live (postgres_changes)
+--  TEMPS RÉEL, notifications d'amis live (postgres_changes)
 --  RLS s'applique déjà (friendships_select_mine) : chacun ne reçoit que
 --  les événements de SES relations.
 -- ════════════════════════════════════════════════════════════════════════
@@ -798,9 +798,9 @@ exception
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
---  GLG CHAT — messagerie (MP entre amis + groupes « serveurs »)
+--  GLG CHAT, messagerie (MP entre amis + groupes « serveurs »)
 --  ────────────────────────────────────────────────────────────────────────
---  Canaux : 'dm:<uuidA>:<uuidB>' (uuid TRIÉS — clé stable du duo, amis
+--  Canaux : 'dm:<uuidA>:<uuidB>' (uuid TRIÉS, clé stable du duo, amis
 --  acceptés uniquement) et 'g:<group_id>' (membres uniquement).
 --  Sécurité : chat_can_access() centralise l'autorisation ; RLS partout ;
 --  anti-spam par trigger (20 messages / 10 s). Pièces jointes : bucket
@@ -912,7 +912,7 @@ drop trigger if exists chat_messages_rate on public.chat_messages;
 create trigger chat_messages_rate before insert on public.chat_messages
   for each row execute function public.chat_rate_limit();
 
--- ── Groupes : création / ajout / départ (RPC — jamais d'insert direct) ───
+-- ── Groupes : création / ajout / départ (RPC, jamais d'insert direct) ───
 create or replace function public.chat_group_create(gname text, members uuid[])
 returns bigint language plpgsql security definer set search_path = public as $$
 declare gid bigint; m uuid;
@@ -1032,7 +1032,7 @@ insert into storage.buckets (id, name, public)
 values ('chat-media', 'chat-media', true)
 on conflict (id) do nothing;
 -- 50 Mo par fichier (chat : tout type, exécutables bloqués côté client,
--- zip inspectés). Idempotent — s'applique aussi au bucket déjà créé.
+-- zip inspectés). Idempotent, s'applique aussi au bucket déjà créé.
 update storage.buckets set file_size_limit = 52428800 where id = 'chat-media';
 drop policy if exists "chatmedia_read" on storage.objects;
 create policy "chatmedia_read" on storage.objects
@@ -1049,7 +1049,7 @@ create policy "chatmedia_delete_own" on storage.objects
   );
 
 -- ── Réactions émoji (toggle par joueur, façon Discord) ───────────────────
---  reactions = { "👍": [uid, uid…], … } — modifiées UNIQUEMENT via la RPC
+--  reactions = { "👍": [uid, uid…], … }, modifiées UNIQUEMENT via la RPC
 --  (la policy UPDATE n'autorise que l'expéditeur ; la RPC security definer
 --  vérifie l'accès au canal). 12 émojis distincts max, 40 votants par émoji.
 alter table public.chat_messages add column if not exists reactions jsonb not null default '{}'::jsonb;
@@ -1095,7 +1095,7 @@ end $$;
 
 
 -- ════════════════════════════════════════════════════════════════════════
---  RÉCOMPENSES GLG — points vérifiés côté serveur (tâche #58)
+--  RÉCOMPENSES GLG, points vérifiés côté serveur (tâche #58)
 --  glg_trophy_tiers = LISTE BLANCHE générée depuis data.js : toute clé
 --  insérée à la main dans user_achievements qui n'y figure pas compte ZÉRO.
 --  Les platines ne sont pas stockées : DÉRIVÉES (toutes les non-platines
@@ -1111,94 +1111,11 @@ alter table public.glg_trophy_tiers enable row level security;
 drop policy if exists "gtt_read" on public.glg_trophy_tiers;
 create policy "gtt_read" on public.glg_trophy_tiers for select using (true);
 
+-- Vague PlayStation (2026-08-21) : catalogue recentré, AUCUN titre sorti,
+-- donc AUCUNE définition de trophée publiée. La liste blanche reste VIDE
+-- jusqu'à la première sortie (re-seed depuis data.js ce jour-là) : toute
+-- ligne insérée à la main dans user_achievements vaut zéro point.
 delete from public.glg_trophy_tiers;
-insert into public.glg_trophy_tiers (ach_key, game, tier) values
-  ('trick-or-treat/first_door','trick-or-treat','bronze'),
-  ('trick-or-treat/sweet_tooth','trick-or-treat','bronze'),
-  ('trick-or-treat/safe_home','trick-or-treat','silver'),
-  ('trick-or-treat/all_endings','trick-or-treat','gold'),
-  ('trick-or-treat/platinum','trick-or-treat','platinum'),
-  ('a-terrible-wonderful-christmas/snowed_in','a-terrible-wonderful-christmas','bronze'),
-  ('a-terrible-wonderful-christmas/wrapped','a-terrible-wonderful-christmas','bronze'),
-  ('a-terrible-wonderful-christmas/secret','a-terrible-wonderful-christmas','silver'),
-  ('a-terrible-wonderful-christmas/four_pov','a-terrible-wonderful-christmas','gold'),
-  ('a-terrible-wonderful-christmas/platinum','a-terrible-wonderful-christmas','platinum'),
-  ('easter-my-bunny/first_egg','easter-my-bunny','bronze'),
-  ('easter-my-bunny/garden','easter-my-bunny','bronze'),
-  ('easter-my-bunny/folklore','easter-my-bunny','silver'),
-  ('easter-my-bunny/six_truths','easter-my-bunny','gold'),
-  ('easter-my-bunny/platinum','easter-my-bunny','platinum'),
-  ('eid-of-light/homecoming','eid-of-light','bronze'),
-  ('eid-of-light/lantern','eid-of-light','bronze'),
-  ('eid-of-light/reunion','eid-of-light','silver'),
-  ('eid-of-light/ten_lights','eid-of-light','gold'),
-  ('eid-of-light/platinum','eid-of-light','platinum'),
-  ('backrooms-liminal/noclip','backrooms-liminal','bronze'),
-  ('backrooms-liminal/almond','backrooms-liminal','bronze'),
-  ('backrooms-liminal/smile','backrooms-liminal','silver'),
-  ('backrooms-liminal/way_back','backrooms-liminal','gold'),
-  ('backrooms-liminal/platinum','backrooms-liminal','platinum'),
-  ('soul-redemption/push_breaks','soul-redemption','bronze'),
-  ('soul-redemption/eagle_eye','soul-redemption','silver'),
-  ('soul-redemption/smile_lies','soul-redemption','bronze'),
-  ('soul-redemption/no_fear','soul-redemption','silver'),
-  ('soul-redemption/too_cool','soul-redemption','bronze'),
-  ('soul-redemption/playtime','soul-redemption','bronze'),
-  ('soul-redemption/good_times','soul-redemption','bronze'),
-  ('soul-redemption/sneaky_fox','soul-redemption','silver'),
-  ('soul-redemption/thrill_seeker','soul-redemption','bronze'),
-  ('soul-redemption/smashed','soul-redemption','bronze'),
-  ('soul-redemption/disguise','soul-redemption','silver'),
-  ('soul-redemption/beast_whisper','soul-redemption','bronze'),
-  ('soul-redemption/back_future','soul-redemption','bronze'),
-  ('soul-redemption/jackpot','soul-redemption','bronze'),
-  ('soul-redemption/one_down','soul-redemption','silver'),
-  ('soul-redemption/quick_flash','soul-redemption','silver'),
-  ('soul-redemption/tech_guru','soul-redemption','bronze'),
-  ('soul-redemption/shocking','soul-redemption','bronze'),
-  ('soul-redemption/oops_again','soul-redemption','bronze'),
-  ('soul-redemption/game_over','soul-redemption','bronze'),
-  ('soul-redemption/victory_royale','soul-redemption','gold'),
-  ('soul-redemption/no_rest','soul-redemption','silver'),
-  ('soul-redemption/not_grandma','soul-redemption','bronze'),
-  ('soul-redemption/hungry_wolf','soul-redemption','silver'),
-  ('soul-redemption/forest_calling','soul-redemption','bronze'),
-  ('soul-redemption/big_teeth','soul-redemption','bronze'),
-  ('soul-redemption/a_to_b','soul-redemption','silver'),
-  ('soul-redemption/better_luck','soul-redemption','bronze'),
-  ('soul-redemption/fears_under_sea','soul-redemption','bronze'),
-  ('soul-redemption/fish_water','soul-redemption','bronze'),
-  ('soul-redemption/freeze_frame','soul-redemption','silver'),
-  ('soul-redemption/fear_deep','soul-redemption','silver'),
-  ('soul-redemption/keep_swimming','soul-redemption','bronze'),
-  ('soul-redemption/sweet_tooth','soul-redemption','bronze'),
-  ('soul-redemption/no_dessert','soul-redemption','bronze'),
-  ('soul-redemption/piece_cake','soul-redemption','bronze'),
-  ('soul-redemption/gobstopper','soul-redemption','silver'),
-  ('soul-redemption/sugar_rush','soul-redemption','bronze'),
-  ('soul-redemption/pure_imagination','soul-redemption','silver'),
-  ('soul-redemption/highway_hell','soul-redemption','silver'),
-  ('soul-redemption/king_underworld','soul-redemption','gold'),
-  ('soul-redemption/hollows_1','soul-redemption','silver'),
-  ('soul-redemption/hollows_2','soul-redemption','silver'),
-  ('soul-redemption/hollows_3','soul-redemption','silver'),
-  ('soul-redemption/hollows_4','soul-redemption','silver'),
-  ('soul-redemption/hollows_5','soul-redemption','silver'),
-  ('soul-redemption/last_goodbye','soul-redemption','gold'),
-  ('soul-redemption/no_more_secrets','soul-redemption','gold'),
-  ('soul-redemption/real_soldier','soul-redemption','gold'),
-  ('soul-redemption/platinum','soul-redemption','platinum'),
-  ('soul-redemption-frenzy-fest/frenzy','soul-redemption-frenzy-fest','bronze'),
-  ('soul-redemption-frenzy-fest/chain10','soul-redemption-frenzy-fest','bronze'),
-  ('soul-redemption-frenzy-fest/wave20','soul-redemption-frenzy-fest','silver'),
-  ('soul-redemption-frenzy-fest/flawless','soul-redemption-frenzy-fest','gold'),
-  ('soul-redemption-frenzy-fest/platinum','soul-redemption-frenzy-fest','platinum'),
-  ('hush/silence','hush','bronze'),
-  ('hush/breath','hush','bronze'),
-  ('hush/no_sound','hush','silver'),
-  ('hush/mute','hush','gold'),
-  ('hush/platinum','hush','platinum')
-on conflict (ach_key) do update set game = excluded.game, tier = excluded.tier;
 
 -- Points : bronze 15 · argent 30 · or 90 · platine 180 (identique au client)
 -- + 50/évaluation écrite (≥ 40 caractères) + 100/année d'ancienneté
@@ -1258,3 +1175,76 @@ begin
 end $$;
 revoke all on function public.glg_progress(uuid) from public;
 grant execute on function public.glg_progress(uuid) to authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════
+--  VAGUE PLAYSTATION (2026-08-21), catalogue recentré : LUMBRA (ex-HUSH)
+--  + 3 projets secrets ; les 7 anciennes fiches sont retirées du site.
+--  Nettoyage IDEMPOTENT des données liées (à rejouer sans risque) :
+--    · hush → lumbra là où la donnée garde du sens (souhaits, bibliothèque,
+--      favoris, jeux récents) ;
+--    · données des œuvres retirées : supprimées (voulu, acté au plan) ;
+--    · déblocages de trophées : purgés (aucun titre sorti, données de test).
+-- ════════════════════════════════════════════════════════════════════════
+
+-- Un seul bloc PL/pgSQL, constructions classiques uniquement : rejouable
+-- à volonté, aucun opérateur exotique, aucune sous-requête corrélée.
+do $$
+declare
+  r  record;
+  e  jsonb;
+  nl jsonb;
+  ng jsonb;
+begin
+  -- Trophées de test : purge totale (aucun titre sorti, la liste blanche est vide)
+  delete from public.user_achievements;
+
+  -- Évaluations et signalements des œuvres retirées
+  delete from public.review_reports where review_work is distinct from 'lumbra';
+  delete from public.reviews where work_id is distinct from 'lumbra';
+
+  for r in select id, wishlist, library, recent_games, prefs from public.profiles loop
+
+    -- Souhaits : seule lumbra peut subsister (hush comptait pour lumbra)
+    if r.wishlist is not null and jsonb_typeof(r.wishlist) = 'array' then
+      update public.profiles set wishlist =
+        case when r.wishlist @> to_jsonb('lumbra'::text)
+               or r.wishlist @> to_jsonb('hush'::text)
+             then jsonb_build_array('lumbra'::text)
+             else '[]'::jsonb end
+        where id = r.id;
+    end if;
+
+    -- Bibliothèque : entrée hush conservée sous l'id lumbra, le reste disparaît
+    if r.library is not null and jsonb_typeof(r.library) = 'array' then
+      nl := '[]'::jsonb;
+      for e in select value from jsonb_array_elements(r.library) loop
+        if (e ->> 'id') in ('hush', 'lumbra') then
+          nl := nl || jsonb_set(e, '{id}', to_jsonb('lumbra'::text));
+        end if;
+      end loop;
+      update public.profiles set library = nl where id = r.id;
+    end if;
+
+    -- Jeux récents : même règle que la bibliothèque
+    if r.recent_games is not null and jsonb_typeof(r.recent_games) = 'array' then
+      ng := '[]'::jsonb;
+      for e in select value from jsonb_array_elements(r.recent_games) loop
+        if (e ->> 'id') in ('hush', 'lumbra') then
+          ng := ng || jsonb_set(e, '{id}', to_jsonb('lumbra'::text));
+        end if;
+      end loop;
+      update public.profiles set recent_games = ng where id = r.id;
+    end if;
+
+    -- Favoris (prefs.favs) : même règle que les souhaits
+    if r.prefs is not null and jsonb_typeof(r.prefs -> 'favs') = 'array' then
+      update public.profiles set prefs = jsonb_set(r.prefs, '{favs}',
+        case when (r.prefs -> 'favs') @> to_jsonb('lumbra'::text)
+               or (r.prefs -> 'favs') @> to_jsonb('hush'::text)
+             then jsonb_build_array('lumbra'::text)
+             else '[]'::jsonb end)
+        where id = r.id;
+    end if;
+
+  end loop;
+end $$;
