@@ -1,109 +1,121 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#101013"/>
-      <stop offset=".45" stop-color="#0a0a0c"/>
+    <linearGradient id="k2sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26262b"/>
+      <stop offset=".34" stop-color="#1b1b1f"/>
+      <stop offset=".62" stop-color="#0e0e11"/>
       <stop offset="1" stop-color="#050506"/>
     </linearGradient>
-    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="rgba(236,238,244,0.30)"/>
-      <stop offset=".55" stop-color="rgba(236,238,244,0.10)"/>
-      <stop offset="1" stop-color="rgba(236,238,244,0.02)"/>
+    <linearGradient id="k2haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(220,222,232,0)"/>
+      <stop offset=".8" stop-color="rgba(200,203,214,0.10)"/>
+      <stop offset="1" stop-color="rgba(200,203,214,0)"/>
     </linearGradient>
-    <linearGradient id="pane" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="rgba(226,229,238,0.55)"/>
-      <stop offset="1" stop-color="rgba(226,229,238,0.22)"/>
+    <linearGradient id="k2beam" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="rgba(238,240,248,0.42)"/>
+      <stop offset=".5" stop-color="rgba(238,240,248,0.14)"/>
+      <stop offset="1" stop-color="rgba(238,240,248,0.03)"/>
     </linearGradient>
-    <radialGradient id="vig" cx="0.5" cy="0.46" r="0.85">
-      <stop offset=".55" stop-color="rgba(0,0,0,0)"/>
-      <stop offset="1" stop-color="rgba(0,0,0,0.78)"/>
+    <linearGradient id="k2pane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(232,235,244,0.75)"/>
+      <stop offset="1" stop-color="rgba(232,235,244,0.28)"/>
+    </linearGradient>
+    <radialGradient id="k2vig" cx="0.5" cy="0.44" r="0.9">
+      <stop offset=".5" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.82)"/>
     </radialGradient>
-    <radialGradient id="pool" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="rgba(230,232,240,0.16)"/>
-      <stop offset="1" stop-color="rgba(230,232,240,0)"/>
+    <radialGradient id="k2pool" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(232,235,244,0.20)"/>
+      <stop offset="1" stop-color="rgba(232,235,244,0)"/>
     </radialGradient>
-    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="5"/>
-    </filter>
-    <filter id="grain">
+    <filter id="k2soft"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="k2soft2"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="k2grain">
       <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/>
-      <feComposite operator="over" in2="SourceGraphic"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.055 0"/>
+    </filter>
+    <filter id="k2cloud">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="3" seed="7" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.85  0 0 0 0 0.86  0 0 0 0 0.9  0 0 0 0.06 0"/>
     </filter>
   </defs>
 
-  <rect width="600" height="900" fill="url(#sky)"/>
+  <rect width="600" height="900" fill="url(#k2sky)"/>
+  <rect width="600" height="620" filter="url(#k2cloud)"/>
 
-  <!-- Fenêtre à meneaux, haut gauche — la seule source de lumière -->
+  <!-- Colosses : trois silhouettes de jambes dans la brume, parallaxe de valeurs -->
+  <g fill="#131317" opacity=".55" filter="url(#k2soft)">
+    <path d="M84 0 v336 q0 22 -18 24 l-6 6 h56 l-5 -7 q-15 -4 -15 -23 v-336 z"/>
+  </g>
+  <g fill="#101014" opacity=".7" filter="url(#k2soft2)">
+    <path d="M236 0 v398 q0 26 -22 30 l-8 8 h76 l-7 -9 q-19 -6 -19 -29 v-398 z"/>
+  </g>
+  <g fill="#0b0b0e">
+    <path d="M448 0 v470 q0 30 -26 36 l-10 10 h92 l-9 -11 q-23 -7 -23 -35 v-470 z"/>
+  </g>
+  <rect x="0" y="360" width="600" height="240" fill="url(#k2haze)"/>
+
+  <!-- La façade noire, bord droit, et sa haute fenêtre à meneaux allumée -->
   <g>
-    <rect x="112" y="64" width="150" height="216" fill="url(#pane)" opacity=".9"/>
-    <g fill="#08080a">
-      <rect x="180" y="64" width="14" height="216"/>
-      <rect x="112" y="164" width="150" height="12"/>
-      <rect x="106" y="58" width="162" height="10"/>
-      <rect x="106" y="276" width="162" height="10"/>
-      <rect x="106" y="58" width="8" height="228"/>
-      <rect x="260" y="58" width="8" height="228"/>
+    <path d="M600 168 h-148 l-20 20 v712 h168 z" fill="#060608"/>
+    <path d="M452 188 l-20 20 v712" fill="none" stroke="rgba(228,231,240,0.07)" stroke-width="2"/>
+    <g>
+      <rect x="492" y="252" width="74" height="132" fill="url(#k2pane)"/>
+      <g fill="#060608">
+        <rect x="525" y="252" width="9" height="132"/>
+        <rect x="492" y="312" width="74" height="8"/>
+        <rect x="488" y="248" width="82" height="6"/>
+        <rect x="488" y="384" width="82" height="6"/>
+      </g>
     </g>
   </g>
 
-  <!-- Faisceau tombé de la fenêtre : il éclaire le sol, pas elle -->
-  <polygon points="118,286 268,286 420,704 210,704" fill="url(#beam)"/>
-  <ellipse cx="316" cy="702" rx="150" ry="26" fill="url(#pool)"/>
+  <!-- Le faisceau tombe de la fenêtre vers les marches -->
+  <polygon points="492,388 566,388 420,730 240,730" fill="url(#k2beam)"/>
 
-  <!-- Sol -->
-  <rect x="0" y="700" width="600" height="200" fill="#060607"/>
-  <rect x="0" y="698" width="600" height="3" fill="rgba(220,222,232,0.05)"/>
-
-  <!-- Deux yeux, loin dans le noir, à droite -->
-  <g opacity=".22" fill="#eef0f6">
-    <ellipse cx="500" cy="472" rx="5.5" ry="3.4"/>
-    <ellipse cx="524" cy="470" rx="5.5" ry="3.4"/>
+  <!-- Les marches géantes descendent vers la gauche -->
+  <g fill="#08080a">
+    <rect x="0" y="586" width="360" height="46"/>
+    <rect x="0" y="632" width="440" height="50"/>
+    <rect x="0" y="682" width="520" height="52"/>
+    <rect x="0" y="734" width="600" height="166"/>
   </g>
+  <g stroke="rgba(226,229,238,0.08)" stroke-width="2">
+    <path d="M0 586 h360"/>
+    <path d="M0 632 h440"/>
+    <path d="M0 682 h520"/>
+    <path d="M0 734 h600"/>
+  </g>
+  <ellipse cx="330" cy="731" rx="132" ry="18" fill="url(#k2pool)"/>
 
-  <!-- La petite fille — dans l'ombre, au bord du faisceau, liseré de lumière -->
+  <!-- Elle, au bord du faisceau sur la grande marche, liseré côté lumière -->
   <g>
-    <g fill="#050506">
-      <ellipse cx="150" cy="560" rx="17" ry="17"/>
-      <path d="M133 574 q17 -14 34 0 l7 74 q-24 10 -48 0 z"/>
-      <rect x="138" y="644" width="9" height="52" rx="4"/>
-      <rect x="152" y="644" width="9" height="52" rx="4"/>
+    <g fill="#040405">
+      <ellipse cx="212" cy="648" rx="13" ry="13"/>
+      <path d="M199 658 q13 -10 26 0 l5 56 q-18 8 -36 0 z"/>
+      <path d="M203 712 l-3 22 h7 l2 -18"/>
+      <path d="M217 712 l5 21 h-7 l-3 -17"/>
     </g>
-    <!-- liseré : la lumière la dessine sans la toucher -->
-    <path d="M165 548 q6 8 5 18 l6 68" fill="none" stroke="rgba(238,240,246,0.5)" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M160 696 h4" stroke="rgba(238,240,246,0.35)" stroke-width="2" stroke-linecap="round"/>
-    <!-- son ombre s'étire vers le noir, à l'opposé du faisceau -->
-    <ellipse cx="118" cy="700" rx="52" ry="7" fill="rgba(0,0,0,0.85)" filter="url(#soft)"/>
+    <path d="M223 638 q6 8 5 16 l5 56" fill="none" stroke="rgba(240,242,248,0.55)" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="164" cy="733" rx="52" ry="6" fill="rgba(0,0,0,0.85)" filter="url(#k2soft2)"/>
   </g>
 
-  <!-- LUMBRA — lettres massives en barres (sans diagonales, comme en jeu) -->
-  <g fill="#eceef4" opacity=".95">
-    <!-- L -->
-    <g transform="translate(93,742)">
-      <rect width="18" height="88"/><rect y="70" width="56" height="18"/>
-    </g>
-    <!-- U -->
-    <g transform="translate(163,742)">
-      <rect width="18" height="88"/><rect x="38" width="18" height="88"/><rect y="70" width="56" height="18"/>
-    </g>
-    <!-- M -->
-    <g transform="translate(233,742)">
-      <rect width="18" height="88"/><rect x="23" width="18" height="56"/><rect x="46" width="18" height="88"/><rect width="64" height="18"/>
-    </g>
-    <!-- B -->
-    <g transform="translate(311,742)">
-      <rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect y="70" width="52" height="18"/><rect x="38" width="18" height="88"/>
-    </g>
-    <!-- R -->
-    <g transform="translate(381,742)">
-      <rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect x="38" width="18" height="53"/><rect x="40" y="53" width="16" height="35"/>
-    </g>
-    <!-- A -->
-    <g transform="translate(451,742)">
-      <rect y="0" width="56" height="18"/><rect y="18" width="18" height="70" x="0"/><rect x="38" y="18" width="18" height="70"/><rect y="44" width="56" height="14"/>
-    </g>
+  <!-- Deux yeux au fond du noir, sous les marches -->
+  <g opacity=".2" fill="#eef0f6">
+    <ellipse cx="76" cy="792" rx="5" ry="3.1"/>
+    <ellipse cx="98" cy="790" rx="5" ry="3.1"/>
   </g>
 
-  <rect width="600" height="900" fill="url(#vig)"/>
-  <rect width="600" height="900" filter="url(#grain)" opacity=".5" fill="none"/>
+  <!-- LUMBRA : le titre en barres massives, la voix du jeu -->
+  <g fill="#eef0f6" opacity=".96" transform="translate(0,6)">
+    <g transform="translate(93,772)"><rect width="18" height="88"/><rect y="70" width="56" height="18"/></g>
+    <g transform="translate(163,772)"><rect width="18" height="88"/><rect x="38" width="18" height="88"/><rect y="70" width="56" height="18"/></g>
+    <g transform="translate(233,772)"><rect width="18" height="88"/><rect x="23" width="18" height="56"/><rect x="46" width="18" height="88"/><rect width="64" height="18"/></g>
+    <g transform="translate(311,772)"><rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect y="70" width="52" height="18"/><rect x="38" width="18" height="88"/></g>
+    <g transform="translate(381,772)"><rect width="18" height="88"/><rect width="52" height="18"/><rect y="35" width="52" height="18"/><rect x="38" width="18" height="53"/><rect x="40" y="53" width="16" height="35"/></g>
+    <g transform="translate(451,772)"><rect y="0" width="56" height="18"/><rect y="18" width="18" height="70"/><rect x="38" y="18" width="18" height="70"/><rect y="44" width="56" height="14"/></g>
+  </g>
+
+  <rect width="600" height="900" fill="url(#k2vig)"/>
+  <rect width="600" height="900" filter="url(#k2grain)" opacity=".55"/>
 </svg>

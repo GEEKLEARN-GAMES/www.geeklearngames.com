@@ -115,16 +115,17 @@
   <!-- Polices AUTO-HÉBERGÉES (ex-Google Fonts) : zéro requête externe =
        confidentialité (RGPD), perf (pas de handshake tiers) et prêt pour le
        launcher standalone/offline. Fichiers woff2 dans assets/fonts/. -->
-  <link rel="preload" href="assets/fonts/syne-latin-c0b667.woff2?v=1" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/fonts/dm-mono-latin-9ad76c.woff2?v=1" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/fonts.css?v=1">
+  <link rel="preload" href="assets/fonts/archivo-latin-b92029.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/inter-latin-567244.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/jbm-latin-93eb99.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css?v=2">
   <!-- Preload the brand logo: shown immediately in gate + loader + nav (avoids waterfall) -->
   <link rel="preload" as="image" href="assets/img/brand/glg-logo-white.png" fetchpriority="high">
-  <link rel="stylesheet" href="css/main.css?v=53">
+  <link rel="stylesheet" href="css/main.css?v=54">
   <!-- Premium visual layer & animations -->
-  <link rel="stylesheet" href="css/glg-premium.css?v=9">
+  <link rel="stylesheet" href="css/glg-premium.css?v=10">
   <!-- AAA overhaul 2026, section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=74">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=75">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=3"></script>
 </head>
@@ -263,6 +264,8 @@
     <button class="nav-burger" id="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-mobile">
       <span></span><span></span><span></span>
     </button>
+    <!-- CTA launcher permanent (web ; retiré dans l'application) -->
+    <button class="nav-getl" id="nav-getl" onclick="_glgGetLauncher()">Get the launcher</button>
     <!-- Language flag: right utility cluster, just before the account chip -->
     <button id="nav-lang-btn" onclick="reopenLangGate()" aria-label="Change language" title="Change language">
       <img id="nav-lang-flag" src="" alt="" aria-hidden="true">
@@ -402,7 +405,7 @@
     <div class="glg-pattern-bg glg-pat-subtle"></div>
     <p class="section-eye reveal" id="works-eye">Complete Catalogue</p>
     <h1 class="section-h reveal"
-        style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
+        style="font-size:clamp(2.6rem,7.2vw,5.8rem);line-height:.96;margin-top:12px"
         id="works-title">OUR WORKS</h1>
     <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
        class="reveal" id="works-desc">
@@ -474,7 +477,7 @@
     <div class="glg-pattern-bg glg-pat-subtle"></div>
     <p class="section-eye reveal" id="about-eye">The Studio</p>
     <h1 class="section-h reveal"
-        style="font-size:clamp(4rem,12vw,10rem);line-height:.88;margin-top:12px"
+        style="font-size:clamp(2.6rem,7.2vw,5.8rem);line-height:.96;margin-top:12px"
         id="about-title">ABOUT<br>US</h1>
     <p style="font-size:.87rem;color:var(--greyt);max-width:440px;line-height:1.82;margin-top:16px"
        class="reveal" id="about-desc">
@@ -679,12 +682,12 @@
 
 <!-- ══════════ SCRIPTS ══════════ -->
 <!-- Site data + core app -->
-<script src="js/data.js?v=16"></script>
+<script src="js/data.js?v=17"></script>
 <!-- Language-gate flag field (canvas), defines window.GLG_GATE_FIELD before buildGate() runs -->
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=124"></script>
+<script src="js/app.js?v=125"></script>
 <!-- Accounts (Supabase), self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>

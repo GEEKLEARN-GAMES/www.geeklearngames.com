@@ -4694,7 +4694,7 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,.09) 50%, transparent 58%);
   transform:translateX(-120%); transition:transform 1.1s ease; }
 .wspot-media:hover .wspot-sheen{ transform:translateX(120%); }
-.wspot-eye{ font-family:'DM Mono',monospace; font-size:.66rem; letter-spacing:.32em;
+.wspot-eye{ font-family:var(--f-mono); font-size:.66rem; letter-spacing:.32em;
   text-transform:uppercase; color:var(--greyt); margin-bottom:18px; }
 .wspot-title{ font-size:clamp(3rem,7.5vw,6.2rem); line-height:.92; letter-spacing:.01em; margin:0 0 16px; }
 .wspot-tag{ font-size:clamp(.95rem,1.5vw,1.15rem); color:rgba(255,255,255,.72); line-height:1.6; margin-bottom:30px; }
@@ -4702,7 +4702,7 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 .wspot-wish{ position:static; width:47px; height:47px; border-radius:50%;
   border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04);
   display:inline-flex; align-items:center; justify-content:center; }
-.wspot-plat{ font-family:'DM Mono',monospace; font-size:.68rem; letter-spacing:.14em;
+.wspot-plat{ font-family:var(--f-mono); font-size:.68rem; letter-spacing:.14em;
   color:var(--greyt); margin-top:20px; text-transform:uppercase; }
 
 /* ── Les scellés ── */
@@ -4721,9 +4721,9 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   background:linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.1) 42%, transparent 100%); }
 .sec-body{ position:absolute; left:0; right:0; bottom:0; padding:18px 18px 16px;
   display:flex; flex-direction:column; gap:5px; }
-.sec-body b{ font-family:'DM Mono',monospace; font-weight:500; font-size:.72rem;
+.sec-body b{ font-family:var(--f-mono); font-weight:500; font-size:.72rem;
   letter-spacing:.3em; color:rgba(255,255,255,.88); text-transform:uppercase; }
-.sec-body i{ font-style:normal; font-family:'DM Mono',monospace; font-size:.6rem;
+.sec-body i{ font-style:normal; font-family:var(--f-mono); font-size:.6rem;
   letter-spacing:.16em; color:var(--greyt); text-transform:uppercase; }
 .sec-seal{ position:absolute; top:14px; right:14px; width:26px; height:26px;
   display:flex; align-items:center; justify-content:center; border-radius:50%;
@@ -4735,17 +4735,17 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 /* ── Odyssée : déclinaison des scellés ── */
 .od3-card--secret{ cursor:default; }
 .od3-card--secret .od3-frame img{ filter:saturate(0); opacity:.88; }
-.od3-card--secret .od3-cap b{ font-family:'DM Mono',monospace; font-weight:500;
+.od3-card--secret .od3-cap b{ font-family:var(--f-mono); font-weight:500;
   letter-spacing:.26em; font-size:.72em; }
 
 /* ── Fiche teaser : prix à l'annonce, plateforme simple, souhait en héros ── */
 .glg-price--tba .glg-price-now{ color:rgba(255,255,255,.66); font-weight:500; }
-.dp-buybox-price--tba{ font-family:'DM Mono',monospace; font-size:.78rem;
+.dp-buybox-price--tba{ font-family:var(--f-mono); font-size:.78rem;
   letter-spacing:.08em; color:rgba(255,255,255,.62); padding:10px 0 2px; text-transform:uppercase; }
-.dp-sticky-tba{ font-family:'DM Mono',monospace; letter-spacing:.1em; color:rgba(255,255,255,.66); }
+.dp-sticky-tba{ font-family:var(--f-mono); letter-spacing:.1em; color:rgba(255,255,255,.66); }
 .dp-plat-simple{ display:inline-flex; align-items:center; padding:8px 14px;
   border:1px solid rgba(255,255,255,.14); border-radius:8px;
-  font-family:'DM Mono',monospace; font-size:.72rem; letter-spacing:.18em;
+  font-family:var(--f-mono); font-size:.72rem; letter-spacing:.18em;
   color:rgba(255,255,255,.8); text-transform:uppercase; }
 .dp-hero-wish svg{ width:15px; height:15px; }
 .dp-hero-wish.on svg{ fill:#ff5d73; stroke:#ff5d73; }
@@ -4755,11 +4755,11 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   flex-wrap:wrap; gap:4px 10px; padding:20px clamp(16px,5vw,72px) 0;
   border-top:1px solid var(--border); margin-top:34px; }
 .footer-legal-row button{ background:none; border:0; cursor:pointer;
-  font-family:'DM Mono',monospace; font-size:.64rem; letter-spacing:.12em;
+  font-family:var(--f-mono); font-size:.64rem; letter-spacing:.12em;
   color:var(--greyt); text-transform:uppercase; padding:4px 2px; transition:color .3s ease; }
 .footer-legal-row button:hover{ color:#fff; }
 .flr-dot{ color:rgba(255,255,255,.2); font-size:.64rem; }
-.flr-mail{ font-family:'DM Mono',monospace; font-size:.64rem; letter-spacing:.06em;
+.flr-mail{ font-family:var(--f-mono); font-size:.64rem; letter-spacing:.06em;
   color:var(--greyt); text-decoration:none; margin-left:14px; transition:color .3s ease; }
 .flr-mail:hover{ color:#fff; }
 
@@ -4785,10 +4785,10 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 ═══════════════════════════════════════════════════════════ */
 .pl-hero{ padding:clamp(120px,16vh,180px) clamp(16px,5vw,72px) clamp(28px,4vw,48px); }
 .pl-title{ font-size:clamp(2.4rem,6.5vw,4.6rem); line-height:.95; margin:14px 0 12px; }
-.pl-updated{ font-family:'DM Mono',monospace; font-size:.66rem; letter-spacing:.18em;
+.pl-updated{ font-family:var(--f-mono); font-size:.66rem; letter-spacing:.18em;
   text-transform:uppercase; color:var(--greyt); }
 .pl-body{ max-width:780px; margin:0 auto; padding:clamp(28px,4vw,52px) clamp(16px,5vw,32px) 24px; }
-.pl-body h3{ font-family:'DM Mono',monospace; font-weight:500; font-size:.7rem;
+.pl-body h3{ font-family:var(--f-mono); font-weight:500; font-size:.7rem;
   letter-spacing:.28em; text-transform:uppercase; color:rgba(255,255,255,.85);
   margin:34px 0 10px; }
 .pl-body h3:first-child{ margin-top:0; }
@@ -4797,7 +4797,7 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   text-underline-offset:3px; text-decoration-color:rgba(255,255,255,.3); transition:color .3s ease; }
 .pl-body a:hover{ color:#fff; }
 .pl-prevail{ max-width:780px; margin:0 auto; padding:0 clamp(16px,5vw,32px) 40px;
-  font-family:'DM Mono',monospace; font-size:.62rem; letter-spacing:.14em;
+  font-family:var(--f-mono); font-size:.62rem; letter-spacing:.14em;
   text-transform:uppercase; color:rgba(255,255,255,.38); }
 [dir="rtl"] .pl-updated, [dir="rtl"] .pl-body h3, [dir="rtl"] .pl-prevail{ letter-spacing:0; }
 
@@ -4817,7 +4817,7 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
   border-top:1px solid var(--border); }
 .ast-fact{ display:flex; flex-direction:column; gap:7px; }
 .ast-fact b{ font-size:.92rem; color:rgba(255,255,255,.92); font-weight:600; letter-spacing:.02em; }
-.ast-fact span{ font-family:'DM Mono',monospace; font-size:.6rem; letter-spacing:.22em;
+.ast-fact span{ font-family:var(--f-mono); font-size:.6rem; letter-spacing:.22em;
   text-transform:uppercase; color:var(--greyt); }
 @media (max-width:900px){
   .ast-cols{ grid-template-columns:1fr; max-width:640px; }
@@ -4835,9 +4835,91 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 }
 .hl-title{ font-size:clamp(4.2rem,13vw,10.5rem); letter-spacing:.05em; line-height:.95; }
 .hl-tagline{ font-size:clamp(1.02rem,2vw,1.42rem); color:rgba(255,255,255,.86); margin:10px 0 12px; }
-.hl-meta{ font-family:'DM Mono',monospace; font-size:.66rem; letter-spacing:.3em;
+.hl-meta{ font-family:var(--f-mono); font-size:.66rem; letter-spacing:.3em;
   text-transform:uppercase; color:var(--greyt); margin-bottom:28px; }
 .hl-wish{ position:static; width:47px; height:47px; }
 .studio-slogan{ font-size:clamp(1.35rem,2.9vw,2.3rem); line-height:1.18; letter-spacing:.02em; margin:0 0 22px; }
 [dir="rtl"] .hl-meta{ letter-spacing:0; }
 @media (max-width:760px){ .hl-meta{ letter-spacing:.18em; font-size:.6rem; } }
+
+/* ═══════════════════════════════════════════════════════════
+   §92 · DIRECTION A : l'écrin neutre (v126)
+   Le site s'efface avec autorité ; LUMBRA garde sa voix.
+   Doctrine motion : les cadres ne bougent jamais ; couleur,
+   bordure et opacité en 250 à 300 ms ; une seule courbe
+   d'entrée (expo-out .7 s). Boutons fantômes carrés.
+═══════════════════════════════════════════════════════════ */
+/* Titres display : Archivo étirée, graisse haute, interlettrage serré */
+.hl-title, .section-h, .works-cat-title, .about-section-title,
+.dp-hero-title, .wspot-title, .pl-title, .sv-heading, .contact-hero-h,
+.od3-brand span, .studio-slogan{
+  font-family:var(--f-disp);
+  font-weight:850; font-stretch:112%; letter-spacing:-.012em;
+}
+.hl-title{ font-size:clamp(3.6rem,9.5vw,7.6rem); letter-spacing:-.008em; }
+.section-h{ font-size:clamp(2.1rem,5.2vw,4rem); line-height:1.02; }
+.works-cat-title, .about-section-title{ font-size:clamp(1.7rem,4vw,2.9rem); line-height:1.04; }
+.wspot-title{ font-size:clamp(2.6rem,5.8vw,4.8rem); }
+.pl-title{ font-size:clamp(2rem,5vw,3.6rem); }
+.dp-hero-title{ letter-spacing:-.006em; }
+/* Accroches : la voix serif d'accent */
+.hl-tagline, .wspot-tag{ font-family:var(--f-serif); font-size:clamp(1.12rem,2.1vw,1.55rem); }
+/* Eyebrows unifiés */
+.section-eye, .about-section-eye, .works-cat-label, .wspot-eye, .od3-kicker,
+.dp-sec-label, .sv-eyebrow{
+  font-family:var(--f-mono); letter-spacing:.24em; text-transform:uppercase;
+}
+/* Boutons fantômes carrés ; le plein n'apparaît qu'au survol */
+.btn{ border-radius:0; }
+.btn-primary{
+  background:transparent; border:1px solid #fff; color:#fff;
+  transition:background .25s ease-in-out, color .25s ease-in-out, border-color .25s ease-in-out;
+}
+.btn-primary:hover{ background:#fff; color:#000; }
+.btn-outline, .btn-ghost{ border-radius:0; border:1px solid rgba(255,255,255,.35); transition:border-color .25s ease-in-out, background .25s ease-in-out; }
+.btn-outline:hover, .btn-ghost:hover{ border-color:#fff; background:rgba(255,255,255,.06); }
+.wspot-wish, .c-wish{ border-radius:0; }
+/* Doctrine motion : plus de cadres qui se soulèvent */
+.wspot-media:hover, .sec-card:hover{ transform:none; }
+.reveal{ transition-duration:.7s; transition-timing-function:cubic-bezier(.19,1,.22,1); }
+/* Nav : transparente posée sur le héros, s'assombrit après le premier écran */
+#nav{ background:transparent; border-bottom:1px solid transparent;
+  transition:background .3s ease-in-out, border-color .3s ease-in-out; }
+#nav.nav-scrolled{ background:rgba(0,0,0,.86); border-bottom-color:rgba(255,255,255,.08);
+  backdrop-filter:blur(10px); }
+/* CTA launcher permanent (web uniquement) */
+.nav-getl{
+  font-family:var(--f-mono); font-size:.6rem; letter-spacing:.16em; text-transform:uppercase;
+  color:#fff; border:1px solid rgba(255,255,255,.4); padding:9px 14px; background:transparent;
+  transition:border-color .25s ease-in-out, background .25s ease-in-out; white-space:nowrap;
+}
+.nav-getl:hover{ border-color:#fff; background:rgba(255,255,255,.07); }
+@media (max-width:1120px){ .nav-getl{ display:none; } }
+/* Sous-nav ancrée de la fiche (façon pages produit PlayStation) */
+.dp-subnav{
+  position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:4px;
+  padding:0 clamp(16px,5vw,72px); height:52px; background:rgba(0,0,0,.82);
+  backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.08);
+}
+.dp-subnav button{
+  font-family:var(--f-mono); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--greyt); padding:10px 12px; background:none; border:0; cursor:pointer;
+  transition:color .25s ease-in-out;
+}
+.dp-subnav button:hover{ color:#fff; }
+.dp-subnav .dp-sn-wish{ margin-left:auto; color:#fff; border:1px solid rgba(255,255,255,.3); }
+.dp-subnav .dp-sn-wish.on{ border-color:#ff5d73; color:#ff5d73; }
+/* Caractéristiques de la fiche en 3 colonnes */
+.dp-features-list{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 26px; }
+.dp-feat-item{ flex-direction:column; align-items:flex-start; gap:8px; }
+@media (max-width:860px){ .dp-features-list{ grid-template-columns:1fr; } }
+/* Footer signature */
+.footer-sig{
+  font-family:var(--f-mono); font-size:.62rem; letter-spacing:.24em; text-transform:uppercase;
+  color:rgba(255,255,255,.45);
+}
+[dir="rtl"] .nav-getl, [dir="rtl"] .dp-subnav button, [dir="rtl"] .footer-sig, [dir="rtl"] .btn{ letter-spacing:0; }
+/* Ajustements post-audit : CTA de fin de page et respiration des boutons */
+.glg-cta-band .section-h{ font-size:clamp(1.7rem,4.2vw,2.7rem); }
+.btn{ white-space:nowrap; letter-spacing:.12em; }
+.glg-reduce-motion .reveal{ transition:none; }

@@ -728,6 +728,7 @@ function applyTranslations() {
   if ($('nav-account-menu')) _buildAccountMenu();
   // Hero
   setHTML('studio-slogan', t('heroSlogan'));
+  setText('nav-getl', t('navGet'));
 
 
   // Studio
@@ -2947,6 +2948,15 @@ function buildDetail(id) {
     </div>
 
 
+    <!-- Sous-nav ancrée : présentation · media · actus · évaluations + souhaits -->
+    <div class="dp-subnav" aria-label="${item.title}">
+      <button onclick="document.querySelector('.dp-story')?.scrollIntoView({behavior:'smooth',block:'start'})">${t('aboutHead')}</button>
+      <button onclick="document.querySelector('.dp-ss')?.scrollIntoView({behavior:'smooth',block:'start'})">${item.artworks ? t('artHead') : t('ssHead')}</button>
+      ${(typeof WORK_NEWS !== 'undefined' && WORK_NEWS[item.id] && WORK_NEWS[item.id].length) ? `<button onclick="document.getElementById('dp-news')?.scrollIntoView({behavior:'smooth',block:'start'})">${_NEWS_T.head[LANG] || _NEWS_T.head.en}</button>` : ''}
+      <button onclick="document.getElementById('dp-reviews')?.scrollIntoView({behavior:'smooth',block:'start'})">${_rvt('section')}</button>
+      <button class="dp-sn-wish ${wishHas(item.id) ? 'on' : ''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)">${_HEART_SVG} <span data-wish-label>${wishHas(item.id) ? _wt('inList') : _wt('add')}</span></button>
+    </div>
+
     <!-- ──────── STORE LAYOUT, media (left) · buy panel (right) ──────── -->
     <div class="dp-store">
       <div class="dp-store-main">
@@ -3446,7 +3456,7 @@ function footerHTML() {
     </div>
     <div class="footer-bottom">
       <span class="footer-copy">© ${new Date().getFullYear()} GeekLearn Games · ${t('copyright')}</span>
-      <span class="footer-copy footer-tagline">${t('footerTagline') || 'Games that teach, move, haunt your mind.'}</span>
+      <span class="footer-sig">GEEKLEARN GAMES · Blyes, Ain · MMXXVI</span>
     </div>
   </footer>`;
 }
@@ -7748,6 +7758,30 @@ document.addEventListener('DOMContentLoaded', () => {
    du launcher (contenu distant, voir launcher/src-tauri/tauri.conf.json). */
 const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigator.userAgent);
 
+/* ── Direction A : la nav se pose transparente sur le héros et ne
+   s'assombrit qu'après le premier écran (jamais de saut de layout). ── */
+(() => {
+  const nav = document.getElementById('nav');
+  if (!nav) return;
+  let last = -1;
+  const upd = () => {
+    const on = window.scrollY > 40;
+    if (on !== last) { nav.classList.toggle('nav-scrolled', on); last = on; }
+  };
+  window.addEventListener('scroll', upd, { passive: true });
+  upd();
+})();
+
+/* CTA launcher permanent : descend à la section téléchargement (web).
+   Dans l'application, le bouton n'a pas de sens : retiré au boot. */
+function _glgGetLauncher() {
+  showPage('home');
+  setTimeout(() => {
+    document.getElementById('home-launcher')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 380);
+}
+if (IS_TAURI) { document.getElementById('nav-getl')?.remove(); }
+
 // ── Launcher : préférences INSTANTANÉES (miroir localStorage), thème sans
 // flash + page de démarrage (Options → Launcher), appliquées avant le profil.
 if (IS_TAURI) { try {
@@ -7882,25 +7916,7 @@ if (!window._glgMotionHook) {
     pg._pinT = setTimeout(() => pg.classList.remove('page-in'), 800);
   });
 }
-const _GLG_TILT = { el: null };
-if (matchMedia('(pointer:fine)').matches) {
-  document.addEventListener('pointermove', e => {
-    if (document.documentElement.classList.contains('glg-reduce-motion')) return;
-    const card = e.target.closest && e.target.closest('.c-card, .lib-gcard');
-    if (_GLG_TILT.el && _GLG_TILT.el !== card) { _GLG_TILT.el.style.transform = ''; _GLG_TILT.el = null; }
-    if (!card) return;
-    const r = card.getBoundingClientRect();
-    const nx = (e.clientX - r.left) / r.width - .5;
-    const ny = (e.clientY - r.top) / r.height - .5;
-    card.style.transform = 'perspective(900px) rotateX(' + (-ny * 5).toFixed(2) + 'deg) rotateY(' + (nx * 6).toFixed(2) + 'deg) translateY(-4px)';
-    _GLG_TILT.el = card;
-  }, { passive: true });
-  document.addEventListener('pointerout', e => {
-    if (_GLG_TILT.el && !(e.relatedTarget && _GLG_TILT.el.contains(e.relatedTarget))) {
-      _GLG_TILT.el.style.transform = ''; _GLG_TILT.el = null;
-    }
-  }, { passive: true });
-}
+/* Tilt 3D retiré en v126 (Direction A) : un cadre ne bouge jamais. */
 
 /* ══ MODE MANETTE (tâche #60) ══
    Navigation SPATIALE au gamepad, partout : croix/stick = focus dirigé

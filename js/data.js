@@ -353,7 +353,6 @@ const I18N = {
     footerNavTitle:'Navigation',footerWorksTitle:'Nos Œuvres',footerFollowTitle:'Suivez-nous',
     copyright:'Tous droits réservés',
     free:'GRATUIT',langChange:'Changer de langue',errRequired:'Requis',errEmail:'Email valide requis',errRateLimit:'Trop de demandes, veuillez patienter quelques minutes.',formSent:'Envoyé !',formOptional:'Facultatif',formMsgHint:'Parlez-nous de votre projet…',
-    footerTagline:'Jeux qui enseignent, émeuvent, hantent l’esprit.',
     worksEye:'Catalogue complet',
     ctaEye:'Éditeurs et partenaires',
     contactEye:'Parlons-en',
@@ -369,6 +368,7 @@ const I18N = {
     priceTBA:'Prix à venir',
     artHead:'Artworks',
     trophiesTBA:'Révélés à la sortie',
+    navGet:'Obtenir le launcher',
     
     
     shopStatus:'Bientôt disponible',
@@ -404,7 +404,6 @@ const I18N = {
     footerNavTitle:'Navigate',footerWorksTitle:'Our Works',footerFollowTitle:'Follow Us',
     copyright:'All rights reserved',
     free:'FREE',langChange:'Change Language',errRequired:'Required',errEmail:'Valid email required',errRateLimit:'Too many requests, please wait a few minutes.',formSent:'Sent!',formOptional:'Optional',formMsgHint:'Tell us about your project...',
-    footerTagline:'Games that teach, move, haunt your mind.',
     worksEye:'Complete Catalogue',
     ctaEye:'Publishers & Partners',
     contactEye:'Let\'s talk',
@@ -420,6 +419,7 @@ const I18N = {
     priceTBA:'Price to be announced',
     artHead:'Artworks',
     trophiesTBA:'Revealed at launch',
+    navGet:'Get the launcher',
     
     
     shopStatus:'Coming Soon',
@@ -452,7 +452,6 @@ const I18N = {
     footerDesc:'Estudio de videojuegos independiente. Creamos experiencias interactivas que enseñan, emocionan y persiguen tu mente.',
     footerNavTitle:'Navegación',footerWorksTitle:'Nuestras Obras',footerFollowTitle:'Síguenos',copyright:'Todos los derechos reservados',
     free:'GRATIS',langChange:'Cambiar idioma',errRequired:'Requerido',errEmail:'Email válido requerido',errRateLimit:'Demasiadas solicitudes, espera unos minutos.',formSent:'¡Enviado!',formOptional:'Opcional',formMsgHint:'Cuéntanos sobre tu proyecto...',
-    footerTagline:'Juegos que enseñan, emocionan y persiguen tu mente.',
     worksEye:'Catálogo Completo',
     ctaEye:'Editores y Socios',
     contactEye:'Hablemos',
@@ -468,6 +467,7 @@ const I18N = {
     priceTBA:'Precio por anunciar',
     artHead:'Artworks',
     trophiesTBA:'Se revelan en el lanzamiento',
+    navGet:'Conseguir el launcher',
     
     
     shopStatus:'Próximamente',
@@ -500,7 +500,6 @@ const I18N = {
     footerDesc:'Ein unabhängiges Spielestudio, das interaktive Erlebnisse schafft, die lehren, bewegen und verfolgen.',
     footerNavTitle:'Navigation',footerWorksTitle:'Unsere Werke',footerFollowTitle:'Folge uns',copyright:'Alle Rechte vorbehalten',
     free:'KOSTENLOS',langChange:'Sprache wechseln',errRequired:'Pflichtfeld',errEmail:'Gültige E-Mail erforderlich',errRateLimit:'Zu viele Anfragen, bitte warte einige Minuten.',formSent:'Gesendet!',formOptional:'Optional',formMsgHint:'Erzähl uns von deinem Projekt...',
-    footerTagline:'Spiele, die lehren, bewegen und verfolgen.',
     worksEye:'Vollständiger Katalog',
     ctaEye:'Verlage & Partner',
     contactEye:'Lass uns reden',
@@ -516,6 +515,7 @@ const I18N = {
     priceTBA:'Preis wird noch bekannt gegeben',
     artHead:'Artworks',
     trophiesTBA:'Enthüllung zum Release',
+    navGet:'Launcher holen',
     
     
     shopStatus:'Demnächst',
@@ -548,7 +548,6 @@ const I18N = {
     footerDesc:'استوديو ألعاب فيديو مستقل يصنع تجارب تفاعلية تعلم وتحرك وتسكن الذاكرة.',
     footerNavTitle:'التنقل',footerWorksTitle:'أعمالنا',footerFollowTitle:'تابعنا',copyright:'جميع الحقوق محفوظة',
     free:'مجاني',langChange:'تغيير اللغة',errRequired:'مطلوب',errEmail:'بريد إلكتروني صحيح مطلوب',errRateLimit:'طلبات كثيرة جداً، يرجى الانتظار بضع دقائق.',formSent:'تم الإرسال!',formOptional:'اختياري',formMsgHint:'أخبرنا عن مشروعك...',
-    footerTagline:'ألعاب تعلّم وتحرّك وتسكن عقلك.',
     worksEye:'الكتالوج الكامل',
     ctaEye:'الناشرون والشركاء',
     contactEye:'لنتحدث',
@@ -564,6 +563,7 @@ const I18N = {
     priceTBA:'السعر يُعلن لاحقاً',
     artHead:'أعمال فنية',
     trophiesTBA:'تُكشف عند الإصدار',
+    navGet:'احصل على المشغّل',
     
     
     shopStatus:'قريباً',
@@ -596,7 +596,6 @@ const I18N = {
     footerDesc:'独立游戏工作室，创造教育、感动并萦绕心头的互动体验。2026年创立于法国。',
     footerNavTitle:'导航',footerWorksTitle:'我们的作品',footerFollowTitle:'关注我们',copyright:'版权所有',
     free:'免费',langChange:'更换语言',errRequired:'必填',errEmail:'需要有效的电子邮件',errRateLimit:'请求过多、请稍等几分钟。',formSent:'已发送！',formOptional:'可选',formMsgHint:'告诉我们您的项目...',
-    footerTagline:'教授、感动、萦绕心灵的游戏。',
     worksEye:'完整目录',
     ctaEye:'发行商与合作伙伴',
     contactEye:'联系我们',
@@ -612,6 +611,7 @@ const I18N = {
     priceTBA:'价格待公布',
     artHead:'概念艺术',
     trophiesTBA:'发售时揭晓',
+    navGet:'获取启动器',
     
     
     shopStatus:'即将开放',
@@ -644,7 +644,6 @@ const I18N = {
     footerDesc:'インタラクティブ体験を作るインディーゲームスタジオ。2026年フランスにて設立。',
     footerNavTitle:'ナビゲーション',footerWorksTitle:'作品一覧',footerFollowTitle:'フォロー',copyright:'全著作権所有',
     free:'無料',langChange:'言語を変更',errRequired:'必須',errEmail:'有効なメールアドレスが必要',errRateLimit:'リクエストが多すぎます、しばらくお待ちください。',formSent:'送信しました！',formOptional:'任意',formMsgHint:'プロジェクトについてお聞かせください...',
-    footerTagline:'教え、動かし、心に残るゲーム。',
     worksEye:'完全カタログ',
     ctaEye:'パブリッシャー & パートナー',
     contactEye:'お話しましょう',
@@ -660,6 +659,7 @@ const I18N = {
     priceTBA:'価格は後日発表',
     artHead:'アートワーク',
     trophiesTBA:'発売時に公開',
+    navGet:'ランチャーを入手',
     
     
     shopStatus:'近日公開',
@@ -692,7 +692,6 @@ const I18N = {
     footerDesc:'Независимая игровая студия, создающая интерактивные переживания, которые учат, трогают и преследуют разум.',
     footerNavTitle:'Навигация',footerWorksTitle:'Наши работы',footerFollowTitle:'Следите за нами',copyright:'Все права защищены',
     free:'БЕСПЛАТНО',langChange:'Сменить язык',errRequired:'Обязательное поле',errEmail:'Требуется действительный email',errRateLimit:'Слишком много запросов, подождите несколько минут.',formSent:'Отправлено!',formOptional:'Необязательно',formMsgHint:'Расскажите о вашем проекте...',
-    footerTagline:'Игры, которые учат, трогают и преследуют разум.',
     worksEye:'Полный Каталог',
     ctaEye:'Издатели и Партнёры',
     contactEye:'Поговорим',
@@ -708,6 +707,7 @@ const I18N = {
     priceTBA:'Цена будет объявлена позже',
     artHead:'Артворки',
     trophiesTBA:'Откроются на релизе',
+    navGet:'Скачать лаунчер',
     
     
     shopStatus:'Скоро',
@@ -740,7 +740,6 @@ const I18N = {
     footerDesc:'Niezależne studio gier tworzące interaktywne doświadczenia, które uczą, wzruszają i prześladują umysł.',
     footerNavTitle:'Nawigacja',footerWorksTitle:'Nasze prace',footerFollowTitle:'Obserwuj nas',copyright:'Wszelkie prawa zastrzeżone',
     free:'BEZPŁATNIE',langChange:'Zmień język',errRequired:'Wymagane',errEmail:'Wymagany prawidłowy adres e-mail',errRateLimit:'Zbyt wiele żądań, poczekaj kilka minut.',formSent:'Wysłano!',formOptional:'Opcjonalnie',formMsgHint:'Opowiedz nam o swoim projekcie...',
-    footerTagline:'Gry, które uczą, wzruszają i nawiedzają umysł.',
     worksEye:'Pełny Katalog',
     ctaEye:'Wydawcy i Partnerzy',
     contactEye:'Porozmawiajmy',
@@ -756,6 +755,7 @@ const I18N = {
     priceTBA:'Cena zostanie podana później',
     artHead:'Grafiki koncepcyjne',
     trophiesTBA:'Ujawnione w dniu premiery',
+    navGet:'Pobierz launcher',
     
     
     shopStatus:'Wkrótce',
@@ -788,7 +788,6 @@ const I18N = {
     footerDesc:'Studio di videogiochi indipendente che crea esperienze interattive che insegnano, commuovono e ossessionano la mente.',
     footerNavTitle:'Navigazione',footerWorksTitle:'Le Nostre Opere',footerFollowTitle:'Seguici',copyright:'Tutti i diritti riservati',
     free:'GRATUITO',langChange:'Cambia lingua',errRequired:'Obbligatorio',errEmail:'Email valida richiesta',errRateLimit:'Troppe richieste, attendi qualche minuto.',formSent:'Inviato!',formOptional:'Facoltativo',formMsgHint:'Raccontaci del tuo progetto...',
-    footerTagline:'Giochi che insegnano, commuovono e ossessionano la mente.',
     worksEye:'Catalogo Completo',
     ctaEye:'Editori e Partner',
     contactEye:'Parliamo',
@@ -804,6 +803,7 @@ const I18N = {
     priceTBA:'Prezzo in arrivo',
     artHead:'Artwork',
     trophiesTBA:'Svelati al lancio',
+    navGet:'Scarica il launcher',
     
     
     shopStatus:'Prossimamente',
