@@ -777,7 +777,7 @@ ul{list-style:none}
 .dp-hero-vignette{position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 0%,rgba(8,8,8,.75) 30%,rgba(8,8,8,.08) 70%,transparent 100%)}
 .dp-hero-tint{position:absolute;inset:0;opacity:.055;mix-blend-mode:screen}
 .dp-hero::after{content:'';position:absolute;inset:0;opacity:.04;pointer-events:none;z-index:1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
-.dp-back{position:absolute;top:calc(var(--nav-h)+22px);left:clamp(16px,5vw,72px);display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:.54rem;letter-spacing:.3em;text-transform:uppercase;color:var(--w30);background:none;border:none;cursor:pointer;z-index:10;transition:color .2s}
+.dp-back{position:absolute;top:calc(var(--nav-h) + 22px);left:clamp(16px,5vw,72px);display:inline-flex;align-items:center;gap:7px;font-family:var(--f-mono);font-size:.54rem;letter-spacing:.3em;text-transform:uppercase;color:var(--w30);background:none;border:none;cursor:pointer;z-index:10;transition:color .2s}
 .dp-back:hover{color:var(--w80)}
 .dp-back svg{flex-shrink:0;transition:transform .22s var(--ease)}
 .dp-back:hover svg{transform:translateX(-4px)}
@@ -1939,10 +1939,7 @@ footer{
   background:linear-gradient(180deg,#0a0a0a 0%,var(--bg) 100%) !important;
   padding-top:clamp(80px,12vh,140px) !important;
 }
-.works-hero .section-h{
-  background:linear-gradient(180deg,#fff 60%,rgba(255,255,255,.6) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
+.works-hero .section-h{ color:#fff; }
 .works-cat-section{background:var(--bg)}
 .works-cat-label{color:rgba(var(--accent-rgb),.7) !important}
 .works-cat-label::before,.works-cat-label::after{background:var(--accent) !important;opacity:.6}
@@ -2052,10 +2049,7 @@ footer{
   background:linear-gradient(150deg,#0c0804 0%,#080808 45%,#080808 100%);
   border-bottom-color:rgba(var(--accent-rgb),.08) !important;
 }
-.contact-hero-h{
-  background:linear-gradient(180deg,#fff 55%,rgba(255,255,255,.65) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
+.contact-hero-h{ color:#fff; }
 /* Promise numbers gold */
 .contact-promise-n{color:var(--accent) !important;text-shadow:0 0 20px rgba(var(--accent-rgb),.25)}
 .contact-eye-lbl{color:rgba(var(--accent-rgb),.65) !important}
@@ -2065,10 +2059,7 @@ footer{
 .about-hero{
   background:linear-gradient(180deg,#080808 0%,var(--bg) 100%);
 }
-.about-hero .section-h{
-  background:linear-gradient(180deg,#fff 55%,rgba(255,255,255,.65) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
+.about-hero .section-h{ color:#fff; }
 .about-section-eye::before,.about-section-eye::after{background:var(--accent) !important;opacity:.7}
 .about-section-eye{color:rgba(var(--accent-rgb),.72) !important}
 
@@ -2211,10 +2202,7 @@ footer{background:#000 !important}
 .contact-hero>*{position:relative;z-index:1}
 
 /* ─── Contact "CONTACT" heading: gradient text ──────────────── */
-.contact-hero-h{
-  background:linear-gradient(180deg,#fff 50%,rgba(255,255,255,.62) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
+.contact-hero-h{ color:#fff; }
 
 /* ─── Nav active link, gold + underline ────────────────────── */
 [data-nav].active{

@@ -1273,7 +1273,7 @@ function _buildOdyssey() {
         <p class="od3-kicker od3-ck">${_odt('cross')}</p>
         <div class="od3-world">
           ${works.map(w => w.secret ? `
-          <figure class="od3-card od3-card--secret" aria-label="${escHtml(_sct('title'))}" style="--tint:#3d3d47;--tint-rgb:61,61,71">
+          <figure class="od3-card od3-card--secret" role="button" tabindex="0" data-whisper="${escHtml(_sct('whisper'))}" onclick="glgSecretWhisper(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();glgSecretWhisper(this)}" aria-label="${escHtml(_sct('title'))}" style="--tint:#3d3d47;--tint-rgb:61,61,71">
             <span class="od3-frame"><img src="${av(w.cover)}" alt="" loading="lazy" decoding="async"><span class="od3-sheen" aria-hidden="true"></span></span>
             <figcaption class="od3-cap"><b>${escHtml(_sct('title'))}</b><i>${escHtml(_sct('sub'))}</i></figcaption>
           </figure>` : `
@@ -1503,13 +1503,14 @@ const _SECRET_T = {
   head:   { fr:'DANS L’OMBRE', en:'IN THE DARK', es:'EN LA SOMBRA', de:'IM SCHATTEN', it:'NELL’OMBRA', ar:'في الظل', zh:'暗处', ja:'影の中', ru:'В ТЕНИ', pl:'W CIENIU' },
   spotEye:{ fr:'Titre annoncé', en:'Announced title', es:'Título anunciado', de:'Angekündigter Titel', it:'Titolo annunciato', ar:'عنوان معلن', zh:'已公布作品', ja:'発表済みタイトル', ru:'Анонсированный проект', pl:'Zapowiedziany tytuł' },
   cta:    { fr:'Découvrir', en:'Discover', es:'Descubrir', de:'Entdecken', it:'Scopri', ar:'اكتشف', zh:'了解详情', ja:'詳しく見る', ru:'Узнать больше', pl:'Odkryj' },
+  whisper:{ fr:'Scellé jusqu’à l’annonce', en:'Sealed until the reveal', es:'Sellado hasta el anuncio', de:'Versiegelt bis zur Ankündigung', it:'Sigillato fino all’annuncio', ar:'مختوم حتى الإعلان', zh:'公布前保密', ja:'発表まで封印', ru:'Запечатано до анонса', pl:'Zapieczętowane do zapowiedzi' },
 };
 const _sct = k => (_SECRET_T[k] && (_SECRET_T[k][LANG] || _SECRET_T[k].en)) || '';
 
 function _secretCardHTML(i) {
   const sc = _SECRETS[i];
   return `
-    <div class="sec-card reveal" style="transition-delay:${i * .07}s" aria-label="${_sct('title')}, ${_sct('sub')}">
+    <div class="sec-card reveal" style="transition-delay:${i * .07}s" role="button" tabindex="0" data-whisper="${_sct('whisper')}" onclick="glgSecretWhisper(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();glgSecretWhisper(this)}" aria-label="${_sct('title')}, ${_sct('sub')}">
       <img src="${av(sc.art)}" alt="" loading="lazy" decoding="async">
       <span class="sec-veil" aria-hidden="true"></span>
       <span class="sec-body">
@@ -1950,7 +1951,7 @@ function _libNewsSectionHTML(gid) {
    retirée du héro pour le garder épuré. ── */
 function _libToolbarHTML(w, e, recent) {
   e = e || {};
-  const scroll = sel => `document.querySelector('${sel}')?.scrollIntoView({behavior:'smooth',block:'start'})`;
+  const scroll = sel => `glgScrollToEl('${sel}')`;
   const hasDlc  = typeof GLG_DLC !== 'undefined' && GLG_DLC[w.id] && GLG_DLC[w.id].length;
   const hasAch  = typeof TROPHIES !== 'undefined' && TROPHIES[w.id] && TROPHIES[w.id].length;
   const storeIco = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 5.5l1-3h9l1 3M2.5 5.5h11M2.5 5.5V13a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5V5.5M6.5 13V9h3v4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
@@ -2301,6 +2302,13 @@ function _buildHomeHero() {
       <button class="btn btn-primary btn-lg" onclick="showPage('detail','${w.id}')">${_sct('cta')} <span aria-hidden="true">${_ARR()}</span></button>
       <button class="c-wish wspot-wish hl-wish ${wishHas(w.id) ? 'on' : ''}" data-wish="${w.id}" aria-pressed="${wishHas(w.id)}" aria-label="${_wt('add')}" title="${_wt('add')}" onclick="toggleWish('${w.id}',this)">${_HEART_SVG}</button>
     </div>`;
+  /* Un seul geste signé par page : ici, un balayage de lumière traverse le
+     héros UNE fois par session (jamais en boucle, jamais au retour). */
+  const heroEl = document.querySelector('.hero--lumbra');
+  if (heroEl && !sessionStorage.getItem('glg_swept')) {
+    heroEl.classList.add('hero-swept');
+    try { sessionStorage.setItem('glg_swept', '1'); } catch (e) {}
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -2886,8 +2894,9 @@ function buildDetail(id) {
   container.innerHTML = `
 
     <!-- ──────── HERO ──────── -->
-    <div class="dp-hero">
+    <div class="dp-hero${item.artworks ? ' dp-hero--lantern' : ''}">
       <div class="dp-hero-bg" style="background-image:url('${av(item.cover)}')"></div>
+      ${item.artworks ? `<div class="dp-lantern" aria-hidden="true" style="background-image:url('${av(item.cover)}')"></div>` : ''}
       <div class="dp-hero-vignette"></div>
       <div class="dp-hero-tint" style="background:${item.tint}"></div>
       ${_dpHeroArtHTML(item)}
@@ -2950,10 +2959,10 @@ function buildDetail(id) {
 
     <!-- Sous-nav ancrée : présentation · media · actus · évaluations + souhaits -->
     <div class="dp-subnav" aria-label="${item.title}">
-      <button onclick="document.querySelector('.dp-story')?.scrollIntoView({behavior:'smooth',block:'start'})">${t('aboutHead')}</button>
-      <button onclick="document.querySelector('.dp-ss')?.scrollIntoView({behavior:'smooth',block:'start'})">${item.artworks ? t('artHead') : t('ssHead')}</button>
-      ${(typeof WORK_NEWS !== 'undefined' && WORK_NEWS[item.id] && WORK_NEWS[item.id].length) ? `<button onclick="document.getElementById('dp-news')?.scrollIntoView({behavior:'smooth',block:'start'})">${_NEWS_T.head[LANG] || _NEWS_T.head.en}</button>` : ''}
-      <button onclick="document.getElementById('dp-reviews')?.scrollIntoView({behavior:'smooth',block:'start'})">${_rvt('section')}</button>
+      <button onclick="glgScrollToEl('.dp-story',8)">${t('aboutHead')}</button>
+      <button onclick="glgScrollToEl('.dp-ss',8)">${item.artworks ? t('artHead') : t('ssHead')}</button>
+      ${(typeof WORK_NEWS !== 'undefined' && WORK_NEWS[item.id] && WORK_NEWS[item.id].length) ? `<button onclick="glgScrollToEl('#dp-news',8)">${_NEWS_T.head[LANG] || _NEWS_T.head.en}</button>` : ''}
+      <button onclick="glgScrollToEl('#dp-reviews',8)">${_rvt('section')}</button>
       <button class="dp-sn-wish ${wishHas(item.id) ? 'on' : ''}" data-wish="${item.id}" aria-pressed="${wishHas(item.id)}" onclick="toggleWish('${item.id}',this)">${_HEART_SVG} <span data-wish-label>${wishHas(item.id) ? _wt('inList') : _wt('add')}</span></button>
     </div>
 
@@ -3073,7 +3082,7 @@ function buildDetail(id) {
             <div class="dp-fact"><span>${t('infoType') || 'Type'}</span><b>${localCat}</b></div>
             <div class="dp-fact"><span>${t('infoYear') || 'Year'}</span><b>${item.year}</b></div>
             ${item.status !== 'available' ? `<div class="dp-fact"><span>${_tt('section')}</span><b>${t('trophiesTBA')}</b></div>` : _gameTrophySummary(item.id) ? `<div class="dp-fact dp-fact--btn" role="button" tabindex="0" onclick="openTrophyList('${item.id}')"><span>${_tt('section')}</span><b>${_gameTrophySummary(item.id).total} · ${_gameTrophySummary(item.id).tiers.platinum} ${_tt('platinum')} →</b></div>` : ''}
-            <div class="dp-fact dp-fact--btn" id="dp-fact-rev" role="button" tabindex="0" style="display:none" onclick="document.getElementById('dp-reviews')?.scrollIntoView({behavior:'smooth',block:'start'})"><span>${_rvt('section')}</span><b></b></div>
+            <div class="dp-fact dp-fact--btn" id="dp-fact-rev" role="button" tabindex="0" style="display:none" onclick="glgScrollToEl('#dp-reviews',8)"><span>${_rvt('section')}</span><b></b></div>
             <div class="dp-fact"><span>${_dx('players')}</span><b>${_dx('solo')}</b></div>
             <div class="dp-fact"><span>${_dx('languages')}</span><b>10</b></div>
             <div class="dp-fact"><span>${_dx('rating')}</span><b>${item.mature ? _dx('ratingAdult') : _dx('ratingTeen')}</b></div>
@@ -3123,6 +3132,7 @@ function buildDetail(id) {
   requestAnimationFrame(() => {
     const hero = container.querySelector('.dp-hero');
     if (hero) requestAnimationFrame(() => hero.classList.add('dp-entered'));
+    _glgLantern();
   });
 }
 
@@ -5993,10 +6003,10 @@ async function buildProfilePage(){
            section, Jeux ouvre la bibliothèque du launcher). -->
       <div class="pp-stats">
         <button class="pp-stat" onclick="showPage('library')"><b id="pp-stat-games">${gamesCount}</b><span>${_ppt('statGames')}</span></button>
-        <button class="pp-stat" onclick="document.querySelector('.pp-trophy-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></button>
-        <button class="pp-stat" onclick="document.querySelector('.pp-friends-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></button>
-        <button class="pp-stat" onclick="document.querySelector('.pp-rev-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
-        <button class="pp-stat" onclick="document.getElementById('pp-wish-grid')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-trophy-section')"><b id="pp-stat-trophies">0</b><span>${_tt('section')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-friends-section')"><b id="pp-stat-friends">0</b><span>${_ft('statFriends')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-rev-section')"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('#pp-wish-grid')"><b id="pp-stat-wish">${wishCount()}</b><span>${_ppt('statWish')}</span></button>
       </div>
 
       <!-- Disposition launcher : colonne principale (contenu vivant) + rail (infos froides) -->
@@ -6562,10 +6572,10 @@ async function buildPublicProfilePage(viewId){
            parité visuelle avec le profil perso, mieux que Steam. -->
       <div class="pp-stats pp-stats--public">
         <div class="pp-stat"><b>${gamesCount != null ? gamesCount : '-'}</b><span>${_ppt('statGames')}</span></div>
-        <button class="pp-stat" onclick="document.querySelector('.pp-trophy-section')?.scrollIntoView({behavior:'smooth'})"><b>${d.earnedTotal}</b><span>${_tt('section')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-trophy-section')"><b>${d.earnedTotal}</b><span>${_tt('section')}</span></button>
         <div class="pp-stat"><b>${prof.friend_count!=null?prof.friend_count:'-'}</b><span>${_ft('statFriends')}</span></div>
-        <button class="pp-stat" onclick="document.querySelector('.pp-rev-section')?.scrollIntoView({behavior:'smooth'})"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
-        <button class="pp-stat" onclick="document.querySelector('.pp-wish-grid')?.scrollIntoView({behavior:'smooth'})"><b>${wWorks.length}</b><span>${_wt('title')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-rev-section')"><b id="pp-stat-reviews">0</b><span>${_rvt('section')}</span></button>
+        <button class="pp-stat" onclick="glgScrollToEl('.pp-wish-grid')"><b>${wWorks.length}</b><span>${_wt('title')}</span></button>
       </div>
       <div class="pp-section" id="pp-rewards" hidden></div>
       ${(() => { /* numérotation continue même quand « Jeux récents » est absent */
@@ -7772,13 +7782,88 @@ const IS_TAURI = '__TAURI_INTERNALS__' in window || /GLGLauncher/i.test(navigato
   upd();
 })();
 
+/* ── Défilement vers une section, fiable partout ─────────────────────────
+   Quand Lenis pilote la page, un scrollIntoView natif se fait manger par sa
+   boucle : on passe par lui. Sinon, scroll natif doux. Dans les deux cas un
+   décalage garde le titre visé SOUS la nav fixe (et la sous-nav collante). */
+function glgScrollToEl(target, extra) {
+  const el = typeof target === 'string'
+    ? (document.querySelector(target) || document.getElementById(target.replace(/^#/, '')))
+    : target;
+  if (!el) return;
+  const off = -(76 + (extra || 0));
+  const L = window.glgLenis || window._lenis;
+  if (L && typeof L.scrollTo === 'function') {
+    try { L.scrollTo(el, { offset: off }); return; } catch (e) {}
+  }
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY + off, behavior: 'smooth' });
+}
+
+/* Les projets scellés répondent : le sceau luit et murmure une ligne.
+   Aucune navigation (rien à montrer, c'est le principe), mais plus jamais
+   de carte muette sous le clic. */
+function glgSecretWhisper(el) {
+  if (!el || el.classList.contains('sec-hush')) return;
+  el.classList.add('sec-hush');
+  try { window.GLG_SFX?.play('hover'); } catch (e) {}
+  setTimeout(() => el.classList.remove('sec-hush'), 1700);
+}
+
+/* ── LA LANTERNE (fiche LUMBRA) ──────────────────────────────────────────
+   « N'aie pas peur du noir » : la jaquette repose dans l'obscurité et le
+   pointeur la révèle, halo doux qui suit la souris. Sans pointeur (tactile,
+   ou avant le premier survol), la lumière dérive lentement toute seule.
+   reduced-motion : halo immobile au centre, aucune animation. */
+function _glgLantern() {
+  const hero = document.querySelector('#page-detail .dp-hero--lantern');
+  if (!hero || hero._lanternOn) return;
+  const lan = hero.querySelector('.dp-lantern');
+  if (!lan) return;
+  hero._lanternOn = true;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let tx = 50, ty = 42, cx = 50, cy = 42, drifting = true, t0 = performance.now(), raf = 0;
+  const step = now => {
+    if (!document.body.contains(hero)) { cancelAnimationFrame(raf); return; }
+    if (drifting) {
+      const t = (now - t0) / 1000;
+      tx = 50 + 17 * Math.sin(t * .38);
+      ty = 42 + 11 * Math.sin(t * .27 + 1.7);
+    }
+    cx += (tx - cx) * .075; cy += (ty - cy) * .075;
+    hero.style.setProperty('--lx', cx.toFixed(2) + '%');
+    hero.style.setProperty('--ly', cy.toFixed(2) + '%');
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  if (window.matchMedia('(hover: hover)').matches) {
+    hero.addEventListener('pointermove', e => {
+      const r = hero.getBoundingClientRect();
+      drifting = false;
+      tx = (e.clientX - r.left) / r.width * 100;
+      ty = (e.clientY - r.top) / r.height * 100;
+    });
+    hero.addEventListener('pointerleave', () => { drifting = true; t0 = performance.now(); });
+  }
+}
+
 /* CTA launcher permanent : descend à la section téléchargement (web).
-   Dans l'application, le bouton n'a pas de sens : retiré au boot. */
+   Dans l'application, le bouton n'a pas de sens : retiré au boot.
+   Robuste : si on n'est pas sur l'accueil, on y va d'abord, puis on attend
+   que la section soit réellement posée (la transition de page remettait le
+   scroll à zéro APRÈS l'ancien setTimeout : bouton perçu comme mort). */
 function _glgGetLauncher() {
-  showPage('home');
-  setTimeout(() => {
-    document.getElementById('home-launcher')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 380);
+  const go = () => {
+    let tries = 0;
+    const wait = () => {
+      const el = document.getElementById('home-launcher');
+      if (el && el.offsetHeight > 40) glgScrollToEl(el);
+      else if (++tries < 30) setTimeout(wait, 120);
+    };
+    wait();
+  };
+  const home = document.getElementById('page-home');
+  if (home && home.classList.contains('active')) go();
+  else { showPage('home'); setTimeout(go, 640); }
 }
 if (IS_TAURI) { document.getElementById('nav-getl')?.remove(); }
 

@@ -66,21 +66,25 @@ begin
       add constraint profiles_bio_len
       check (bio is null or char_length(bio) <= 280) not valid;
   end if;
-  -- avatar / bannière : longueur bornée + schéma sûr (data:image, https, blob, asset relatif)
-  if not exists (select 1 from pg_constraint where conname = 'profiles_avatar_url_chk') then
-    alter table public.profiles
-      add constraint profiles_avatar_url_chk
-      check (avatar_url is null or (char_length(avatar_url) <= 4096
-        and avatar_url ~* '^(data:image/(png|jpe?g|webp|gif|avif|svg\+xml);|https://|blob:|/|\./|assets/)'
-        and avatar_url !~ '[\"''()<>\\`[:space:]]')) not valid;
-  end if;
-  if not exists (select 1 from pg_constraint where conname = 'profiles_banner_url_chk') then
-    alter table public.profiles
-      add constraint profiles_banner_url_chk
-      check (banner_url is null or (char_length(banner_url) <= 4096
-        and banner_url ~* '^(data:image/(png|jpe?g|webp|gif|avif|svg\+xml);|https://|blob:|/|\./|assets/)'
-        and banner_url !~ '[\"''()<>\\`[:space:]]')) not valid;
-  end if;
+  -- avatar / bannière : schéma sûr (data:image, https, blob, asset relatif)
+  -- + longueur bornée ALIGNÉE sur ce que le client produit réellement (app.js) :
+  --   avatar   = webp 256x256 q0.86  -> data-URL jusqu'à ~80 000 caractères ;
+  --   bannière = webp 1600x520 q0.82 -> data-URL jusqu'à ~700 000 caractères.
+  -- L'ancien plafond (4 096) rejetait ces valeurs légitimes : posé NOT VALID il
+  -- dormait, mais TOUTE mise à jour d'une ligne portant un avatar perso se
+  -- faisait rejeter (erreur 23514). Drop + add systématique = auto-corrigeant.
+  alter table public.profiles drop constraint if exists profiles_avatar_url_chk;
+  alter table public.profiles
+    add constraint profiles_avatar_url_chk
+    check (avatar_url is null or (char_length(avatar_url) <= 250000
+      and avatar_url ~* '^(data:image/(png|jpe?g|webp|gif|avif|svg\+xml);|https://|blob:|/|\./|assets/)'
+      and avatar_url !~ '[\"''()<>\\`[:space:]]')) not valid;
+  alter table public.profiles drop constraint if exists profiles_banner_url_chk;
+  alter table public.profiles
+    add constraint profiles_banner_url_chk
+    check (banner_url is null or (char_length(banner_url) <= 1000000
+      and banner_url ~* '^(data:image/(png|jpe?g|webp|gif|avif|svg\+xml);|https://|blob:|/|\./|assets/)'
+      and banner_url !~ '[\"''()<>\\`[:space:]]')) not valid;
 end $$;
 
 -- ── Row Level Security ──────────────────────────────────────────────────
@@ -1188,12 +1192,16 @@ grant execute on function public.glg_progress(uuid) to authenticated;
 
 -- Un seul bloc PL/pgSQL, constructions classiques uniquement : rejouable
 -- à volonté, aucun opérateur exotique, aucune sous-requête corrélée.
+-- Chaque ligne n'est réécrite QUE si sa valeur change réellement : un
+-- second passage ne touche plus rien (et ne revalide aucune ligne intacte).
 do $$
 declare
   r  record;
   e  jsonb;
+  nw jsonb;
   nl jsonb;
   ng jsonb;
+  np jsonb;
 begin
   -- Trophées de test : purge totale (aucun titre sorti, la liste blanche est vide)
   delete from public.user_achievements;
@@ -1206,12 +1214,13 @@ begin
 
     -- Souhaits : seule lumbra peut subsister (hush comptait pour lumbra)
     if r.wishlist is not null and jsonb_typeof(r.wishlist) = 'array' then
-      update public.profiles set wishlist =
-        case when r.wishlist @> to_jsonb('lumbra'::text)
-               or r.wishlist @> to_jsonb('hush'::text)
-             then jsonb_build_array('lumbra'::text)
-             else '[]'::jsonb end
-        where id = r.id;
+      nw := case when r.wishlist @> to_jsonb('lumbra'::text)
+                   or r.wishlist @> to_jsonb('hush'::text)
+                 then jsonb_build_array('lumbra'::text)
+                 else '[]'::jsonb end;
+      if nw is distinct from r.wishlist then
+        update public.profiles set wishlist = nw where id = r.id;
+      end if;
     end if;
 
     -- Bibliothèque : entrée hush conservée sous l'id lumbra, le reste disparaît
@@ -1222,7 +1231,9 @@ begin
           nl := nl || jsonb_set(e, '{id}', to_jsonb('lumbra'::text));
         end if;
       end loop;
-      update public.profiles set library = nl where id = r.id;
+      if nl is distinct from r.library then
+        update public.profiles set library = nl where id = r.id;
+      end if;
     end if;
 
     -- Jeux récents : même règle que la bibliothèque
@@ -1233,17 +1244,21 @@ begin
           ng := ng || jsonb_set(e, '{id}', to_jsonb('lumbra'::text));
         end if;
       end loop;
-      update public.profiles set recent_games = ng where id = r.id;
+      if ng is distinct from r.recent_games then
+        update public.profiles set recent_games = ng where id = r.id;
+      end if;
     end if;
 
     -- Favoris (prefs.favs) : même règle que les souhaits
     if r.prefs is not null and jsonb_typeof(r.prefs -> 'favs') = 'array' then
-      update public.profiles set prefs = jsonb_set(r.prefs, '{favs}',
+      np := jsonb_set(r.prefs, '{favs}',
         case when (r.prefs -> 'favs') @> to_jsonb('lumbra'::text)
                or (r.prefs -> 'favs') @> to_jsonb('hush'::text)
              then jsonb_build_array('lumbra'::text)
-             else '[]'::jsonb end)
-        where id = r.id;
+             else '[]'::jsonb end);
+      if np is distinct from r.prefs then
+        update public.profiles set prefs = np where id = r.id;
+      end if;
     end if;
 
   end loop;
