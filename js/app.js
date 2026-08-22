@@ -812,6 +812,8 @@ function applyTranslations() {
     const pg = $('page-' + n);
     if (pg && pg.childElementCount) buildLegalPage(n);
   });
+  const _prp = $('page-press');
+  if (_prp && _prp.childElementCount) buildPressPage();
 
   // Search UI
   setText('search-label-txt', t('searchLabel') || 'Search a game or film');
@@ -977,6 +979,7 @@ function showPage(name, itemId = null) {
     if (name === 'settings') buildSettingsPage();
     /* Pages légales, construites à la demande (i18n interne _LEGAL_T) */
     if (name === 'legal' || name === 'privacy' || name === 'terms') buildLegalPage(name);
+    if (name === 'press') buildPressPage();
     /* Build the player's game library on demand (Rockstar/Steam-style) */
     if (name === 'library') buildLibraryPage();
     /* Build the chat (GLG Chat, MP + groupes) on demand */
@@ -1025,6 +1028,9 @@ function updateSEO(name, item) {
     desc  = (getItemField(item, 'tagline') || (getItemField(item, 'description') || [])[0] || '').slice(0, 300);
     url   = `${origin}/?work=${item.id}`; // URL réelle (non-fragment) = indexable + partageable
     image = `${origin}/${item.cover}`;
+  } else if (name === 'press') {
+    title = `${_pt('title')} · ${BASE}`;
+    desc = _pt('intro').slice(0, 200);
   } else if (name === 'legal' || name === 'privacy' || name === 'terms') {
     title = `${_lgt(name + 'Title')} · ${BASE}`;
     const el = $('pl-body-' + name);
@@ -1085,6 +1091,7 @@ window.addEventListener('popstate', e => {
     if (state.page === 'profile') buildProfilePage();
     if (state.page === 'settings') buildSettingsPage();
     if (state.page === 'legal' || state.page === 'privacy' || state.page === 'terms') buildLegalPage(state.page);
+    if (state.page === 'press') buildPressPage();
     if (state.page === 'library') buildLibraryPage();
     if (state.page === 'works') requestAnimationFrame(buildCarousels);
     _scrollTopInstant();
@@ -3457,6 +3464,8 @@ function footerHTML() {
       </div>
     </div>
     <div class="footer-legal-row">
+      <button onclick="showPage('press')">${_pt('title')}</button>
+      <span class="flr-dot" aria-hidden="true">·</span>
       <button onclick="showPage('legal')">${_lgt('legalTitle')}</button>
       <span class="flr-dot" aria-hidden="true">·</span>
       <button onclick="showPage('privacy')">${_lgt('privacyTitle')}</button>
@@ -3608,6 +3617,149 @@ const _LEGAL_T = {
   },
 };
 const _lgt = k => (_LEGAL_T[k] && (_LEGAL_T[k][LANG] || _LEGAL_T[k].en)) || '';
+
+/* ══════════════════════════════════════════
+   PRESSE & PARTENAIRES : faits vérifiés, kit officiel, contact 48 h.
+   Les textes du jeu viennent de data.js (source unique) ; tout le reste
+   vit dans _PRESS_T (10 langues). Les tailles des fichiers sont mesurées.
+══════════════════════════════════════════ */
+const _PRESS_T = {
+  title:   { fr:'Presse', en:'Press', es:'Prensa', de:'Presse', it:'Stampa', ar:'الصحافة', zh:'媒体', ja:'プレス', ru:'Пресса', pl:'Prasa' },
+  eye:     { fr:'Journalistes & partenaires', en:'Journalists & partners', es:'Periodistas y socios', de:'Journalisten & Partner', it:'Giornalisti e partner', ar:'الصحافيون والشركاء', zh:'媒体与合作伙伴', ja:'報道関係者とパートナー', ru:'Журналистам и партнёрам', pl:'Dziennikarze i partnerzy' },
+  intro:   { fr:'Tout ce qu’il faut pour parler de GEEKLEARN GAMES : des faits vérifiés, des visuels officiels en haute définition et un contact qui répond sous 48 heures.', en:'Everything you need to cover GEEKLEARN GAMES: verified facts, official high-resolution assets, and a contact that replies within 48 hours.', es:'Todo lo necesario para hablar de GEEKLEARN GAMES: datos verificados, material oficial en alta resolución y un contacto que responde en 48 horas.', de:'Alles, was Sie brauchen, um über GEEKLEARN GAMES zu berichten: geprüfte Fakten, offizielles Material in hoher Auflösung und ein Kontakt, der innerhalb von 48 Stunden antwortet.', it:'Tutto il necessario per parlare di GEEKLEARN GAMES: fatti verificati, materiali ufficiali in alta risoluzione e un contatto che risponde entro 48 ore.', ar:'كل ما تحتاجه للحديث عن GEEKLEARN GAMES: حقائق موثوقة وصور رسمية عالية الدقة وجهة اتصال ترد خلال 48 ساعة.', zh:'报道 GEEKLEARN GAMES 所需的一切：经过核实的资料、官方高清素材，以及 48 小时内回复的联系渠道。', ja:'GEEKLEARN GAMESを取り上げるために必要なものすべて。確認済みの事実、公式高解像度素材、48時間以内に返信する窓口。', ru:'Всё, что нужно, чтобы рассказать о GEEKLEARN GAMES: проверенные факты, официальные материалы в высоком разрешении и контакт, отвечающий в течение 48 часов.', pl:'Wszystko, czego potrzebujesz, aby opowiedzieć o GEEKLEARN GAMES: zweryfikowane fakty, oficjalne materiały w wysokiej rozdzielczości i kontakt odpowiadający w 48 godzin.' },
+  factsHead:{ fr:'Le studio en bref', en:'The studio at a glance', es:'El estudio en pocas palabras', de:'Das Studio im Überblick', it:'Lo studio in breve', ar:'الاستوديو باختصار', zh:'工作室简介', ja:'スタジオ概要', ru:'Студия кратко', pl:'Studio w skrócie' },
+  fFound:  { fr:'Fondation', en:'Founded', es:'Fundación', de:'Gegründet', it:'Fondazione', ar:'التأسيس', zh:'成立', ja:'設立', ru:'Основана', pl:'Założone' },
+  fFounder:{ fr:'Fondateur', en:'Founder', es:'Fundador', de:'Gründer', it:'Fondatore', ar:'المؤسس', zh:'创始人', ja:'創設者', ru:'Основатель', pl:'Założyciel' },
+  fStatus: { fr:'Statut', en:'Status', es:'Estatuto', de:'Rechtsform', it:'Statuto', ar:'الوضع القانوني', zh:'法律形式', ja:'形態', ru:'Статус', pl:'Status' },
+  fStatusV:{ fr:'Studio indépendant, entrepreneur individuel (EI) · SIRET 104 149 414 00033', en:'Independent studio, French sole proprietorship (EI) · SIRET 104 149 414 00033', es:'Estudio independiente, empresario individual francés (EI) · SIRET 104 149 414 00033', de:'Unabhängiges Studio, französisches Einzelunternehmen (EI) · SIRET 104 149 414 00033', it:'Studio indipendente, ditta individuale francese (EI) · SIRET 104 149 414 00033', ar:'استوديو مستقل، مؤسسة فردية فرنسية (EI) · SIRET 104 149 414 00033', zh:'独立工作室，法国个人企业（EI）· SIRET 104 149 414 00033', ja:'独立系スタジオ、フランス個人事業（EI）· SIRET 104 149 414 00033', ru:'Независимая студия, французское ИП (EI) · SIRET 104 149 414 00033', pl:'Niezależne studio, francuska działalność jednoosobowa (EI) · SIRET 104 149 414 00033' },
+  fLoc:    { fr:'Localisation', en:'Location', es:'Ubicación', de:'Standort', it:'Sede', ar:'الموقع', zh:'所在地', ja:'所在地', ru:'Локация', pl:'Lokalizacja' },
+  fFirst:  { fr:'Premier titre annoncé', en:'First announced title', es:'Primer título anunciado', de:'Erster angekündigter Titel', it:'Primo titolo annunciato', ar:'أول عنوان معلن', zh:'首款公布作品', ja:'発表済み第1作', ru:'Первый анонсированный проект', pl:'Pierwszy zapowiedziany tytuł' },
+  fContact:{ fr:'Contact presse', en:'Press contact', es:'Contacto de prensa', de:'Pressekontakt', it:'Contatto stampa', ar:'الاتصال الصحفي', zh:'媒体联络', ja:'プレス窓口', ru:'Пресс-контакт', pl:'Kontakt prasowy' },
+  f48:     { fr:'réponse sous 48 h', en:'reply within 48 h', es:'respuesta en 48 h', de:'Antwort innerhalb von 48 Std.', it:'risposta entro 48 ore', ar:'رد خلال 48 ساعة', zh:'48 小时内回复', ja:'48時間以内に返信', ru:'ответ в течение 48 ч', pl:'odpowiedź w 48 godz.' },
+  aboutHead:{ fr:'À propos du studio', en:'About the studio', es:'Sobre el estudio', de:'Über das Studio', it:'Sullo studio', ar:'عن الاستوديو', zh:'关于工作室', ja:'スタジオについて', ru:'О студии', pl:'O studiu' },
+  about1:  { fr:'GEEKLEARN GAMES est un studio indépendant français fondé en 2026 par Evan PRENEY, à Blyes, dans l’Ain. Le studio conçoit et développe tout en interne : ses jeux, son site et son launcher de bureau aux mises à jour signées.', en:'GEEKLEARN GAMES is a French independent studio founded in 2026 by Evan PRENEY in Blyes, Ain. Everything is designed and built in-house: the games, the website and the desktop launcher with signed updates.', es:'GEEKLEARN GAMES es un estudio independiente francés fundado en 2026 por Evan PRENEY en Blyes, Ain. Todo se diseña y desarrolla internamente: los juegos, el sitio y el launcher de escritorio con actualizaciones firmadas.', de:'GEEKLEARN GAMES ist ein unabhängiges französisches Studio, 2026 von Evan PRENEY in Blyes (Ain) gegründet. Alles entsteht im Haus: die Spiele, die Website und der Desktop-Launcher mit signierten Updates.', it:'GEEKLEARN GAMES è uno studio indipendente francese fondato nel 2026 da Evan PRENEY a Blyes, nell’Ain. Tutto è progettato e sviluppato internamente: i giochi, il sito e il launcher desktop con aggiornamenti firmati.', ar:'GEEKLEARN GAMES استوديو فرنسي مستقل أسسه Evan PRENEY عام 2026 في بلييس بمقاطعة آن (Ain). كل شيء يُصمَّم ويُطوَّر داخلياً: الألعاب والموقع ومشغّل سطح المكتب بتحديثات موقَّعة.', zh:'GEEKLEARN GAMES 是一家法国独立工作室，由 Evan PRENEY 于 2026 年创立于安省（Ain）布利耶（Blyes）。游戏、网站与带签名更新的桌面启动器全部由工作室内部设计开发。', ja:'GEEKLEARN GAMESは、2026年にEvan PRENEYがフランス・アン県ブリー(Blyes)で設立した独立系スタジオ。ゲーム、サイト、署名付きアップデート対応のデスクトップランチャーまで、すべて自社開発。', ru:'GEEKLEARN GAMES, французская независимая студия, основанная в 2026 году Эваном PRENEY в Бли (департамент Эн). Всё создаётся внутри студии: игры, сайт и настольный лаунчер с подписанными обновлениями.', pl:'GEEKLEARN GAMES to francuskie niezależne studio założone w 2026 roku przez Evana PRENEY w Blyes (Ain). Wszystko powstaje wewnętrznie: gry, strona i launcher z podpisanymi aktualizacjami.' },
+  about2:  { fr:'Son premier titre annoncé, LUMBRA, arrive au Q4 2027 sur PC. Trois autres projets sont en développement et seront révélés en leur temps. Chaque sortie du studio est publiée en dix langues.', en:'Its first announced title, LUMBRA, is coming in Q4 2027 on PC. Three more projects are in development and will be revealed in due time. Every studio release ships in ten languages.', es:'Su primer título anunciado, LUMBRA, llegará en el Q4 de 2027 a PC. Otros tres proyectos están en desarrollo y se revelarán a su debido tiempo. Cada lanzamiento del estudio se publica en diez idiomas.', de:'Der erste angekündigte Titel LUMBRA erscheint im Q4 2027 für PC. Drei weitere Projekte sind in Entwicklung und werden zu gegebener Zeit enthüllt. Jede Veröffentlichung erscheint in zehn Sprachen.', it:'Il primo titolo annunciato, LUMBRA, arriverà nel Q4 2027 su PC. Altri tre progetti sono in sviluppo e saranno svelati a tempo debito. Ogni uscita dello studio è pubblicata in dieci lingue.', ar:'أول عنوان معلن، LUMBRA، سيصدر في الربع الأخير من 2027 على PC. ثلاثة مشاريع أخرى قيد التطوير وسيُكشف عنها في وقتها. كل إصدار يصدر بعشر لغات.', zh:'首款公布作品《LUMBRA》将于 2027 年第四季度登陆 PC。另有三个项目正在开发中，将适时公布。工作室的每次发布均支持十种语言。', ja:'発表済み第1作『LUMBRA』は2027年第4四半期にPC向けにリリース予定。さらに3つのプロジェクトが開発中で、時が来れば公開されます。スタジオのリリースはすべて10言語対応。', ru:'Первый анонсированный проект, LUMBRA, выйдет в четвёртом квартале 2027 года на PC. Ещё три проекта в разработке и будут раскрыты в своё время. Каждый релиз студии выходит на десяти языках.', pl:'Pierwszy zapowiedziany tytuł, LUMBRA, ukaże się w Q4 2027 na PC. Trzy kolejne projekty są w produkcji i zostaną ujawnione we właściwym czasie. Każde wydanie studia ukazuje się w dziesięciu językach.' },
+  lumbraCta:{ fr:'Voir la fiche du jeu', en:'View the game page', es:'Ver la ficha del juego', de:'Zur Spielseite', it:'Vai alla scheda del gioco', ar:'عرض صفحة اللعبة', zh:'查看游戏页面', ja:'ゲームページを見る', ru:'Открыть страницу игры', pl:'Zobacz stronę gry' },
+  kitHead: { fr:'Kit presse', en:'Press kit', es:'Kit de prensa', de:'Pressekit', it:'Kit stampa', ar:'الملف الصحفي', zh:'媒体资料包', ja:'プレスキット', ru:'Пресс-кит', pl:'Zestaw prasowy' },
+  kitSub:  { fr:'Visuels officiels en haute définition, libres d’usage éditorial. Le kit complet contient les PNG, les fichiers vectoriels SVG, le logo et la fiche technique.', en:'Official high-resolution assets, free for editorial use. The full kit contains the PNG files, the SVG vector files, the logo and the factsheet.', es:'Material oficial en alta resolución, libre para uso editorial. El kit completo contiene los PNG, los vectoriales SVG, el logotipo y la ficha técnica.', de:'Offizielles Material in hoher Auflösung, frei für redaktionelle Nutzung. Das komplette Kit enthält die PNG-Dateien, die SVG-Vektordateien, das Logo und das Factsheet.', it:'Materiali ufficiali in alta risoluzione, liberi per uso editoriale. Il kit completo contiene i PNG, i vettoriali SVG, il logo e la scheda tecnica.', ar:'صور رسمية عالية الدقة متاحة للاستخدام التحريري. الملف الكامل يضم ملفات PNG وملفات SVG المتجهة والشعار والبطاقة التقنية.', zh:'官方高清素材，可自由用于编辑报道。完整资料包含 PNG、SVG 矢量文件、标志与资料表。', ja:'公式高解像度素材。編集目的で自由に使用できます。完全版キットにはPNG、SVGベクター、ロゴ、ファクトシートが含まれます。', ru:'Официальные материалы в высоком разрешении, свободные для редакционного использования. Полный набор содержит PNG, векторные SVG, логотип и факт-лист.', pl:'Oficjalne materiały w wysokiej rozdzielczości, do swobodnego użytku redakcyjnego. Pełny zestaw zawiera pliki PNG, wektorowe SVG, logo i kartę informacyjną.' },
+  zipBtn:  { fr:'Tout télécharger', en:'Download everything', es:'Descargar todo', de:'Alles herunterladen', it:'Scarica tutto', ar:'تنزيل الكل', zh:'全部下载', ja:'すべてダウンロード', ru:'Скачать всё', pl:'Pobierz wszystko' },
+  aJaq:    { fr:'Jaquette LUMBRA', en:'LUMBRA key art', es:'Arte principal de LUMBRA', de:'LUMBRA Key-Art', it:'Key art di LUMBRA', ar:'الغلاف الرئيسي لـ LUMBRA', zh:'LUMBRA 主视觉', ja:'LUMBRAキーアート', ru:'Ключевой арт LUMBRA', pl:'Grafika główna LUMBRA' },
+  aArt:    { fr:'Artwork', en:'Artwork', es:'Ilustración', de:'Artwork', it:'Artwork', ar:'عمل فني', zh:'艺术图', ja:'アートワーク', ru:'Иллюстрация', pl:'Grafika' },
+  aLogo:   { fr:'Logo du studio', en:'Studio logo', es:'Logotipo del estudio', de:'Studio-Logo', it:'Logo dello studio', ar:'شعار الاستوديو', zh:'工作室标志', ja:'スタジオロゴ', ru:'Логотип студии', pl:'Logo studia' },
+  aLogoM:  { fr:'fond transparent', en:'transparent background', es:'fondo transparente', de:'transparenter Hintergrund', it:'sfondo trasparente', ar:'خلفية شفافة', zh:'透明背景', ja:'透過背景', ru:'прозрачный фон', pl:'przezroczyste tło' },
+  aFact:   { fr:'Fiche technique', en:'Factsheet', es:'Ficha técnica', de:'Factsheet', it:'Scheda tecnica', ar:'البطاقة التقنية', zh:'资料表', ja:'ファクトシート', ru:'Факт-лист', pl:'Karta informacyjna' },
+  aFactM:  { fr:'FR + EN, texte brut', en:'FR + EN, plain text', es:'FR + EN, texto plano', de:'FR + EN, Reintext', it:'FR + EN, testo semplice', ar:'FR + EN، نص عادي', zh:'FR + EN，纯文本', ja:'FR + EN、プレーンテキスト', ru:'FR + EN, простой текст', pl:'FR + EN, zwykły tekst' },
+  dlAria:  { fr:'Télécharger', en:'Download', es:'Descargar', de:'Herunterladen', it:'Scarica', ar:'تنزيل', zh:'下载', ja:'ダウンロード', ru:'Скачать', pl:'Pobierz' },
+  usageHead:{ fr:'Règles d’usage', en:'Usage guidelines', es:'Normas de uso', de:'Nutzungsregeln', it:'Regole d’uso', ar:'قواعد الاستخدام', zh:'使用规范', ja:'使用ガイドライン', ru:'Правила использования', pl:'Zasady użycia' },
+  usage1:  { fr:'Usage éditorial libre : articles, vidéos, reportages, recadrage autorisé.', en:'Free editorial use: articles, videos, coverage; cropping allowed.', es:'Uso editorial libre: artículos, vídeos, reportajes; se permite recortar.', de:'Freie redaktionelle Nutzung: Artikel, Videos, Berichte; Zuschneiden erlaubt.', it:'Uso editoriale libero: articoli, video, servizi; ritaglio consentito.', ar:'استخدام تحريري حر: مقالات وفيديوهات وتقارير، ويُسمح بالاقتصاص.', zh:'可自由用于编辑内容：文章、视频、报道；允许裁剪。', ja:'編集目的での自由な使用が可能：記事、動画、特集。トリミング可。', ru:'Свободное редакционное использование: статьи, видео, репортажи; кадрирование разрешено.', pl:'Swobodny użytek redakcyjny: artykuły, wideo, relacje; kadrowanie dozwolone.' },
+  usage2:  { fr:'Ne pas déformer, recolorer ni altérer le logo et les visuels.', en:'Do not distort, recolor or alter the logo and the artwork.', es:'No deformar, recolorear ni alterar el logotipo ni los visuales.', de:'Logo und Material nicht verzerren, umfärben oder verändern.', it:'Non deformare, ricolorare o alterare il logo e i materiali.', ar:'لا تشوّه الشعار أو الصور ولا تغيّر ألوانها.', zh:'请勿变形、改色或修改标志与素材。', ja:'ロゴや素材の変形、色変更、改変は不可。', ru:'Не искажайте, не перекрашивайте и не изменяйте логотип и материалы.', pl:'Nie zniekształcaj, nie przebarwiaj ani nie zmieniaj logo i materiałów.' },
+  usage3:  { fr:'Aucune mention de partenariat ou de soutien sans accord écrit du studio.', en:'No claim of partnership or endorsement without the studio’s written consent.', es:'Ninguna mención de asociación o apoyo sin acuerdo escrito del estudio.', de:'Keine Nennung einer Partnerschaft oder Unterstützung ohne schriftliche Zustimmung des Studios.', it:'Nessuna menzione di partnership o sostegno senza accordo scritto dello studio.', ar:'لا يجوز الإيحاء بشراكة أو دعم دون موافقة خطية من الاستوديو.', zh:'未经工作室书面同意，不得声称存在合作或背书关系。', ja:'スタジオの書面による同意なしに、提携や公認を示唆しないでください。', ru:'Никаких заявлений о партнёрстве или поддержке без письменного согласия студии.', pl:'Zakaz sugerowania partnerstwa lub wsparcia bez pisemnej zgody studia.' },
+  boilerHead:{ fr:'Description officielle', en:'Official boilerplate', es:'Descripción oficial', de:'Offizielle Kurzbeschreibung', it:'Descrizione ufficiale', ar:'الوصف الرسمي', zh:'官方简介', ja:'公式ボイラープレート', ru:'Официальное описание', pl:'Opis oficjalny' },
+  boiler:  { fr:'GEEKLEARN GAMES est un studio de jeux vidéo indépendant fondé en 2026 par Evan PRENEY à Blyes, en France. Son premier titre annoncé, LUMBRA, une aventure narrative en noir et blanc, est prévu pour le Q4 2027 sur PC.', en:'GEEKLEARN GAMES is an independent game studio founded in 2026 by Evan PRENEY in Blyes, France. Its first announced title, LUMBRA, a black-and-white narrative adventure, is planned for Q4 2027 on PC.', es:'GEEKLEARN GAMES es un estudio de videojuegos independiente fundado en 2026 por Evan PRENEY en Blyes, Francia. Su primer título anunciado, LUMBRA, una aventura narrativa en blanco y negro, está previsto para el Q4 de 2027 en PC.', de:'GEEKLEARN GAMES ist ein unabhängiges Spielestudio, 2026 von Evan PRENEY in Blyes, Frankreich, gegründet. Der erste angekündigte Titel LUMBRA, ein Erzähl-Abenteuer in Schwarz-Weiß, ist für Q4 2027 auf PC geplant.', it:'GEEKLEARN GAMES è uno studio di videogiochi indipendente fondato nel 2026 da Evan PRENEY a Blyes, in Francia. Il primo titolo annunciato, LUMBRA, un’avventura narrativa in bianco e nero, è previsto per il Q4 2027 su PC.', ar:'GEEKLEARN GAMES استوديو ألعاب مستقل أسسه Evan PRENEY عام 2026 في بلييس بفرنسا. أول عنوان معلن له، LUMBRA، مغامرة سردية بالأبيض والأسود، متوقع في الربع الأخير من 2027 على PC.', zh:'GEEKLEARN GAMES 是一家独立游戏工作室，由 Evan PRENEY 于 2026 年创立于法国布利耶（Blyes）。其首款公布作品《LUMBRA》是一款黑白叙事冒险游戏，计划于 2027 年第四季度登陆 PC。', ja:'GEEKLEARN GAMESは、2026年にEvan PRENEYがフランスのブリー(Blyes)で設立した独立系ゲームスタジオ。発表済み第1作『LUMBRA』はモノクロのナラティブアドベンチャーで、2027年第4四半期にPC向けリリース予定。', ru:'GEEKLEARN GAMES, независимая игровая студия, основанная в 2026 году Эваном PRENEY в Бли, Франция. Первый анонсированный проект, LUMBRA, чёрно-белое повествовательное приключение, запланирован на четвёртый квартал 2027 года на PC.', pl:'GEEKLEARN GAMES to niezależne studio gier założone w 2026 roku przez Evana PRENEY w Blyes we Francji. Pierwszy zapowiedziany tytuł, LUMBRA, czarno-biała przygoda narracyjna, planowany jest na Q4 2027 na PC.' },
+  boilerCopy:{ fr:'Copier le texte', en:'Copy text', es:'Copiar texto', de:'Text kopieren', it:'Copia testo', ar:'نسخ النص', zh:'复制文本', ja:'テキストをコピー', ru:'Скопировать текст', pl:'Kopiuj tekst' },
+  boilerCopied:{ fr:'Copié !', en:'Copied!', es:'¡Copiado!', de:'Kopiert!', it:'Copiato!', ar:'تم النسخ!', zh:'已复制！', ja:'コピーしました', ru:'Скопировано!', pl:'Skopiowano!' },
+  mb:      { fr:'Mo', en:'MB', es:'MB', de:'MB', it:'MB', ar:'م.ب', zh:'MB', ja:'MB', ru:'МБ', pl:'MB' },
+  ko:      { fr:'Ko', en:'KB', es:'KB', de:'KB', it:'KB', ar:'ك.ب', zh:'KB', ja:'KB', ru:'КБ', pl:'KB' },
+};
+const _pt = k => (_PRESS_T[k] && (_PRESS_T[k][LANG] || _PRESS_T[k].en)) || '';
+
+function buildPressPage() {
+  const host = $('page-press'); if (!host) return;
+  const fmtN = n => { try { return new Intl.NumberFormat(LANG_LOCALE[LANG] || 'en-US', { maximumFractionDigits: 1 }).format(n); } catch (e) { return String(n); } };
+  const dlIcon = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const lu = (typeof ALL_WORKS !== 'undefined' ? ALL_WORKS : []).find(w => w.id === 'lumbra');
+  const luTag  = lu ? (getItemField(lu, 'tagline') || '') : '';
+  const luDesc = lu ? ((getItemField(lu, 'description') || [])[0] || '') : '';
+  const card = (thumb, label, meta, links) => `
+    <div class="press-card reveal">
+      <div class="press-thumb${thumb.pad ? ' press-thumb--pad' : ''}">${thumb.img ? `<img src="${thumb.img}" alt="${label}" loading="lazy" decoding="async">` : `<span class="press-thumb-txt" aria-hidden="true">${thumb.txt}</span>`}</div>
+      <div class="press-card-b">
+        <div class="press-card-t">${label}</div>
+        <div class="press-card-m">${meta}</div>
+        <div class="press-dls">${links.map(l => `<a class="press-dl-btn" href="${l.h}" download aria-label="${_pt('dlAria')} : ${label} (${l.f})">${l.f}</a>`).join('')}</div>
+      </div>
+    </div>`;
+  host.innerHTML = `
+    <div class="pl-hero glg-pattern glg-line-after">
+      <div class="glg-pattern-bg glg-pat-subtle"></div>
+      <p class="section-eye reveal">${_pt('eye')}</p>
+      <h1 class="pl-title reveal">${_pt('title')}</h1>
+      <p class="press-intro reveal">${_pt('intro')}</p>
+    </div>
+    <div class="press-body">
+      <section class="press-block reveal">
+        <div class="press-sec-label">${_pt('factsHead')}</div>
+        <dl class="press-facts">
+          <div><dt>${_pt('fFound')}</dt><dd>2026</dd></div>
+          <div><dt>${_pt('fFounder')}</dt><dd>Evan PRENEY (GEEKLEARN)</dd></div>
+          <div><dt>${_pt('fStatus')}</dt><dd>${_pt('fStatusV')}</dd></div>
+          <div><dt>${_pt('fLoc')}</dt><dd>Blyes (Ain), Auvergne-Rhône-Alpes, France</dd></div>
+          <div><dt>${_pt('fFirst')}</dt><dd>LUMBRA · Q4 2027 · PC</dd></div>
+          <div><dt>${_pt('fContact')}</dt><dd><a href="mailto:contact@geeklearngames.com">contact@geeklearngames.com</a><br>${_pt('f48')}</dd></div>
+        </dl>
+      </section>
+      <section class="press-block reveal">
+        <div class="press-sec-label">${_pt('aboutHead')}</div>
+        <p class="press-p">${_pt('about1')}</p>
+        <p class="press-p">${_pt('about2')}</p>
+      </section>
+      <section class="press-block reveal">
+        <div class="press-sec-label">LUMBRA</div>
+        ${luTag ? `<p class="press-tag">&ldquo;${escHtml(luTag)}&rdquo;</p>` : ''}
+        ${luDesc ? `<p class="press-p">${escHtml(luDesc)}</p>` : ''}
+        <button class="btn btn-outline" onclick="showPage('detail','lumbra')">${_pt('lumbraCta')}</button>
+      </section>
+      <section class="press-block">
+        <div class="press-sec-label reveal">${_pt('kitHead')}</div>
+        <p class="press-p press-kit-sub reveal">${_pt('kitSub')}</p>
+        <a class="btn btn-primary btn-lg press-zip reveal" href="assets/press/kit-presse-geeklearn-games.zip" download>${dlIcon} ${_pt('zipBtn')} <span class="press-zip-m">.zip · ${fmtN(5.8)} ${_pt('mb')}</span></a>
+        <div class="press-grid">
+          ${card({ img: 'assets/img/works/games/lumbra.svg' }, _pt('aJaq'), `PNG · 1200×1800 · ${fmtN(1.5)} ${_pt('mb')}`, [
+            { h: 'assets/press/lumbra-jaquette.png', f: 'PNG' },
+            { h: 'assets/img/works/games/lumbra.svg', f: 'SVG' }])}
+          ${card({ img: 'assets/img/works/games/lumbra-art1.svg' }, `${_pt('aArt')} 1`, `PNG · 1920×1080 · ${fmtN(1.3)} ${_pt('mb')}`, [
+            { h: 'assets/press/lumbra-artwork-1.png', f: 'PNG' },
+            { h: 'assets/img/works/games/lumbra-art1.svg', f: 'SVG' }])}
+          ${card({ img: 'assets/img/works/games/lumbra-art2.svg' }, `${_pt('aArt')} 2`, `PNG · 1920×1080 · ${fmtN(1.4)} ${_pt('mb')}`, [
+            { h: 'assets/press/lumbra-artwork-2.png', f: 'PNG' },
+            { h: 'assets/img/works/games/lumbra-art2.svg', f: 'SVG' }])}
+          ${card({ img: 'assets/img/works/games/lumbra-art3.svg' }, `${_pt('aArt')} 3`, `PNG · 1920×1080 · ${fmtN(1.6)} ${_pt('mb')}`, [
+            { h: 'assets/press/lumbra-artwork-3.png', f: 'PNG' },
+            { h: 'assets/img/works/games/lumbra-art3.svg', f: 'SVG' }])}
+          ${card({ img: 'assets/img/brand/glg-logo-white.png', pad: true }, _pt('aLogo'), `PNG · 3901×1254 · 42 ${_pt('ko')} · ${_pt('aLogoM')}`, [
+            { h: 'assets/img/brand/glg-logo-white.png', f: 'PNG' }])}
+          ${card({ txt: 'TXT' }, _pt('aFact'), `${_pt('aFactM')} · ${fmtN(2.3)} ${_pt('ko')}`, [
+            { h: 'assets/press/factsheet-presse.txt', f: 'TXT' }])}
+        </div>
+      </section>
+      <section class="press-block reveal">
+        <div class="press-sec-label">${_pt('usageHead')}</div>
+        <ul class="press-usage">
+          <li>${_pt('usage1')}</li>
+          <li>${_pt('usage2')}</li>
+          <li>${_pt('usage3')}</li>
+        </ul>
+      </section>
+      <section class="press-block press-boiler reveal">
+        <div class="press-sec-label">${_pt('boilerHead')}</div>
+        <p class="press-p" id="press-boiler-txt">${_pt('boiler')}</p>
+        <button class="btn btn-outline" id="press-copy" onclick="glgCopyBoiler(this)">${_pt('boilerCopy')}</button>
+      </section>
+    </div>
+    <div class="page-footer-slot">${footerHTML()}</div>`;
+  initReveal();
+}
+
+/* Copie la description officielle ; retour visuel sur le bouton. */
+function glgCopyBoiler(btn) {
+  const txt = document.getElementById('press-boiler-txt')?.textContent || '';
+  const done = () => {
+    btn.textContent = _pt('boilerCopied');
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = _pt('boilerCopy'); btn.disabled = false; }, 1600);
+  };
+  try { navigator.clipboard.writeText(txt).then(done, done); } catch (e) { done(); }
+}
 
 function buildLegalPage(name) {
   const host = $('page-' + name); if (!host) return;
@@ -7728,7 +7880,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // liens partagés). Consommé par selectLang après initSite, comme _bootWorkId.
   try {
     const h = (location.hash || '').replace(/^#/, '');
-    if (!window._bootWorkId && ['works', 'library', 'about', 'contact', 'profile', 'settings', 'chat', 'legal', 'privacy', 'terms'].includes(h)) {
+    if (!window._bootWorkId && ['works', 'library', 'about', 'contact', 'profile', 'settings', 'chat', 'press', 'legal', 'privacy', 'terms'].includes(h)) {
       window._bootPage = h;
     }
   } catch (e) {}

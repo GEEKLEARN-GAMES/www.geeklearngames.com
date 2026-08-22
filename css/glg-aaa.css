@@ -5005,3 +5005,87 @@ body.glg-on-chat .glg-chatfab{ display:none !important; }
 @media (prefers-reduced-motion: reduce){
   .hero--lumbra.hero-swept::after{ animation:none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §96 PRESSE & PARTENAIRES. Page sobre façon dossier : faits en grille,
+   kit d'assets en cartes anguleuses, règles d'usage, description à copier.
+   Héros = même squelette que les pages légales (pl-hero/pl-title).
+   ═══════════════════════════════════════════════════════════════════════ */
+.press-intro{
+  color:rgba(255,255,255,.6); max-width:62ch; margin:14px auto 0;
+  line-height:1.65; font-size:.95rem;
+}
+.press-body{
+  max-width:1120px; margin:0 auto;
+  padding:clamp(30px,5vh,54px) clamp(16px,5vw,72px) 90px;
+  display:flex; flex-direction:column; gap:58px;
+}
+.press-sec-label{
+  font-family:var(--f-mono); font-size:.6rem; letter-spacing:.24em;
+  text-transform:uppercase; color:rgba(255,255,255,.42); margin-bottom:18px;
+}
+.press-p{ color:rgba(255,255,255,.66); line-height:1.7; max-width:72ch; margin:0 0 14px; }
+.press-facts{
+  margin:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);
+}
+.press-facts > div{ background:#0a0a0b; padding:18px 20px; }
+.press-facts dt{
+  font-family:var(--f-mono); font-size:.56rem; letter-spacing:.18em;
+  text-transform:uppercase; color:rgba(255,255,255,.38); margin-bottom:8px;
+}
+.press-facts dd{ margin:0; color:#fff; font-size:.9rem; line-height:1.55; }
+.press-facts dd a{ color:#fff; text-decoration-color:rgba(255,255,255,.35); text-underline-offset:3px; }
+.press-tag{ font-family:var(--f-serif); font-size:clamp(1.3rem,2.6vw,1.7rem); color:#fff; margin:0 0 12px; }
+.press-kit-sub{ margin-bottom:22px; }
+.press-zip{ margin-bottom:28px; }
+.press-zip-m{ opacity:.55; font-size:.85em; }
+.press-grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:18px;
+}
+.press-card{
+  border:1px solid rgba(255,255,255,.13); background:#0a0a0b;
+  display:flex; flex-direction:column;
+}
+.press-thumb{
+  aspect-ratio:16/9; overflow:hidden; background:#050505;
+  display:flex; align-items:center; justify-content:center;
+}
+.press-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.press-thumb--pad img{ object-fit:contain; padding:24px; }
+.press-thumb-txt{
+  font-family:var(--f-mono); font-size:1.5rem; letter-spacing:.3em;
+  color:rgba(255,255,255,.3);
+}
+.press-card-b{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+.press-card-t{ color:#fff; font-size:.92rem; font-weight:600; letter-spacing:.01em; }
+.press-card-m{
+  font-family:var(--f-mono); font-size:.54rem; letter-spacing:.12em;
+  text-transform:uppercase; color:rgba(255,255,255,.4); line-height:1.7;
+}
+.press-dls{ display:flex; gap:8px; margin-top:auto; padding-top:8px; flex-wrap:wrap; }
+.press-dl-btn{
+  font-family:var(--f-mono); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase;
+  color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,.34); padding:8px 14px;
+  transition:background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
+}
+.press-dl-btn:hover{ background:#fff; color:#000; border-color:#fff; }
+.press-dl-btn:focus-visible{ outline:1px solid rgba(255,255,255,.85); outline-offset:3px; }
+.press-usage{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+.press-usage li{
+  color:rgba(255,255,255,.62); line-height:1.6; padding-left:20px;
+  position:relative; max-width:75ch;
+}
+.press-usage li::before{
+  content:''; position:absolute; left:0; top:.66em; width:9px; height:1px;
+  background:rgba(255,255,255,.5);
+}
+.press-boiler{ border:1px solid rgba(255,255,255,.13); padding:24px 26px; }
+.press-boiler .press-p{ color:rgba(255,255,255,.74); }
+[dir="rtl"] .press-sec-label, [dir="rtl"] .press-card-m, [dir="rtl"] .press-dl-btn{ letter-spacing:0; }
+[dir="rtl"] .press-usage li{ padding-left:0; padding-right:20px; }
+[dir="rtl"] .press-usage li::before{ left:auto; right:0; }
+@media (max-width:640px){
+  .press-body{ gap:44px; }
+  .press-facts{ grid-template-columns:1fr; }
+}
