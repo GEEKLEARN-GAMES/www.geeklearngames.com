@@ -814,6 +814,8 @@ function applyTranslations() {
   });
   const _prp = $('page-press');
   if (_prp && _prp.childElementCount) buildPressPage();
+  const _jrp = $('page-journal');
+  if (_jrp && _jrp.childElementCount) buildJournalPage();
 
   // Search UI
   setText('search-label-txt', t('searchLabel') || 'Search a game or film');
@@ -980,6 +982,7 @@ function showPage(name, itemId = null) {
     /* Pages légales, construites à la demande (i18n interne _LEGAL_T) */
     if (name === 'legal' || name === 'privacy' || name === 'terms') buildLegalPage(name);
     if (name === 'press') buildPressPage();
+    if (name === 'journal') buildJournalPage();
     /* Build the player's game library on demand (Rockstar/Steam-style) */
     if (name === 'library') buildLibraryPage();
     /* Build the chat (GLG Chat, MP + groupes) on demand */
@@ -1031,6 +1034,9 @@ function updateSEO(name, item) {
   } else if (name === 'press') {
     title = `${_pt('title')} · ${BASE}`;
     desc = _pt('intro').slice(0, 200);
+  } else if (name === 'journal') {
+    title = `${_jt('title')} · ${BASE}`;
+    desc = _jt('intro').slice(0, 200);
   } else if (name === 'legal' || name === 'privacy' || name === 'terms') {
     title = `${_lgt(name + 'Title')} · ${BASE}`;
     const el = $('pl-body-' + name);
@@ -1092,6 +1098,7 @@ window.addEventListener('popstate', e => {
     if (state.page === 'settings') buildSettingsPage();
     if (state.page === 'legal' || state.page === 'privacy' || state.page === 'terms') buildLegalPage(state.page);
     if (state.page === 'press') buildPressPage();
+    if (state.page === 'journal') buildJournalPage();
     if (state.page === 'library') buildLibraryPage();
     if (state.page === 'works') requestAnimationFrame(buildCarousels);
     _scrollTopInstant();
@@ -3466,6 +3473,8 @@ function footerHTML() {
     <div class="footer-legal-row">
       <button onclick="showPage('press')">${_pt('title')}</button>
       <span class="flr-dot" aria-hidden="true">·</span>
+      <button onclick="showPage('journal')">${_jt('title')}</button>
+      <span class="flr-dot" aria-hidden="true">·</span>
       <button onclick="showPage('legal')">${_lgt('legalTitle')}</button>
       <span class="flr-dot" aria-hidden="true">·</span>
       <button onclick="showPage('privacy')">${_lgt('privacyTitle')}</button>
@@ -3759,6 +3768,61 @@ function glgCopyBoiler(btn) {
     setTimeout(() => { btn.textContent = _pt('boilerCopy'); btn.disabled = false; }, 1600);
   };
   try { navigator.clipboard.writeText(txt).then(done, done); } catch (e) { done(); }
+}
+
+/* ══════════════════════════════════════════
+   JOURNAL DU STUDIO : uniquement des faits datés (GLG_JOURNAL, data.js).
+   Liens d'entrée réutilisant l'i18n existante : fiche (_pt lumbraCta),
+   launcher (navGet), presse (_pt title).
+══════════════════════════════════════════ */
+const _JRNL_T = {
+  title: { fr:'Journal', en:'Journal', es:'Diario', de:'Journal', it:'Diario', ar:'اليوميات', zh:'日志', ja:'ジャーナル', ru:'Журнал', pl:'Dziennik' },
+  eye:   { fr:'La vie du studio', en:'Life at the studio', es:'La vida del estudio', de:'Das Studioleben', it:'La vita dello studio', ar:'حياة الاستوديو', zh:'工作室动态', ja:'スタジオの日々', ru:'Жизнь студии', pl:'Życie studia' },
+  intro: { fr:'Les nouvelles du studio, écrites par le studio : annonces, versions du launcher, évolutions du site. Sans bruit, seulement ce qui a vraiment eu lieu.', en:'News from the studio, written by the studio: announcements, launcher releases, website evolutions. No noise, only what actually happened.', es:'Las noticias del estudio, escritas por el estudio: anuncios, versiones del launcher, evoluciones del sitio. Sin ruido, solo lo que realmente ocurrió.', de:'Neuigkeiten aus dem Studio, vom Studio geschrieben: Ankündigungen, Launcher-Versionen, Website-Entwicklungen. Kein Lärm, nur was wirklich passiert ist.', it:'Le notizie dello studio, scritte dallo studio: annunci, versioni del launcher, evoluzioni del sito. Senza rumore, solo ciò che è realmente accaduto.', ar:'أخبار الاستوديو بقلم الاستوديو: إعلانات وإصدارات المشغّل وتطورات الموقع. بلا ضجيج، فقط ما حدث فعلاً.', zh:'来自工作室的一手动态：公告、启动器版本、网站演进。不制造噪音，只记录真实发生的事。', ja:'スタジオ自身が綴るニュース。発表、ランチャーのリリース、サイトの進化。ノイズはなし、実際に起きたことだけ。', ru:'Новости студии от самой студии: анонсы, версии лаунчера, развитие сайта. Без шума, только то, что действительно произошло.', pl:'Wiadomości studia pisane przez studio: zapowiedzi, wersje launchera, rozwój strony. Bez szumu, tylko to, co naprawdę się wydarzyło.' },
+  tagStudio:   { fr:'Studio', en:'Studio', es:'Estudio', de:'Studio', it:'Studio', ar:'الاستوديو', zh:'工作室', ja:'スタジオ', ru:'Студия', pl:'Studio' },
+  tagSite:     { fr:'Site', en:'Website', es:'Sitio', de:'Website', it:'Sito', ar:'الموقع', zh:'网站', ja:'サイト', ru:'Сайт', pl:'Strona' },
+  tagLauncher: { fr:'Launcher', en:'Launcher', es:'Launcher', de:'Launcher', it:'Launcher', ar:'المشغّل', zh:'启动器', ja:'ランチャー', ru:'Лаунчер', pl:'Launcher' },
+};
+const _jt = k => (_JRNL_T[k] && (_JRNL_T[k][LANG] || _JRNL_T[k].en)) || '';
+
+function buildJournalPage() {
+  const host = $('page-journal'); if (!host) return;
+  const log = (typeof GLG_JOURNAL !== 'undefined' && Array.isArray(GLG_JOURNAL)) ? GLG_JOURNAL : [];
+  const loc = m => (m && (m[LANG] || m.en)) || '';
+  const tagOf = t => t === 'lumbra' ? 'LUMBRA' : t === 'launcher' ? _jt('tagLauncher') : t === 'site' ? _jt('tagSite') : _jt('tagStudio');
+  const linkOf = l => {
+    if (l === 'lumbra')   return { lbl: _pt('lumbraCta'), oc: "showPage('detail','lumbra')" };
+    if (l === 'launcher') return { lbl: t('navGet') || 'Launcher', oc: '_glgGetLauncher()' };
+    if (l === 'press')    return { lbl: _pt('title'), oc: "showPage('press')" };
+    return null;
+  };
+  const fdate = iso => { try { return new Date(iso + 'T12:00:00').toLocaleDateString(LANG_LOCALE[LANG] || 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return iso; } };
+  host.innerHTML = `
+    <div class="pl-hero glg-pattern glg-line-after">
+      <div class="glg-pattern-bg glg-pat-subtle"></div>
+      <p class="section-eye reveal">${_jt('eye')}</p>
+      <h1 class="pl-title reveal">${_jt('title')}</h1>
+      <p class="press-intro reveal">${_jt('intro')}</p>
+    </div>
+    <div class="jr-body">
+      ${log.map(e => {
+        const lk = linkOf(e.link);
+        return `
+        <article class="jr-entry reveal">
+          <div class="jr-side">
+            <time class="jr-date" datetime="${e.date}">${fdate(e.date)}</time>
+            <span class="jr-tag">${tagOf(e.tag)}</span>
+          </div>
+          <div class="jr-main">
+            <h2 class="jr-title">${escHtml(loc(e.title))}</h2>
+            ${(e.body || []).map(p => `<p class="press-p">${escHtml(loc(p))}</p>`).join('')}
+            ${lk ? `<button class="jr-link" onclick="${lk.oc}">${lk.lbl}</button>` : ''}
+          </div>
+        </article>`;
+      }).join('')}
+    </div>
+    <div class="page-footer-slot">${footerHTML()}</div>`;
+  initReveal();
 }
 
 function buildLegalPage(name) {
@@ -7880,7 +7944,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // liens partagés). Consommé par selectLang après initSite, comme _bootWorkId.
   try {
     const h = (location.hash || '').replace(/^#/, '');
-    if (!window._bootWorkId && ['works', 'library', 'about', 'contact', 'profile', 'settings', 'chat', 'press', 'legal', 'privacy', 'terms'].includes(h)) {
+    if (!window._bootWorkId && ['works', 'library', 'about', 'contact', 'profile', 'settings', 'chat', 'press', 'journal', 'legal', 'privacy', 'terms'].includes(h)) {
       window._bootPage = h;
     }
   } catch (e) {}

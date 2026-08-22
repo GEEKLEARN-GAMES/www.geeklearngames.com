@@ -125,7 +125,7 @@
   <!-- Premium visual layer & animations -->
   <link rel="stylesheet" href="css/glg-premium.css?v=10">
   <!-- AAA overhaul 2026, section enhancements, tinted hovers, accounts UI (loads last) -->
-  <link rel="stylesheet" href="css/glg-aaa.css?v=77">
+  <link rel="stylesheet" href="css/glg-aaa.css?v=78">
   <!-- Protection: loaded synchronously so it fires before any user action -->
   <script src="js/protection.js?v=3"></script>
 </head>
@@ -462,6 +462,7 @@
      PAGES LÉGALES (dynamiques), mentions légales · confidentialité · CGU
      Rendues par buildLegalPage() ; reliées au pied de page.
 ═══════════════════════ -->
+<main class="page" id="page-journal"></main>
 <main class="page" id="page-press"></main>
 <main class="page" id="page-legal"></main>
 <main class="page" id="page-privacy"></main>
@@ -683,12 +684,12 @@
 
 <!-- ══════════ SCRIPTS ══════════ -->
 <!-- Site data + core app -->
-<script src="js/data.js?v=17"></script>
+<script src="js/data.js?v=18"></script>
 <!-- Language-gate flag field (canvas), defines window.GLG_GATE_FIELD before buildGate() runs -->
 <script src="js/gate-field.js?v=1" defer></script>
 <!-- Sons d'interface synthétisés (WebAudio, opt-in via Options → Personnalisation) -->
 <script src="js/glg-sfx.js?v=1" defer></script>
-<script src="js/app.js?v=127"></script>
+<script src="js/app.js?v=128"></script>
 <!-- Accounts (Supabase), self-hosted, no external CDN -->
 <script src="js/vendor/supabase.min.js?v=1" defer></script>
 <script src="js/config.js?v=2" defer></script>
